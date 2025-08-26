@@ -642,6 +642,7 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 	/**
 	 * Captures an image from the webcam.
 	 * This method triggers the capture process and updates the captured image URL.
+	 * If mirror is enabled, the captured image will be flipped horizontally.
 	 * @returns A Promise that resolves when the capture is complete.
 	 */
 	async captureImage(): Promise<void> {
@@ -653,13 +654,63 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 		try {
 			const { blob } = await this.webcamService.captureImage();
 			if (blob) {
+				// Check if mirror is enabled and flip the image if needed
+				const isMirrorEnabled = this.enableMirror();
+				let finalBlob = blob;
+
+				if (isMirrorEnabled) {
+					finalBlob = await this.flipImageBlob(blob);
+				}
+
 				// Create a temporary object URL for preview
-				const url = URL.createObjectURL(blob);
+				const url = URL.createObjectURL(finalBlob);
 				this.capturedImageUrl.set(url);
 			}
 		} catch (error) {
 			this.showToast(`Capture failed`);
 		}
+	}
+
+	/**
+	 * Flips an image blob horizontally using canvas transformation.
+	 * @param blob The original image blob to flip
+	 * @returns A Promise that resolves to the flipped image blob
+	 */
+	private async flipImageBlob(blob: Blob): Promise<Blob> {
+		return new Promise((resolve, reject) => {
+			const img = new Image();
+			const canvas = document.createElement("canvas");
+			const ctx = canvas.getContext("2d");
+
+			if (!ctx) {
+				reject(new Error("Could not get canvas context"));
+				return;
+			}
+
+			img.onload = () => {
+				canvas.width = img.width;
+				canvas.height = img.height;
+
+				// Flip horizontally
+				ctx.scale(-1, 1);
+				ctx.drawImage(img, -img.width, 0);
+
+				// Convert canvas to blob
+				canvas.toBlob((flippedBlob) => {
+					if (flippedBlob) {
+						resolve(flippedBlob);
+					} else {
+						reject(new Error("Failed to create flipped blob"));
+					}
+				}, "image/png");
+			};
+
+			img.onerror = () => {
+				reject(new Error("Failed to load image"));
+			};
+
+			img.src = URL.createObjectURL(blob);
+		});
 	}
 
 	/**
