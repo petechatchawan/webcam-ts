@@ -239,7 +239,32 @@ export class Webcam {
 
 			// Apply mirror setting if enabled in config
 			if (config.enableMirror && config.videoElement) {
-				this.setMirror(true);
+				// Wait for video element to be ready before applying mirror
+				const applyMirror = () => {
+					if (config.videoElement && (config.videoElement.readyState >= 2 || config.videoElement.videoWidth > 0)) {
+						this.setMirror(true);
+					} else {
+						// If video is not ready, wait a bit and try again
+						setTimeout(applyMirror, 100);
+					}
+				};
+
+				// Try to apply mirror immediately, but fallback to waiting if needed
+				if (config.videoElement.readyState >= 2 || config.videoElement.videoWidth > 0) {
+					this.setMirror(true);
+				} else {
+					// Listen for loadedmetadata event or use setTimeout as fallback
+					const onLoadedMetadata = () => {
+						this.setMirror(true);
+						config.videoElement?.removeEventListener('loadedmetadata', onLoadedMetadata);
+					};
+					config.videoElement.addEventListener('loadedmetadata', onLoadedMetadata);
+					// Fallback timeout in case event doesn't fire
+					setTimeout(() => {
+						config.videoElement?.removeEventListener('loadedmetadata', onLoadedMetadata);
+						applyMirror();
+					}, 500);
+				}
 			}
 
 			this._callStreamStart(stream);
@@ -365,8 +390,8 @@ export class Webcam {
 				minHeight: capabilities.height?.min || 240,
 				supportedFrameRates:
 					capabilities.frameRate &&
-					capabilities.frameRate.min !== undefined &&
-					capabilities.frameRate.max !== undefined
+						capabilities.frameRate.min !== undefined &&
+						capabilities.frameRate.max !== undefined
 						? [capabilities.frameRate.min, capabilities.frameRate.max]
 						: undefined,
 				hasZoom: "zoom" in capabilities,
@@ -378,8 +403,7 @@ export class Webcam {
 			};
 		} catch (error) {
 			const webcamError = new WebcamError(
-				`Failed to get device capabilities: ${
-					error instanceof Error ? error.message : "Unknown error"
+				`Failed to get device capabilities: ${error instanceof Error ? error.message : "Unknown error"
 				}`,
 				WebcamErrorCode.DEVICES_ERROR,
 			);
@@ -539,8 +563,7 @@ export class Webcam {
 				config.deviceInfo = videoDevices[0];
 			} catch (error) {
 				throw new WebcamError(
-					`Failed to get video devices: ${
-						error instanceof Error ? error.message : "Unknown error"
+					`Failed to get video devices: ${error instanceof Error ? error.message : "Unknown error"
 					}`,
 					WebcamErrorCode.DEVICES_ERROR,
 				);
@@ -577,8 +600,8 @@ export class Webcam {
 		let resolutionText = Array.isArray(config?.preferredResolutions)
 			? config?.preferredResolutions.map((r) => `${r.width}x${r.height}`).join(", ")
 			: resolution
-			? `${resolution.width}x${resolution.height}`
-			: "Unknown resolution";
+				? `${resolution.width}x${resolution.height}`
+				: "Unknown resolution";
 		let context = "Start Camera";
 
 		if (error instanceof WebcamError) {
@@ -628,8 +651,7 @@ export class Webcam {
 			.join(" | ");
 
 		return new WebcamError(
-			`${baseMsg}Failed to start camera: ${
-				details || "Unknown error"
+			`${baseMsg}Failed to start camera: ${details || "Unknown error"
 			} (Device: ${deviceLabel}, Resolution: ${resolutionText})`,
 			WebcamErrorCode.UNKNOWN_ERROR,
 		);
