@@ -237,6 +237,11 @@ export class Webcam {
 			this._setStatus("ready");
 			this._clearError();
 
+			// Apply mirror setting if enabled in config
+			if (config.enableMirror && config.videoElement) {
+				this.setMirror(true);
+			}
+
 			this._callStreamStart(stream);
 			this._callStateChange();
 		} catch (error) {
