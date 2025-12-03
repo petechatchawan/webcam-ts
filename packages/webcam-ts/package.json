@@ -39,10 +39,6 @@
 		"prepare": "npm run build",
 		"prepublishOnly": "npm run build"
 	},
-	"peerDependencies": {
-		"@angular/common": ">=17.0.0",
-		"@angular/core": ">=17.0.0"
-	},
 	"devDependencies": {
 		"@types/node": "^24.0.7",
 		"typescript": "^5.0.0"
