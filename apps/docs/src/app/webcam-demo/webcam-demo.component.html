@@ -243,6 +243,7 @@
 								placeholder="เลือกกล้อง"
 								(onChange)="onDeviceChange($event.value)"
 								styleClass="w-full"
+								dataKey="deviceId"
 								[disabled]="uiState().isLoading">
 								<ng-template pTemplate="selectedItem" let-d>
 									<div class="flex items-center gap-2">
