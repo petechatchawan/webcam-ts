@@ -1,7 +1,7 @@
 {
-	"name": "ts-webcam",
-	"version": "2.1.3",
-	"description": "A production-grade TypeScript webcam library with callback-based APIs, flexible permission handling, and comprehensive device support",
+	"name": "webcam-ts",
+	"version": "3.0.0",
+	"description": "Modern TypeScript library for webcam access in web applications",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"files": [
@@ -24,15 +24,15 @@
 		"torch",
 		"capabilities"
 	],
-	"author": "TS-Webcam Team",
+	"author": "Pete Chatchawan",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/petechatchawan/ts-webcam.git"
+		"url": "https://github.com/petechatchawan/webcam-ts.git"
 	},
-	"homepage": "https://ts-webcam-docs.vercel.app/",
+	"homepage": "https://webcam-ts-docs.vercel.app/",
 	"bugs": {
-		"url": "https://github.com/petechatchawan/ts-webcam/issues"
+		"url": "https://github.com/petechatchawan/webcam-ts/issues"
 	},
 	"scripts": {
 		"build": "tsc",

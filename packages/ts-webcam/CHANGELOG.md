@@ -1,9 +1,36 @@
 # Changelog
 
-All notable changes to the TS-Webcam project will be documented in this file.
+All notable changes to the Webcam-TS project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [3.0.0] - 2025-12-03
+
+### 🔥 Breaking Changes
+
+- **Class Renaming**: `TsWebcam` is now `Webcam`.
+- **Method Renaming**:
+  - `startCamera(config)` -> `start(config)`
+  - `stopCamera()` -> `stop()`
+  - `captureImage(options)` -> `capture(options)`
+- **Architecture**: Refactored into modular services (`DeviceService`, `StreamService`, `CaptureService`).
+
+### ✨ New Features
+
+- **Mirroring Support**: `capture()` now correctly mirrors the image if `enableMirror` is true.
+- **Performance**: `capture()` reuses the canvas element to reduce garbage collection.
+- **Type Safety**: Extended `MediaTrackConstraintSet` to natively support `torch`, `zoom`, and `focusMode` (removed `@ts-ignore`).
+- **Helper Methods**: Restored and improved helper methods:
+  - `getDevices()`
+  - `getCapabilities(deviceId)`
+  - `isTorchSupported()`, `isZoomSupported()`, `isFocusSupported()`
+  - `getCurrentDevice()`, `getCurrentResolution()`
+
+### 🛠️ Improvements
+
+- **Clean API**: Simplified public API surface.
+- **Documentation**: Updated README with comprehensive examples and new API usage.
 
 ## [2.0.9] - 2025-07-16
 
@@ -59,7 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🔥 Breaking Changes
 
-- **Modular Architecture**: Complete refactor into separate modules (`types.ts`, `errors.ts`, `event-emitter.ts`, `ts-webcam-core.ts`)
+- **Modular Architecture**: Complete refactor into separate modules (`types.ts`, `errors.ts`, `event-emitter.ts`, `webcam-ts-core.ts`)
 - **Unified State Management**: Introduced `TsWebcamState` as single source of truth for all webcam state
 - **Updated API**: Simplified and more consistent method signatures
 - **Event System Overhaul**: New event naming convention (`state:change`, `stream:start`, etc.)
@@ -103,10 +130,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```typescript
 // Before (1.x)
-import { TsWebcam } from "ts-webcam/dist/ts-webcam";
+import { TsWebcam } from "webcam-ts/dist/webcam-ts";
 
 // After (2.0)
-import { TsWebcam, TsWebcamState, WebcamError } from "ts-webcam";
+import { TsWebcam, TsWebcamState, WebcamError } from "webcam-ts";
 ```
 
 #### State Management

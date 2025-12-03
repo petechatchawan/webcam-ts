@@ -1,14 +1,14 @@
 <div align="center">
-  <h1>TS-Webcam</h1>
+  <h1>Webcam-TS</h1>
   <p>
     <strong>A modern, type-safe TypeScript library for webcam interactions in the browser</strong>
   </p>
   <p>
-    <a href="https://www.npmjs.com/package/ts-webcam">
-      <img src="https://img.shields.io/npm/v/ts-webcam" alt="npm version" />
+    <a href="https://www.npmjs.com/package/webcam-ts">
+      <img src="https://img.shields.io/npm/v/webcam-ts" alt="npm version" />
     </a>
-    <a href="https://github.com/petechatchawan/ts-webcam/blob/main/LICENSE">
-      <img src="https://img.shields.io/npm/l/ts-webcam" alt="license" />
+    <a href="https://github.com/petechatchawan/webcam-ts/blob/main/LICENSE">
+      <img src="https://img.shields.io/npm/l/webcam-ts" alt="license" />
     </a>
   </p>
 </div>
@@ -25,31 +25,31 @@
 
 ## 🚀 Demo
 
-Experience the live demo: [TS-Webcam Demo](https://ts-webcam-docs.vercel.app/)
+Experience the live demo: [Webcam-TS Demo](https://webcam-ts-docs.vercel.app/)
 
 ## 📦 Installation
 
 ```bash
 # npm
-$ npm install ts-webcam
+$ npm install webcam-ts
 
 # yarn
-$ yarn add ts-webcam
+$ yarn add webcam-ts
 
 # pnpm
-$ pnpm add ts-webcam
+$ pnpm add webcam-ts
 ```
 
 ## 🚀 Getting Started
 
 ```typescript
-import { TsWebcam } from "ts-webcam";
+import { Webcam } from "webcam-ts";
 
 // Initialize
-const webcam = new TsWebcam();
+const webcam = new Webcam();
 
 // Get available devices
-const devices = await webcam.getVideoDevices();
+const devices = await webcam.getDevices();
 console.log("Available cameras:", devices);
 
 // Configure the webcam
@@ -57,6 +57,7 @@ const config = {
 	deviceInfo: devices[0],
 	preferredResolutions: { width: 1280, height: 720 },
 	videoElement: document.getElementById("video") as HTMLVideoElement,
+	enableMirror: true, // Mirror the video (and capture)
 
 	// Optional callbacks
 	onStateChange: (state) => console.log("State changed:", state.status),
@@ -66,43 +67,43 @@ const config = {
 };
 
 // Start the camera
-await webcam.startCamera(config);
+await webcam.start(config);
 
 // Take a photo with default settings
-const result = await webcam.captureImage();
+const result = await webcam.capture();
 console.log("Base64 image:", result.base64);
 
 // Or with custom options
-const customCapture = await webcam.captureImage({
+const customCapture = await webcam.capture({
 	imageType: "image/jpeg", // default: 'image/jpeg'
 	quality: 0.8, // 0-1, default: 0.92
 	scale: 0.5, // 0.1-2, default: 1.0
+	mirror: false, // Override mirror setting for this capture
 });
 
 // Result contains both blob and base64 formats
 const { blob, base64, width, height, mimeType, timestamp } = customCapture;
 
 // Stop the camera when done
-webcam.stopCamera();
+webcam.stop();
 ```
 
 ## 📚 API Reference
 
 ### 🔧 Core Methods
 
-| Method                            | Description                                    |
-| --------------------------------- | ---------------------------------------------- |
-| `new Webcam()`                    | Creates a new webcam instance                  |
-| `startCamera(config)`             | Starts the camera with the given configuration |
-| `stopCamera()`                    | Stops the camera and releases resources        |
-| `captureImage(options?)`          | Captures a photo with advanced options         |
-| `getVideoDevices()`               | Lists available video devices                  |
-| `getDeviceCapabilities(deviceId)` | Gets capabilities of a specific device         |
-| `requestPermissions(constraints)` | Requests camera permissions                    |
-| `setTorch(enabled)`               | Toggles the camera's torch (if supported)      |
-| `setZoom(factor)`                 | Sets the camera zoom level (if supported)      |
-| `setFocusMode(mode)`              | Sets focus mode (if supported)                 |
-| `dispose()`                       | Cleans up all resources                        |
+| Method                      | Description                                    |
+| --------------------------- | ---------------------------------------------- |
+| `new Webcam(config?)`       | Creates a new webcam instance                  |
+| `start(config?)`            | Starts the camera with the given configuration |
+| `stop()`                    | Stops the camera and releases resources        |
+| `capture(options?)`         | Captures a photo with advanced options         |
+| `getDevices()`              | Lists available video devices                  |
+| `getCapabilities(deviceId)` | Gets capabilities of a specific device         |
+| `setTorch(enabled)`         | Toggles the camera's torch (if supported)      |
+| `setZoom(factor)`           | Sets the camera zoom level (if supported)      |
+| `setFocusMode(mode)`        | Sets focus mode (if supported)                 |
+| `dispose()`                 | Cleans up all resources                        |
 
 ### 📸 Capture Options
 
@@ -114,6 +115,8 @@ interface CaptureOptions {
 	quality?: number;
 	/** Scale factor (0.1-2) to resize the captured image (default: 1.0) */
 	scale?: number;
+	/** Explicitly mirror the capture (overrides config.enableMirror) */
+	mirror?: boolean;
 }
 
 interface CaptureResult {
@@ -135,23 +138,26 @@ interface CaptureResult {
 ### ⚙️ Configuration Options
 
 ```typescript
-interface WebcamConfig {
+interface WebcamConfiguration {
 	deviceInfo?: MediaDeviceInfo; // Selected camera device
 	videoElement?: HTMLVideoElement; // Video element to display the stream
-	preferredResolutions?: {
-		// Preferred resolution(s)
-		width: number;
-		height: number;
-	}[];
+	preferredResolutions?:
+		| {
+				// Preferred resolution(s)
+				width: number;
+				height: number;
+		  }
+		| { width: number; height: number }[];
 	enableAudio?: boolean; // Enable audio capture
 	enableMirror?: boolean; // Mirror the video (for user-facing cameras)
-	debug?: boolean; // Enable debug logging
 
 	// Callbacks
 	onStateChange?: (state: WebcamState) => void;
-	onError?: (error: WebcamError) => void;
+	onError?: (error: Error) => void;
 	onStreamStart?: (stream: MediaStream) => void;
 	onStreamStop?: () => void;
+	onPermissionChange?: (permissions: Record<string, PermissionState>) => void;
+	onDeviceChange?: (devices: MediaDeviceInfo[]) => void;
 }
 ```
 
@@ -179,19 +185,13 @@ const config = {
 ### 2. Permission Handling
 
 ```typescript
-// Request permissions
-const permissions = await webcam.requestPermissions({
-	video: true,
-	audio: false,
-});
-
 // Check current permissions
 const currentPermissions = webcam.getState().permissions;
 console.log("Camera permission:", currentPermissions.camera);
 
 // Test what a specific camera can do
 const deviceId = devices[0].deviceId;
-const capabilities = await webcam.getDeviceCapabilities(deviceId);
+const capabilities = await webcam.getCapabilities(deviceId);
 
 console.log("Device capabilities:", {
 	maxResolution: `${capabilities.maxWidth}x${capabilities.maxHeight}`,
@@ -233,14 +233,14 @@ const config = {
 
 ```typescript
 try {
-	await webcam.startCamera(config);
+	await webcam.start(config);
 	console.log("Camera started successfully");
 } catch (error) {
 	console.error("Failed to start camera:", error.message);
 }
 
 // Stop the camera when done
-webcam.stopCamera();
+webcam.stop();
 // Optional: Remove video element source
 if (videoElement) {
 	videoElement.srcObject = null;
@@ -250,12 +250,14 @@ if (videoElement) {
 ### 5. Error Handling
 
 ```typescript
+import { WebcamErrorCode } from "webcam-ts";
+
 try {
-	await webcam.startCamera(config);
+	await webcam.start(config);
 } catch (error) {
-	if (error.code === "PERMISSION_DENIED") {
+	if (error.code === WebcamErrorCode.PERMISSION_DENIED) {
 		console.error("Please grant camera permissions");
-	} else if (error.code === "DEVICE_NOT_FOUND") {
+	} else if (error.code === WebcamErrorCode.DEVICE_NOT_FOUND) {
 		console.error("No camera found");
 	} else {
 		console.error("Camera error:", error.message);
@@ -268,8 +270,8 @@ try {
 ```typescript
 // Basic capture
 try {
-	const blob = await webcam.capture();
-	const imageUrl = URL.createObjectURL(blob);
+	const result = await webcam.capture();
+	const imageUrl = URL.createObjectURL(result.blob);
 	// Use the image URL
 } catch (error) {
 	console.error("Capture failed:", error.message);
@@ -283,7 +285,7 @@ const highQualityImage = await webcam.capture({ quality: 0.92 });
 
 ```typescript
 // Check if torch is supported
-const capabilities = await webcam.getDeviceCapabilities(deviceId);
+const capabilities = await webcam.getCapabilities(deviceId);
 if (capabilities.hasTorch) {
 	// Turn on torch
 	await webcam.setTorch(true);
@@ -297,7 +299,7 @@ if (capabilities.hasTorch) {
 
 ```typescript
 // Get zoom capabilities
-const capabilities = await webcam.getDeviceCapabilities(deviceId);
+const capabilities = await webcam.getCapabilities(deviceId);
 if (capabilities.maxZoom && capabilities.maxZoom > 1) {
 	// Set zoom level (1.0 = no zoom)
 	await webcam.setZoom(2.0); // 2x zoom
@@ -308,7 +310,7 @@ if (capabilities.maxZoom && capabilities.maxZoom > 1) {
 
 ```typescript
 // Check supported focus modes
-const capabilities = await webcam.getDeviceCapabilities(deviceId);
+const capabilities = await webcam.getCapabilities(deviceId);
 if (capabilities.supportedFocusModes?.includes("continuous")) {
 	// Set continuous focus
 	await webcam.setFocusMode("continuous");
@@ -325,36 +327,17 @@ await webcam.setFocusMode("manual");
 webcam.dispose();
 ```
 
-### 11. Checking Device Capabilities
-
-```typescript
-// Get all video devices
-const devices = await webcam.getVideoDevices();
-
-// Test each device
-for (const device of devices) {
-	const capabilities = await webcam.getDeviceCapabilities(device.deviceId);
-	console.log(`Device: ${device.label || "Unknown"}`);
-	console.log("Capabilities:", {
-		hasTorch: capabilities.hasTorch,
-		maxZoom: capabilities.maxZoom,
-		focusModes: capabilities.supportedFocusModes,
-		resolutions: capabilities.supportedResolutions,
-	});
-}
-```
-
-### 12. Switching Cameras
+### 11. Switching Cameras
 
 ```typescript
 let currentDeviceIndex = 0;
 
 async function switchCamera() {
 	// Stop current camera
-	webcam.stopCamera();
+	webcam.stop();
 
 	// Get updated device list
-	const devices = await webcam.getVideoDevices();
+	const devices = await webcam.getDevices();
 	if (devices.length === 0) {
 		console.error("No cameras available");
 		return;
@@ -369,7 +352,7 @@ async function switchCamera() {
 		deviceInfo: devices[currentDeviceIndex],
 	};
 
-	await webcam.startCamera(newConfig);
+	await webcam.start(newConfig);
 	console.log(`Switched to camera: ${devices[currentDeviceIndex].label || "Unknown"}`);
 }
 ```
@@ -402,6 +385,6 @@ Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTIN
 
 ## 📄 License
 
-MIT © [petechatchawan](https://github.com/petechatchawan/ts-webcam)
+MIT © [petechatchawan](https://github.com/petechatchawan/webcam-ts)
 
 ---

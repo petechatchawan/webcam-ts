@@ -1,4 +1,3 @@
-// Re-export everything from the modularized files
+export { Webcam } from "./core/Webcam";
 export * from "./types";
-export * from "./errors";
-export * from "./ts-webcam";
+export { WebcamError, WebcamErrorCode } from "./utils/errors";

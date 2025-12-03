@@ -6,7 +6,7 @@ import {
 	Webcam,
 	WebcamConfiguration,
 	WebcamState,
-} from "ts-webcam";
+} from "webcam-ts";
 
 @Injectable({ providedIn: "root" })
 export class WebcamService {
@@ -81,7 +81,7 @@ export class WebcamService {
 	async getAvailableDevices(): Promise<MediaDeviceInfo[]> {
 		try {
 			// Check if device list is already available
-			const devices = await this.webcam.getVideoDevices();
+			const devices = await this.webcam.getDevices();
 			this._devices.set(devices);
 			return devices ?? [];
 		} catch (e) {
@@ -120,7 +120,7 @@ export class WebcamService {
 				},
 			};
 
-			await this.webcam.startCamera(configWithCallbacks);
+			await this.webcam.start(configWithCallbacks);
 			if (configWithCallbacks.deviceInfo) {
 				await this.testDeviceCapabilitiesByDeviceId(configWithCallbacks.deviceInfo.deviceId);
 			}
@@ -133,7 +133,7 @@ export class WebcamService {
 	 * Stops the camera stream
 	 */
 	stopCamera() {
-		this.webcam.stopCamera();
+		this.webcam.stop();
 	}
 
 	/**
@@ -144,7 +144,7 @@ export class WebcamService {
 		this._deviceCapability.set(null);
 
 		try {
-			const caps = await this.webcam.getDeviceCapabilities(deviceId);
+			const caps = await this.webcam.getCapabilities(deviceId);
 			this._deviceCapability.set(caps);
 		} catch (e) {
 			console.error("Test device capabilities failed:", e);
@@ -157,7 +157,7 @@ export class WebcamService {
 	 */
 	async captureImage(): Promise<CaptureResult> {
 		try {
-			return await this.webcam.captureImage();
+			return await this.webcam.capture();
 		} catch (e) {
 			const errorMessage = e instanceof Error ? e.message : "Unable to capture image";
 			console.error("Capture failed:", errorMessage);

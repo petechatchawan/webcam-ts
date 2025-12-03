@@ -1,14 +1,14 @@
 <div align="center">
-  <h1>TS-Webcam</h1>
+  <h1>Webcam-TS</h1>
   <p>
     <strong>A modern, type-safe TypeScript library for webcam interactions in the browser</strong>
   </p>
   <p>
-    <a href="https://www.npmjs.com/package/ts-webcam">
-      <img src="https://img.shields.io/npm/v/ts-webcam" alt="npm version" />
+    <a href="https://www.npmjs.com/package/webcam-ts">
+      <img src="https://img.shields.io/npm/v/webcam-ts" alt="npm version" />
     </a>
-    <a href="https://github.com/petechatchawan/ts-webcam/blob/main/LICENSE">
-      <img src="https://img.shields.io/npm/l/ts-webcam" alt="license" />
+    <a href="https://github.com/petechatchawan/webcam-ts/blob/main/LICENSE">
+      <img src="https://img.shields.io/npm/l/webcam-ts" alt="license" />
     </a>
   </p>
 </div>
@@ -25,25 +25,25 @@
 
 ## 🚀 Demo
 
-Experience the live demo: [TS-Webcam Demo](https://ts-webcam-docs.vercel.app/)
+Experience the live demo: [Webcam-TS Demo](https://webcam-ts-docs.vercel.app/)
 
 ## 📦 Installation
 
 ```bash
 # npm
-$ npm install ts-webcam
+$ npm install webcam-ts
 
 # yarn
-$ yarn add ts-webcam
+$ yarn add webcam-ts
 
 # pnpm
-$ pnpm add ts-webcam
+$ pnpm add webcam-ts
 ```
 
 ## 🚀 Getting Started
 
 ```typescript
-import { TsWebcam } from "ts-webcam";
+import { TsWebcam } from "webcam-ts";
 
 // Initialize
 const webcam = new TsWebcam();
@@ -402,6 +402,6 @@ Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTIN
 
 ## 📄 License
 
-MIT © [petechatchawan](https://github.com/petechatchawan/ts-webcam)
+MIT © [petechatchawan](https://github.com/petechatchawan/webcam-ts)
 
 ---

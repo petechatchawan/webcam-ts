@@ -1,448 +1,597 @@
-<div class="flex flex-col items-center justify-center">
-	<div class="w-full overflow-auto mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
-		<!-- Top Toolbar -->
-		<p-toolbar
-			class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 mb-5 shadow-sm">
-			<div class="p-toolbar-group-left">
-				<div class="flex items-center gap-3">
-					<i class="pi pi-video text-gray-700 dark:text-gray-300"></i>
-					<div class="flex-col flex gap-2 items-start">
-						<h1 class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100">
-							Webcam Demo
-						</h1>
-						<p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-							TS-Webcam Library Showcase
-						</p>
-					</div>
-				</div>
-			</div>
-			<div class="p-toolbar-group-right">
-				<p-tag
-					[severity]="
-						uiState().isReady
-							? 'success'
-							: uiState().isLoading
-							? 'warning'
-							: uiState().isError
-							? 'danger'
-							: 'secondary'
-					"
-					[value]="
-						uiState().isReady
-							? 'Active'
-							: uiState().isLoading
-							? 'Starting…'
-							: uiState().isError
-							? 'Error'
-							: 'Inactive'
-					"></p-tag>
-				<span class="ml-3 text-xs text-gray-400 dark:text-gray-500" aria-live="polite">
-					({{ status() }})
-				</span>
-			</div>
-		</p-toolbar>
-
-		<!-- Permission Checking -->
+<div
+	class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-slate-900 p-3 sm:p-4 lg:p-6">
+	<!-- Header - Simplified -->
+	<header class="max-w-7xl mx-auto mb-4 sm:mb-6">
 		<div
-			*ngIf="permissionState() === 'checking'"
-			class="flex flex-col items-center justify-center min-h-[400px] text-center">
-			<p-progressSpinner
-				class="w-12 h-12"
-				strokeWidth="4"
-				animationDuration="1s"></p-progressSpinner>
-			<p class="mt-4 text-gray-600 dark:text-gray-400">Checking camera access permissions...</p>
-		</div>
-
-		<!-- Permission Denied -->
-		<div
-			*ngIf="permissionState() === 'denied' || permissionState() === 'prompt'"
-			class="flex flex-col items-center justify-center min-h-[400px] text-center p-6">
-			<div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-6 max-w-md">
+			class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5 flex items-center justify-between">
+			<div class="flex items-center gap-3">
 				<div
-					class="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 dark:bg-red-900/40 rounded-full">
-					<i class="pi pi-exclamation-triangle text-red-600 dark:text-red-400 text-xl"></i>
+					class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
+					<span class="material-symbols-rounded text-white text-xl sm:text-2xl">photo_camera</span>
 				</div>
-				<h3 class="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
-					{{
-						permissionState() === "denied"
-							? "Camera Access Not Permitted"
-							: "Camera Access Required"
-					}}
-				</h3>
-				<p class="text-red-600 dark:text-red-300 text-sm mb-4">
-					{{
-						permissionState() === "denied"
-							? "Please allow camera access in your browser settings or click the button below to try again"
-							: "Please allow camera access to use this feature"
-					}}
-				</p>
-				<div class="flex flex-col gap-3 justify-center">
-					<div class="flex gap-2 justify-center">
-						<p-button
-							label="{{ permissionState() === 'denied' ? 'Try Again' : 'Request Permission' }}"
-							icon="pi pi-refresh"
-							(onClick)="retryPermissions()"
-							severity="danger"
-							size="small"></p-button>
-						<p-button
-							label="Check Status"
-							icon="pi pi-search"
-							(onClick)="checkPermissionState()"
-							severity="secondary"
-							size="small"></p-button>
-					</div>
-					<p-button
-						label="Troubleshooting"
-						icon="pi pi-question-circle"
-						severity="help"
-						size="small"
-						(onClick)="showPermissionGuidance()"></p-button>
+				<div>
+					<h1 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Webcam-TS</h1>
+					<p class="text-xs text-gray-500 dark:text-gray-400">Camera Control</p>
 				</div>
 			</div>
-		</div>
 
-		<!-- Main Interface -->
+			<div class="flex items-center gap-2 sm:gap-3">
+				<!-- Status Badge - Show on all screens -->
+				<div
+					class="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-slate-700/50">
+					<div
+						class="w-2 h-2 rounded-full"
+						[ngClass]="{
+							'bg-green-500 animate-pulse': status() === 'ready',
+							'bg-amber-500': status() === 'initializing',
+							'bg-red-500': status() === 'error',
+							'bg-gray-400': status() === 'idle'
+						}"></div>
+					<span class="text-xs font-medium text-gray-700 dark:text-gray-300 capitalize">
+						{{ status() }}
+					</span>
+				</div>
+
+				<!-- GitHub Link -->
+				<a
+					href="https://github.com/petechatchawan/webcam-ts"
+					target="_blank"
+					class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center text-gray-600 dark:text-gray-400">
+					<svg
+						class="w-5 h-5 sm:w-6 sm:h-6"
+						fill="currentColor"
+						viewBox="0 0 24 24"
+						aria-hidden="true">
+						<path
+							fill-rule="evenodd"
+							d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+							clip-rule="evenodd" />
+					</svg>
+				</a>
+			</div>
+		</div>
+	</header>
+
+	<!-- Main Content -->
+	<main class="max-w-7xl mx-auto">
 		<div
-			*ngIf="permissionState() === 'granted'"
-			class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-			<!-- Left: Video -->
-			<p-card
-				class="lg:col-span-2 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
-				<ng-template pTemplate="content">
-					<!-- Video Area -->
-					<div class="relative bg-black/90 rounded-lg overflow-hidden aspect-video mb-4">
-						<!-- Skeleton while loading -->
-						<div *ngIf="uiState().isLoading" class="absolute inset-0">
-							<div class="w-full h-full">
-								<p-skeleton class="w-full h-full !rounded-none"></p-skeleton>
+			class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
+			[style]="{ '--p-primary-color': 'rgb(59 130 246)', '--p-primary-contrast-color': '#ffffff' }">
+			<!-- Video Section - Takes 2 columns on desktop -->
+			<div class="lg:col-span-2 space-y-4">
+				<!-- Video Container -->
+				<div class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+					<div class="relative aspect-video bg-black group">
+						<!-- Loading State -->
+						<div
+							*ngIf="uiState().isLoading"
+							class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/90">
+							<p-progressSpinner styleClass="w-12 h-12" strokeWidth="3"></p-progressSpinner>
+							<p class="mt-4 text-gray-400 text-sm">กำลังเปิดกล้อง...</p>
+						</div>
+
+						<!-- Error State -->
+						<div
+							*ngIf="error()"
+							class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-red-50 dark:bg-red-950/50 p-6 text-center">
+							<div
+								class="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
+								<span class="material-symbols-rounded text-red-600 dark:text-red-400 text-2xl">
+									warning
+								</span>
+							</div>
+							<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+								เกิดข้อผิดพลาด
+							</h3>
+							<p class="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-sm">{{ error() }}</p>
+							<p-button size="small" (onClick)="startCamera()">
+								<span class="material-symbols-rounded mr-2 text-base">refresh</span>
+								ลองอีกครั้ง
+							</p-button>
+						</div>
+
+						<!-- Permission Prompt -->
+						<div
+							*ngIf="permissionState() === 'prompt' || permissionState() === 'denied'"
+							class="absolute inset-0 z-20 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
+							<div class="max-w-sm text-center">
+								<div
+									class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+									<span class="material-symbols-rounded text-blue-600 dark:text-blue-400 text-3xl">
+										lock
+									</span>
+								</div>
+								<h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+									ต้องการเข้าถึงกล้อง
+								</h3>
+								<p class="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+									กรุณาอนุญาตให้เข้าถึงกล้อง ข้อมูลจะถูกประมวลผลบนเครื่องของคุณเท่านั้น
+								</p>
+								<div class="flex flex-col gap-2">
+									<p-button (onClick)="requestPermissions()" styleClass="w-full">
+										<span class="material-symbols-rounded mr-2 text-base">check</span>
+										อนุญาต
+									</p-button>
+									<p-button
+										severity="secondary"
+										(onClick)="showPermissionGuidance()"
+										[text]="true"
+										styleClass="w-full">
+										<span class="material-symbols-rounded mr-2 text-base">help</span>
+										วิธีแก้ไข
+									</p-button>
+								</div>
 							</div>
 						</div>
 
+						<!-- Idle State -->
+						<div
+							*ngIf="
+								!uiState().isReady &&
+								!uiState().isLoading &&
+								!error() &&
+								permissionState() === 'granted'
+							"
+							class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
+							<div
+								class="w-20 h-20 rounded-full bg-white dark:bg-slate-700 shadow-lg flex items-center justify-center mb-4">
+								<span class="material-symbols-rounded text-gray-400 dark:text-gray-500 text-4xl">
+									videocam_off
+								</span>
+							</div>
+							<p class="text-gray-600 dark:text-gray-400 mb-4">กล้องปิดอยู่</p>
+							<p-button (onClick)="startCamera()">เปิดกล้อง</p-button>
+						</div>
+
+						<!-- Video Element -->
 						<video
 							#videoElement
 							autoplay
 							playsinline
 							muted
 							[class]="
-								[
-									'w-full h-full object-contain transition-transform duration-300',
-									enableMirror() ? 'scale-x-[-1]' : ''
-								].join(' ')
+								'w-full h-full object-contain bg-black transition-transform duration-300 ' +
+								(enableMirror() ? 'scale-x-[-1]' : '')
 							"></video>
 
-						<!-- Placeholder -->
+						<!-- Video Overlay Controls -->
 						<div
-							*ngIf="!uiState().isReady && !error()"
-							class="absolute inset-0 flex flex-col items-center justify-center text-gray-300 dark:text-gray-600">
-							<i class="pi pi-video text-4xl mb-2"></i>
-							<p class="text-xs sm:text-sm">Start camera to see video stream</p>
-						</div>
-
-						<!-- Error -->
-						<div
-							*ngIf="error() && permissionState() === 'granted'"
-							class="absolute inset-0 flex flex-col items-center justify-center bg-red-900/80 text-white p-6 text-center">
-							<i class="pi pi-times-circle text-3xl mb-2"></i>
-							<h4 class="font-semibold text-lg sm:text-xl mb-2">Error while starting camera</h4>
-							<p class="text-xs sm:text-sm opacity-90 mb-2">
-								{{ getCurrentCameraName() || "Unknown device" }} •
-								{{ selectedResolution()?.width }}×{{ selectedResolution()?.height }}
-							</p>
-							<pre class="text-xs whitespace-pre-wrap max-w-full">{{ error() }}</pre>
-						</div>
-
-						<!-- Floating Controls -->
-						<div class="absolute right-2 top-2 flex gap-2">
-							<p-button
-								[rounded]="true"
-								[text]="true"
-								pTooltip="Test Capabilities"
-								[disabled]="!selectedDevice()"
-								(onClick)="testDeviceCapabilities()"></p-button>
-						</div>
-					</div>
-
-					<!-- Primary Actions -->
-					<div class="flex flex-wrap justify-center gap-2 sm:gap-3">
-						<p-button
-							label="Start"
-							[disabled]="!uiState().canStart"
-							(onClick)="startCamera()"></p-button>
-						<p-button
-							label="Capture"
-							severity="secondary"
-							[disabled]="!uiState().canCapture"
-							(onClick)="captureImage()"></p-button>
-						<p-button
-							label="Stop"
-							[disabled]="!uiState().canStop"
-							(onClick)="stopCamera()"
-							severity="danger"></p-button>
-					</div>
-
-					<!-- Captured Image -->
-					<p-panel
-						*ngIf="capturedImageUrl()"
-						class="mt-5"
-						[toggleable]="true"
-						[collapsed]="false"
-						header="Captured Image">
-						<ng-template pTemplate="icons">
-							<p-button
-								label="Clear"
-								size="small"
-								severity="danger"
-								(onClick)="clearCapturedImage()"></p-button>
-						</ng-template>
-						<div class="flex justify-center">
-							<img
-								[src]="capturedImageUrl()"
-								alt="Captured"
-								class="max-w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700" />
-						</div>
-					</p-panel>
-				</ng-template>
-			</p-card>
-
-			<!-- Right: Settings -->
-			<div class="space-y-4">
-				<p-card
-					header="Quick Controls"
-					class="border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
-					<ng-template pTemplate="content">
-						<div class="grid grid-cols-2 gap-3">
-							<div class="col-span-2">
-								<div class="flex items-center justify-between">
-									<span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-										Mirror Video
+							class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+							<div class="flex items-center justify-between">
+								<div class="flex flex-col">
+									<span class="text-white text-sm font-medium">
+										{{ getCurrentCameraName() || "กล้อง" }}
 									</span>
-									<p-toggleswitch
-										[(ngModel)]="enableMirror"
-										[disabled]="uiState().isLoading"
-										(onChange)="onMirrorChange($event)" />
+									<span class="text-gray-300 text-xs">
+										{{ selectedResolution().width }}x{{ selectedResolution().height }}
+									</span>
+								</div>
+								<div class="flex gap-2">
+									<button
+										class="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur flex items-center justify-center text-white transition-all"
+										(click)="captureImage()"
+										[disabled]="!uiState().canCapture">
+										<span class="material-symbols-rounded text-xl">camera_alt</span>
+									</button>
+									<button
+										class="w-11 h-11 rounded-full bg-red-500/80 hover:bg-red-600 backdrop-blur flex items-center justify-center text-white transition-all"
+										(click)="stopCamera()"
+										[disabled]="!uiState().canStop">
+										<span class="material-symbols-rounded text-xl">stop</span>
+									</button>
 								</div>
 							</div>
+						</div>
+					</div>
+				</div>
 
-							<div class="col-span-2">
-								<div class="flex items-center justify-between">
-									<span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Audio</span>
-									<p-toggleswitch
-										[(ngModel)]="enableAudio"
-										[disabled]="uiState().isLoading"
-										(onChange)="toggleAudio($event)" />
-								</div>
-							</div>
+				<!-- Gallery -->
+				<div
+					*ngIf="capturedImageUrl()"
+					class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5">
+					<div class="flex items-center justify-between mb-4">
+						<h3
+							class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+							<span class="material-symbols-rounded text-blue-500 text-xl">photo_library</span>
+							ภาพถ่าย
+						</h3>
+						<p-button severity="danger" size="small" [text]="true" (onClick)="clearCapturedImage()">
+							<span class="material-symbols-rounded text-base">delete</span>
+						</p-button>
+					</div>
+					<div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+						<div
+							class="relative group rounded-lg overflow-hidden bg-gray-100 dark:bg-slate-700 aspect-video">
+							<p-image
+								[src]="capturedImageUrl()!"
+								alt="Captured"
+								[preview]="true"
+								imageClass="w-full h-full object-cover"></p-image>
+							<a
+								[href]="capturedImageUrl()"
+								download="capture.png"
+								class="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+								<span class="material-symbols-rounded text-sm">download</span>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
 
-							<div class="col-span-2" *ngIf="webcamService.deviceCapability()?.hasTorch">
-								<div class="flex items-center justify-between">
-									<span class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Torch</span>
-									<p-toggleswitch
-										[(ngModel)]="enableTorch"
-										[disabled]="!uiState().isReady"
-										(onChange)="toggleTorch($event)"></p-toggleswitch>
+			<!-- Controls Section - Takes 1 column on desktop -->
+			<div class="space-y-4">
+				<!-- Device Settings -->
+				<div class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5">
+					<h3
+						class="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+						<span class="material-symbols-rounded text-blue-500 text-xl">settings</span>
+						ตั้งค่า
+					</h3>
+
+					<div class="space-y-4">
+						<!-- Camera Select -->
+						<div>
+							<label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+								กล้อง
+							</label>
+							<p-select
+								[options]="devices()"
+								[(ngModel)]="selectedDevice"
+								optionLabel="label"
+								placeholder="เลือกกล้อง"
+								(onChange)="onDeviceChange($event.value)"
+								styleClass="w-full"
+								[disabled]="uiState().isLoading">
+								<ng-template pTemplate="selectedItem" let-d>
+									<div class="flex items-center gap-2">
+										<span class="material-symbols-rounded text-blue-500 text-base">videocam</span>
+										<span class="text-sm truncate">{{ d?.label }}</span>
+									</div>
+								</ng-template>
+								<ng-template pTemplate="item" let-d>
+									<div class="flex items-center gap-2 py-1">
+										<span class="material-symbols-rounded text-gray-400 text-base">videocam</span>
+										<span class="text-sm truncate">{{ d.label }}</span>
+									</div>
+								</ng-template>
+							</p-select>
+						</div>
+
+						<!-- Resolution Select -->
+						<div>
+							<label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+								ความละเอียด
+							</label>
+							<p-select
+								[options]="resolutions"
+								[(ngModel)]="selectedResolution"
+								optionLabel="label"
+								placeholder="เลือกความละเอียด"
+								(onChange)="onResolutionChange($event)"
+								styleClass="w-full"
+								[disabled]="uiState().isLoading">
+								<ng-template pTemplate="selectedItem" let-r>
+									<div class="flex items-center gap-2">
+										<span class="material-symbols-rounded text-blue-500 text-base">hd</span>
+										<span class="text-sm">
+											{{ r?.label }}
+											<span class="text-gray-400 text-xs">({{ r?.width }}x{{ r?.height }})</span>
+										</span>
+									</div>
+								</ng-template>
+							</p-select>
+						</div>
+
+						<!-- Toggles -->
+						<div class="space-y-3 pt-2">
+							<div
+								class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-slate-700/50">
+								<div class="flex items-center gap-3">
+									<span class="material-symbols-rounded text-blue-500 text-xl">flip</span>
+									<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+										สะท้อนกระจก
+									</span>
 								</div>
+								<p-toggleswitch
+									[(ngModel)]="enableMirror"
+									(onChange)="onMirrorChange($event)"></p-toggleswitch>
 							</div>
 
 							<div
-								class="col-span-2 space-y-4 mb-2"
-								*ngIf="
-									webcamService.deviceCapability()?.hasZoom &&
-									minZoom() !== null &&
-									maxZoom() !== null
-								">
-								<p class="block text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-									Zoom ({{ zoomValue() }}x)
-								</p>
-
-								<p-slider
-									class="px-2"
-									[(ngModel)]="zoomValue"
-									[min]="minZoom()"
-									[max]="maxZoom()"
-									[step]="0.1"
-									[disabled]="!uiState().isReady"
-									(onChange)="onZoomChange($event)"></p-slider>
-							</div>
-
-							<div
-								class="col-span-2"
-								*ngIf="webcamService.deviceCapability()?.hasFocus && supportedFocusModes().length">
-								<p class="block text-xs sm:text-sm text-gray-700 dark:text-gray-300 mb-1">
-									Focus Mode
-								</p>
-								<p-select
-									[options]="supportedFocusModes()"
-									[(ngModel)]="focusMode"
-									placeholder="Select"
-									class="w-full"
-									(onChange)="onFocusModeChange($event)"></p-select>
+								class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-slate-700/50">
+								<div class="flex items-center gap-3">
+									<span class="material-symbols-rounded text-blue-500 text-xl">volume_up</span>
+									<span class="text-sm font-medium text-gray-700 dark:text-gray-300">เสียง</span>
+								</div>
+								<p-toggleswitch
+									[(ngModel)]="enableAudio"
+									(onChange)="toggleAudio($event)"></p-toggleswitch>
 							</div>
 						</div>
-					</ng-template>
-				</p-card>
+					</div>
+				</div>
 
-				<p-card
-					header="Device & Resolution"
-					class="border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
-					<ng-template pTemplate="content">
-						<div class="space-y-4">
-							<div>
-								<p
-									class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-									Camera
-								</p>
-								<p-select
-									[options]="devices()"
-									[(ngModel)]="selectedDevice"
-									[disabled]="uiState().isLoading"
-									dataKey="deviceId"
-									placeholder="Select Camera"
-									optionLabel="label"
-									class="w-full"
-									(onChange)="onDeviceChange($event.value)">
-									<ng-template pTemplate="selectedItem" let-sd>
-										{{ sd?.label || "Camera " + sd?.deviceId?.slice(0, 8) + "..." }}
-									</ng-template>
-									<ng-template pTemplate="item" let-d>
-										{{ d.label || "Camera " + d.deviceId.slice(0, 8) + "..." }}
-									</ng-template>
-								</p-select>
+				<!-- Advanced Controls -->
+				<div
+					*ngIf="
+						webcamService.deviceCapability()?.hasTorch || webcamService.deviceCapability()?.hasZoom
+					"
+					class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5">
+					<h3
+						class="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+						<span class="material-symbols-rounded text-blue-500 text-xl">tune</span>
+						ขั้นสูง
+					</h3>
+
+					<div class="space-y-3">
+						<!-- Torch -->
+						<div
+							*ngIf="webcamService.deviceCapability()?.hasTorch"
+							class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-slate-700/50">
+							<div class="flex items-center gap-3">
+								<span class="material-symbols-rounded text-amber-500 text-xl">flashlight_on</span>
+								<span class="text-sm font-medium text-gray-700 dark:text-gray-300">ไฟแฟลช</span>
 							</div>
-
-							<div>
-								<p
-									class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-									Resolution
-								</p>
-
-								<p-select
-									[options]="resolutions"
-									[(ngModel)]="selectedResolution"
-									placeholder="Select Resolution"
-									optionLabel="label"
-									class="w-full"
-									(onChange)="onResolutionChange($event)">
-									<ng-template pTemplate="selectedItem" let-sr>
-										{{ sr?.label }} ({{ sr?.width }}×{{ sr?.height }})
-									</ng-template>
-									<ng-template pTemplate="item" let-r>
-										{{ r.label }} ({{ r.width }}×{{ r.height }})
-									</ng-template>
-								</p-select>
-							</div>
+							<p-toggleswitch
+								[(ngModel)]="enableTorch"
+								(onChange)="toggleTorch($event)"
+								[disabled]="!uiState().isReady"></p-toggleswitch>
 						</div>
-					</ng-template>
-				</p-card>
 
-				<p-card
-					header="Diagnostics"
-					class="border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
-					<ng-template pTemplate="content">
-						<div class="text-xs sm:text-sm space-y-2">
-							<div class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">Device Type</span>
-								<span class="font-medium text-gray-900 dark:text-gray-100">
-									{{ getDeviceType() }}
-								</span>
-							</div>
-							<div class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">Current Camera</span>
+						<!-- Zoom -->
+						<div
+							*ngIf="webcamService.deviceCapability()?.hasZoom && minZoom() !== null"
+							class="space-y-2">
+							<div class="flex justify-between items-center">
+								<span class="text-xs font-medium text-gray-600 dark:text-gray-400">ซูม</span>
 								<span
-									class="font-medium text-right max-w-[220px] truncate text-gray-900 dark:text-gray-100"
-									[title]="getCurrentCameraName()">
-									{{ getCurrentCameraName() }}
+									class="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+									{{ zoomValue() }}x
+								</span>
+							</div>
+							<p-slider
+								[(ngModel)]="zoomValue"
+								[min]="minZoom()"
+								[max]="maxZoom()"
+								[step]="0.1"
+								(onChange)="onZoomChange($event)"
+								[disabled]="!uiState().isReady"></p-slider>
+						</div>
+					</div>
+				</div>
+
+				<!-- Diagnostics -->
+				<div class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5">
+					<h3
+						class="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+						<span class="material-symbols-rounded text-blue-500 text-xl">info</span>
+						ข้อมูลระบบ
+					</h3>
+					<div class="space-y-2">
+						<div
+							class="flex justify-between items-start py-2 border-b border-gray-100 dark:border-slate-700">
+							<span class="text-xs font-medium text-gray-500 dark:text-gray-400">อุปกรณ์</span>
+							<span class="text-xs text-gray-900 dark:text-white text-right max-w-[60%]">
+								{{ getDeviceType() }}
+							</span>
+						</div>
+						<div
+							class="flex justify-between items-start py-2 border-b border-gray-100 dark:border-slate-700">
+							<span class="text-xs font-medium text-gray-500 dark:text-gray-400">กล้อง</span>
+							<span class="text-xs text-gray-900 dark:text-white text-right max-w-[60%] truncate">
+								{{ getCurrentCameraName() || "N/A" }}
+							</span>
+						</div>
+						<div
+							class="flex justify-between items-start py-2 border-b border-gray-100 dark:border-slate-700">
+							<span class="text-xs font-medium text-gray-500 dark:text-gray-400">ความละเอียด</span>
+							<span class="text-xs text-gray-900 dark:text-white">
+								{{ selectedResolution().width }}×{{ selectedResolution().height }}
+							</span>
+						</div>
+						<div
+							class="flex justify-between items-start py-2 border-b border-gray-100 dark:border-slate-700">
+							<span class="text-xs font-medium text-gray-500 dark:text-gray-400">ไฟแฟลช</span>
+							<span class="text-xs text-gray-900 dark:text-white">
+								{{ webcamService.deviceCapability()?.hasTorch ? "รองรับ" : "ไม่รองรับ" }}
+							</span>
+						</div>
+						<div
+							class="flex justify-between items-start py-2 border-b border-gray-100 dark:border-slate-700">
+							<span class="text-xs font-medium text-gray-500 dark:text-gray-400">ซูม</span>
+							<span class="text-xs text-gray-900 dark:text-white">
+								{{
+									webcamService.deviceCapability()?.hasZoom
+										? minZoom() + "x - " + maxZoom() + "x"
+										: "ไม่รองรับ"
+								}}
+							</span>
+						</div>
+						<div class="flex justify-between items-start py-2">
+							<span class="text-xs font-medium text-gray-500 dark:text-gray-400">โฟกัส</span>
+							<span class="text-xs text-gray-900 dark:text-white">
+								{{ webcamService.deviceCapability()?.hasFocus ? "รองรับ" : "ไม่รองรับ" }}
+							</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- Quick Actions -->
+				<div class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5">
+					<h3
+						class="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+						<span class="material-symbols-rounded text-blue-500 text-xl">bolt</span>
+						ทางลัด
+					</h3>
+					<div class="grid grid-cols-2 gap-3">
+						<button
+							class="p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-900/40 dark:hover:to-blue-800/40 transition-all flex flex-col items-center gap-2 cursor-pointer"
+							(click)="testSelectDevice('front')">
+							<span class="material-symbols-rounded text-blue-600 dark:text-blue-400 text-2xl">
+								person
+							</span>
+							<span class="text-xs font-medium text-gray-700 dark:text-gray-300">
+								ทดสอบกล้องหน้า
+							</span>
+						</button>
+						<button
+							class="p-3 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-900/40 dark:hover:to-purple-800/40 transition-all flex flex-col items-center gap-2 cursor-pointer"
+							(click)="testSelectDevice('back')">
+							<span class="material-symbols-rounded text-purple-600 dark:text-purple-400 text-2xl">
+								photo_camera
+							</span>
+							<span class="text-xs font-medium text-gray-700 dark:text-gray-300">
+								ทดสอบกล้องหลัง
+							</span>
+						</button>
+					</div>
+
+					<!-- Test Capabilities Button -->
+					<button
+						class="w-full mt-3 p-3 rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/40 dark:hover:to-emerald-800/40 transition-all flex items-center justify-center gap-2 cursor-pointer"
+						(click)="testDeviceCapabilities()"
+						[disabled]="!selectedDevice()">
+						<span class="material-symbols-rounded text-emerald-600 dark:text-emerald-400 text-xl">
+							science
+						</span>
+						<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+							ทดสอบความสามารถกล้อง
+						</span>
+					</button>
+
+					<!-- Test Results Display -->
+					<div
+						*ngIf="selectDeviceDetails()"
+						class="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+						<div class="flex items-center gap-2 mb-3">
+							<span class="material-symbols-rounded text-blue-600 dark:text-blue-400 text-lg">
+								info
+							</span>
+							<h4 class="text-sm font-semibold text-gray-900 dark:text-white">ผลการทดสอบกล้อง</h4>
+						</div>
+						<div class="space-y-2 text-xs">
+							<div class="flex justify-between">
+								<span class="text-gray-600 dark:text-gray-400">ชื่ออุปกรณ์:</span>
+								<span class="text-gray-900 dark:text-white font-medium">
+									{{ selectDeviceDetails()?.label }}
 								</span>
 							</div>
 							<div class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">Resolution</span>
-								<span class="font-medium text-gray-900 dark:text-gray-100">
-									{{ selectedResolution()?.width }}×{{ selectedResolution()?.height }}
+								<span class="text-gray-600 dark:text-gray-400">Device ID:</span>
+								<span class="text-gray-900 dark:text-white font-mono text-[10px]">
+									{{ selectDeviceDetails()?.deviceId?.substring(0, 20) }}...
 								</span>
 							</div>
 							<div class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">Torch</span>
-								<p-tag
-									[severity]="webcamService.isTorchSupported() ? 'success' : 'secondary'"
-									[value]="webcamService.isTorchSupported() ? 'Available' : 'N/A'"></p-tag>
-							</div>
-							<div class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">Zoom</span>
-								<p-tag
-									[severity]="webcamService.isZoomSupported() ? 'success' : 'secondary'"
-									[value]="webcamService.isZoomSupported() ? 'Available' : 'N/A'"></p-tag>
-							</div>
-							<div class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">Focus</span>
-								<p-tag
-									[severity]="webcamService.isFocusSupported() ? 'success' : 'secondary'"
-									[value]="webcamService.isFocusSupported() ? 'Available' : 'N/A'"></p-tag>
-							</div>
-							<div *ngIf="enableAudio()" class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">Audio</span>
-								<p-tag severity="info" value="Enabled"></p-tag>
+								<span class="text-gray-600 dark:text-gray-400">ประเภท:</span>
+								<span class="text-gray-900 dark:text-white font-medium">
+									{{ selectDeviceDetails()?.kind }}
+								</span>
 							</div>
 						</div>
+					</div>
 
-						<p-divider></p-divider>
-
-						<div class="flex flex-col gap-2 w-full">
-							<div class="flex gap-2">
-								<p-button
-									label="Find Front Camera"
-									(onClick)="testSelectDevice('front')"
-									class="w-full"
-									fluid="true"
-									size="small"></p-button>
-								<p-button
-									label="Find Back Camera"
-									class="w-full"
-									fluid="true"
-									(onClick)="testSelectDevice('back')"
-									size="small"></p-button>
-							</div>
-
-							<p-button
-								label="Test Current Device Capabilities"
-								size="small"
-								fluid="true"
-								[disabled]="!selectedDevice()"
-								(onClick)="testDeviceCapabilities()"></p-button>
+					<!-- Device Capabilities Test Results -->
+					<div
+						*ngIf="deviceCapabilitiesTestResult()"
+						class="mt-4 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+						<div class="flex items-center gap-2 mb-3">
+							<span class="material-symbols-rounded text-emerald-600 dark:text-emerald-400 text-lg">
+								check_circle
+							</span>
+							<h4 class="text-sm font-semibold text-gray-900 dark:text-white">
+								ความสามารถของกล้อง
+							</h4>
 						</div>
-
-						<p-panel
-							*ngIf="selectDeviceDetails()"
-							header="Last Tested (Selection)"
-							[toggleable]="true"
-							class="mt-3">
-							<div class="bg-gray-100 dark:bg-gray-800 rounded p-2 overflow-x-auto">
-								<pre class="text-xs text-gray-700 dark:text-gray-300">{{
-									selectDeviceDetails() | json
-								}}</pre>
+						<div class="space-y-2 text-xs">
+							<!-- Device Info -->
+							<div
+								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+								<span class="text-gray-600 dark:text-gray-400">ชื่ออุปกรณ์:</span>
+								<span class="text-gray-900 dark:text-white font-medium text-right max-w-[60%]">
+									{{ deviceCapabilitiesTestResult()?.label }}
+								</span>
 							</div>
-						</p-panel>
-
-						<p-panel
-							*ngIf="webcamService.deviceCapability()"
-							header="Last Tested (Capabilities)"
-							[toggleable]="true"
-							class="mt-3">
-							<div class="bg-gray-100 dark:bg-gray-800 rounded p-2 overflow-x-auto">
-								<pre class="text-xs text-gray-700 dark:text-gray-300">{{
-									webcamService.deviceCapability() | json
-								}}</pre>
+							<div
+								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+								<span class="text-gray-600 dark:text-gray-400">Device ID:</span>
+								<span
+									class="text-gray-900 dark:text-white font-mono text-[10px] text-right max-w-[60%] break-all">
+									{{ deviceCapabilitiesTestResult()?.deviceId?.substring(0, 30) }}...
+								</span>
 							</div>
-						</p-panel>
-					</ng-template>
-				</p-card>
+
+							<!-- Resolution -->
+							<div
+								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+								<span class="text-gray-600 dark:text-gray-400">ความละเอียดสูงสุด:</span>
+								<span class="text-gray-900 dark:text-white font-medium">
+									{{ deviceCapabilitiesTestResult()?.maxWidth }}×{{
+										deviceCapabilitiesTestResult()?.maxHeight
+									}}
+								</span>
+							</div>
+							<div
+								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+								<span class="text-gray-600 dark:text-gray-400">ความละเอียดต่ำสุด:</span>
+								<span class="text-gray-900 dark:text-white font-medium">
+									{{ deviceCapabilitiesTestResult()?.minWidth }}×{{
+										deviceCapabilitiesTestResult()?.minHeight
+									}}
+								</span>
+							</div>
+
+							<!-- Frame Rates -->
+							<div
+								*ngIf="deviceCapabilitiesTestResult()?.supportedFrameRates?.length > 0"
+								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+								<span class="text-gray-600 dark:text-gray-400">อัตราเฟรม:</span>
+								<span class="text-gray-900 dark:text-white font-medium">
+									{{ deviceCapabilitiesTestResult()?.supportedFrameRates?.join(", ") }} fps
+								</span>
+							</div>
+
+							<!-- Features -->
+							<div
+								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+								<span class="text-gray-600 dark:text-gray-400">ไฟแฟลช:</span>
+								<span class="text-gray-900 dark:text-white font-medium">
+									{{ deviceCapabilitiesTestResult()?.hasTorch ? "✓ รองรับ" : "✗ ไม่รองรับ" }}
+								</span>
+							</div>
+							<div
+								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+								<span class="text-gray-600 dark:text-gray-400">ซูม:</span>
+								<span class="text-gray-900 dark:text-white font-medium">
+									{{
+										deviceCapabilitiesTestResult()?.hasZoom
+											? "✓ รองรับ (" +
+											  deviceCapabilitiesTestResult()?.minZoom +
+											  "x - " +
+											  deviceCapabilitiesTestResult()?.maxZoom +
+											  "x)"
+											: "✗ ไม่รองรับ"
+									}}
+								</span>
+							</div>
+							<div class="flex justify-between py-1">
+								<span class="text-gray-600 dark:text-gray-400">โฟกัส:</span>
+								<span class="text-gray-900 dark:text-white font-medium">
+									{{ deviceCapabilitiesTestResult()?.hasFocus ? "✓ รองรับ" : "✗ ไม่รองรับ" }}
+								</span>
+							</div>
+							<div
+								*ngIf="deviceCapabilitiesTestResult()?.supportedFocusModes?.length > 0"
+								class="flex justify-between py-1">
+								<span class="text-gray-600 dark:text-gray-400">โหมดโฟกัส:</span>
+								<span class="text-gray-900 dark:text-white font-medium text-right max-w-[60%]">
+									{{ deviceCapabilitiesTestResult()?.supportedFocusModes?.join(", ") }}
+								</span>
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
-
-		<!-- Toast for subtle feedback -->
-		<p-toast
-			position="top-center"
-			[baseZIndex]="9999"
-			[breakpoints]="{
-				'920px': { width: '100%', padding: '0px 16px' }
-			}" />
-	</div>
+	</main>
 </div>
