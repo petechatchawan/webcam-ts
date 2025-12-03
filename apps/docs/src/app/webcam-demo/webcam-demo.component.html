@@ -155,34 +155,48 @@
 								'w-full h-full object-contain bg-black transition-transform duration-300 ' +
 								(enableMirror() ? 'scale-x-[-1]' : '')
 							"></video>
+					</div>
 
-						<!-- Video Overlay Controls -->
-						<div
-							class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-							<div class="flex items-center justify-between">
-								<div class="flex flex-col">
-									<span class="text-white text-sm font-medium">
-										{{ getCurrentCameraName() || "กล้อง" }}
-									</span>
-									<span class="text-gray-300 text-xs">
-										{{ selectedResolution().width }}x{{ selectedResolution().height }}
-									</span>
-								</div>
-								<div class="flex gap-2">
-									<button
-										class="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur flex items-center justify-center text-white transition-all"
-										(click)="captureImage()"
-										[disabled]="!uiState().canCapture">
-										<span class="material-symbols-rounded text-xl">camera_alt</span>
-									</button>
-									<button
-										class="w-11 h-11 rounded-full bg-red-500/80 hover:bg-red-600 backdrop-blur flex items-center justify-center text-white transition-all"
-										(click)="stopCamera()"
-										[disabled]="!uiState().canStop">
-										<span class="material-symbols-rounded text-xl">stop</span>
-									</button>
-								</div>
+					<!-- Video Controls Toolbar -->
+					<div
+						class="p-3 sm:p-4 border-t border-gray-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-800">
+						<div class="flex items-center gap-3">
+							<div
+								class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+								<span class="material-symbols-rounded text-blue-600 dark:text-blue-400">
+									videocam
+								</span>
 							</div>
+							<div class="flex flex-col">
+								<span class="text-sm font-semibold text-gray-900 dark:text-white">
+									{{ getCurrentCameraName() || "กล้อง" }}
+								</span>
+								<span class="text-xs text-gray-500 dark:text-gray-400">
+									{{ selectedResolution().width }}x{{ selectedResolution().height }}
+								</span>
+							</div>
+						</div>
+
+						<div class="flex gap-2">
+							<p-button
+								(onClick)="captureImage()"
+								[disabled]="!uiState().canCapture"
+								severity="secondary"
+								styleClass="!w-10 !h-10 !p-0 rounded-full"
+								pTooltip="ถ่ายภาพ"
+								tooltipPosition="top">
+								<span class="material-symbols-rounded">camera_alt</span>
+							</p-button>
+
+							<p-button
+								(onClick)="stopCamera()"
+								[disabled]="!uiState().canStop"
+								severity="danger"
+								styleClass="!w-10 !h-10 !p-0 rounded-full"
+								pTooltip="ปิดกล้อง"
+								tooltipPosition="top">
+								<span class="material-symbols-rounded">stop</span>
+							</p-button>
 						</div>
 					</div>
 				</div>
@@ -212,7 +226,7 @@
 							<a
 								[href]="capturedImageUrl()"
 								download="capture.png"
-								class="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+								class="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors">
 								<span class="material-symbols-rounded text-sm">download</span>
 							</a>
 						</div>
