@@ -1,4 +1,4 @@
 {
-    "outputDirectory": "apps/docs/dist/docs/browser",
+    "outputDirectory": "apps/docs/dist/docs",
     "framework": "angular"
 }
