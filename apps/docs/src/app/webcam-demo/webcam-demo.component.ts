@@ -339,6 +339,7 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 
 			if (this.permissionState() === "granted") {
 				this.showToast("อนุญาตการเข้าถึงกล้องแล้ว");
+				await this.loadDevices();
 			}
 		} catch (error: any) {
 			console.error("Permission request failed:", error);

@@ -140,7 +140,9 @@
 								</span>
 							</div>
 							<p class="text-gray-600 dark:text-gray-400 mb-4">กล้องปิดอยู่</p>
-							<p-button (onClick)="startCamera()">เปิดกล้อง</p-button>
+							<p-button (onClick)="startCamera()" [disabled]="!uiState().canStart">
+								เปิดกล้อง
+							</p-button>
 						</div>
 
 						<!-- Video Element -->
