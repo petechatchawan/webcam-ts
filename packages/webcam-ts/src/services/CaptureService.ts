@@ -1,5 +1,5 @@
-import { WebcamError, WebcamErrorCode } from "../utils/errors";
 import { CaptureOptions, CaptureResult } from "../types";
+import { WebcamError, WebcamErrorCode } from "../utils/errors";
 
 export class CaptureService {
 	private canvas: HTMLCanvasElement | null = null;
@@ -7,6 +7,8 @@ export class CaptureService {
 
 	/**
 	 * Capture an image from the video element
+	 * @param videoElement - The video element to capture from
+	 * @param options - Capture options including reuseCanvas for memory management
 	 */
 	async captureImage(
 		videoElement: HTMLVideoElement,
@@ -25,9 +27,10 @@ export class CaptureService {
 			options.quality !== undefined ? Math.max(0, Math.min(1, options.quality)) : 0.92;
 		const scale = options.scale !== undefined ? Math.max(0.1, Math.min(2, options.scale)) : 1.0;
 		const mirror = options.mirror !== undefined ? options.mirror : false;
+		const reuseCanvas = options.reuseCanvas !== undefined ? options.reuseCanvas : true;
 
-		// Initialize canvas if needed (Singleton pattern)
-		if (!this.canvas) {
+		// Initialize canvas - reuse existing or create new based on option
+		if (!reuseCanvas || !this.canvas) {
 			this.canvas = document.createElement("canvas");
 			this.context = this.canvas.getContext("2d", { willReadFrequently: true });
 		}
@@ -96,6 +99,12 @@ export class CaptureService {
 			reader.onerror = reject;
 			reader.readAsDataURL(blob);
 		});
+
+		// Clean up canvas if not reusing (better memory management for one-time captures)
+		if (!reuseCanvas) {
+			this.canvas = null;
+			this.context = null;
+		}
 
 		return {
 			blob,

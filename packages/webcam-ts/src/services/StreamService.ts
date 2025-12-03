@@ -1,5 +1,5 @@
+import { WebcamConfiguration } from "../types";
 import { WebcamError, WebcamErrorCode } from "../utils/errors";
-import { WebcamConfiguration, Resolution } from "../types";
 
 export class StreamService {
 	private activeStream: MediaStream | null = null;

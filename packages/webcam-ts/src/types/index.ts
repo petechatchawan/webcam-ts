@@ -69,6 +69,7 @@ export interface CaptureOptions {
 	scale?: number;
 	returnBase64?: boolean;
 	mirror?: boolean; // Explicit mirror override for capture
+	reuseCanvas?: boolean; // Reuse canvas for better performance (default: true)
 }
 
 export interface CaptureResult {

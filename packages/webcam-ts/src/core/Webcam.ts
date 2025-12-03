@@ -28,11 +28,25 @@ export class Webcam {
 
 	private config?: WebcamConfiguration;
 	private videoElement?: HTMLVideoElement;
+	private deviceChangeListener?: () => void;
 
-	constructor(config?: WebcamConfiguration) {
-		this.deviceService = new DeviceService();
-		this.streamService = new StreamService();
-		this.captureService = new CaptureService();
+	/**
+	 * Constructor with optional dependency injection for better testability
+	 * @param config - Initial webcam configuration
+	 * @param services - Optional service instances for dependency injection
+	 */
+	constructor(
+		config?: WebcamConfiguration,
+		services?: {
+			deviceService?: DeviceService;
+			streamService?: StreamService;
+			captureService?: CaptureService;
+		},
+	) {
+		// Dependency Injection: use provided services or create new instances
+		this.deviceService = services?.deviceService ?? new DeviceService();
+		this.streamService = services?.streamService ?? new StreamService();
+		this.captureService = services?.captureService ?? new CaptureService();
 
 		if (config) {
 			this.config = config;
@@ -40,6 +54,9 @@ export class Webcam {
 				this.videoElement = config.videoElement;
 			}
 		}
+
+		// Setup device change detection
+		this.setupDeviceChangeListener();
 	}
 
 	/**
@@ -188,6 +205,28 @@ export class Webcam {
 	}
 
 	/**
+	 * Get current stream quality metrics
+	 * @returns Stream quality information including FPS and resolution, or null if no active stream
+	 */
+	getStreamQuality(): {
+		fps: number;
+		resolution: Resolution;
+		bitrate?: number;
+	} | null {
+		const settings = this.streamService.getTrackSettings();
+		if (!settings) return null;
+
+		return {
+			fps: settings.frameRate || 0,
+			resolution: {
+				width: settings.width || 0,
+				height: settings.height || 0,
+				label: `${settings.width}x${settings.height}`,
+			},
+		};
+	}
+
+	/**
 	 * Set Mirror (Preview)
 	 */
 	setMirror(mirror: boolean): void {
@@ -261,6 +300,7 @@ export class Webcam {
 	dispose(): void {
 		this.stop();
 		this.captureService.dispose();
+		this.removeDeviceChangeListener();
 	}
 
 	// --- Private Helpers ---
@@ -280,5 +320,33 @@ export class Webcam {
 
 	private _notifyStateChange(): void {
 		this.config?.onStateChange?.(this.getState());
+	}
+
+	/**
+	 * Setup device change listener to detect when devices are added/removed
+	 */
+	private setupDeviceChangeListener(): void {
+		if (!navigator.mediaDevices?.addEventListener) return;
+
+		this.deviceChangeListener = async () => {
+			try {
+				const devices = await this.getDevices();
+				this.config?.onDeviceChange?.(devices);
+			} catch (error) {
+				console.error("Device change detection error:", error);
+			}
+		};
+
+		navigator.mediaDevices.addEventListener("devicechange", this.deviceChangeListener);
+	}
+
+	/**
+	 * Remove device change listener
+	 */
+	private removeDeviceChangeListener(): void {
+		if (this.deviceChangeListener && navigator.mediaDevices?.removeEventListener) {
+			navigator.mediaDevices.removeEventListener("devicechange", this.deviceChangeListener);
+			this.deviceChangeListener = undefined;
+		}
 	}
 }
