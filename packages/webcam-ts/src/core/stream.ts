@@ -1,6 +1,12 @@
 import { WebcamConfiguration } from "../types";
 import { WebcamError, WebcamErrorCode } from "../utils/errors";
 
+// Default resolution when no specific resolution is requested
+const DEFAULT_RESOLUTION = {
+	width: 1280,
+	height: 720,
+};
+
 export class Stream {
 	private activeStream: MediaStream | null = null;
 
@@ -62,10 +68,26 @@ export class Stream {
 	}
 
 	async applyConstraints(constraints: MediaTrackConstraintSet): Promise<void> {
-		if (!this.activeStream) return;
+		if (!this.activeStream) {
+			throw new WebcamError("No active stream to apply constraints", WebcamErrorCode.STREAM_ERROR);
+		}
+
 		const track = this.activeStream.getVideoTracks()[0];
-		if (track) {
+		if (!track) {
+			throw new WebcamError("No video track found in active stream", WebcamErrorCode.STREAM_ERROR);
+		}
+
+		try {
 			await track.applyConstraints({ advanced: [constraints] });
+		} catch (error) {
+			if (error instanceof Error && error.name === "OverconstrainedError") {
+				throw new WebcamError(
+					"Cannot apply constraints: not supported by device",
+					WebcamErrorCode.CONSTRAINT_ERROR,
+					error,
+				);
+			}
+			throw new WebcamError("Failed to apply constraints", WebcamErrorCode.STREAM_ERROR, error);
 		}
 	}
 
@@ -86,16 +108,8 @@ export class Stream {
 			}
 		}
 
-		// Get device info if not provided (auto-select first video device)
-		let deviceId = config.deviceInfo?.deviceId;
-		if (!deviceId) {
-			// Note: In a real scenario, we might want to dependency inject DeviceService here,
-			// but for simplicity, if no device ID is passed, we let the browser choose (default behavior)
-			// OR we explicitly find one if strict behavior is needed.
-			// For now, let's trust the browser default if no device is specified,
-			// unless the original logic strictly required finding one.
-			// The original logic DID enumerate. Let's keep it simple: if no deviceId, don't enforce exact deviceId.
-		}
+		// Use specified device or let browser choose default
+		const deviceId = config.deviceInfo?.deviceId;
 
 		const videoConstraints: MediaTrackConstraints = {};
 
@@ -112,8 +126,8 @@ export class Stream {
 			videoConstraints.height = { exact: res.height };
 		} else {
 			// Default fallback if no resolution specified
-			videoConstraints.width = { ideal: 1280 };
-			videoConstraints.height = { ideal: 720 };
+			videoConstraints.width = { ideal: DEFAULT_RESOLUTION.width };
+			videoConstraints.height = { ideal: DEFAULT_RESOLUTION.height };
 		}
 
 		return {

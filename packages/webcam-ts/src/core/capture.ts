@@ -79,29 +79,58 @@ export class Capture {
 		}
 
 		// Convert to Blob
-		const blob = await new Promise<Blob>((resolve, reject) => {
-			if (!this.canvas) return reject(new Error("Canvas lost"));
+		let blob: Blob;
+		try {
+			blob = await new Promise<Blob>((resolve, reject) => {
+				if (!this.canvas) {
+					return reject(new Error("Canvas lost during blob creation"));
+				}
 
-			this.canvas.toBlob(
-				(b) => {
-					if (b) resolve(b);
-					else reject(new Error("Failed to create blob"));
-				},
-				imageType,
-				quality,
+				this.canvas.toBlob(
+					(b) => {
+						if (b) resolve(b);
+						else reject(new Error("Failed to create blob from canvas"));
+					},
+					imageType,
+					quality,
+				);
+			});
+		} catch (error) {
+			throw new WebcamError(
+				"Failed to convert canvas to blob",
+				WebcamErrorCode.CAPTURE_FAILED,
+				error,
 			);
-		});
+		}
 
 		// Create Object URL for preview
 		const url = URL.createObjectURL(blob);
 
 		// Always generate base64 for convenience
-		const base64 = await new Promise<string>((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onloadend = () => resolve(reader.result as string);
-			reader.onerror = reject;
-			reader.readAsDataURL(blob);
-		});
+		let base64: string;
+		try {
+			base64 = await new Promise<string>((resolve, reject) => {
+				const reader = new FileReader();
+				reader.onloadend = () => {
+					const result = reader.result;
+					if (typeof result === "string") {
+						resolve(result);
+					} else {
+						reject(new Error("FileReader result is not a string"));
+					}
+				};
+				reader.onerror = () => reject(reader.error || new Error("FileReader error"));
+				reader.readAsDataURL(blob);
+			});
+		} catch (error) {
+			// Clean up URL if base64 conversion fails
+			URL.revokeObjectURL(url);
+			throw new WebcamError(
+				"Failed to convert blob to base64",
+				WebcamErrorCode.CAPTURE_FAILED,
+				error,
+			);
+		}
 
 		return {
 			blob,

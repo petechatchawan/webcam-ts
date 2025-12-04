@@ -101,8 +101,54 @@ export class Device {
 
 			return await this.checkPermissions();
 		} catch (error) {
-			// Even if failed, return current state (likely denied)
-			return await this.checkPermissions();
+			// Handle specific permission errors
+			if (error instanceof Error) {
+				switch (error.name) {
+					case "NotAllowedError":
+						throw new WebcamError(
+							"Permission denied by user",
+							WebcamErrorCode.PERMISSION_DENIED,
+							error,
+						);
+					case "NotFoundError":
+						throw new WebcamError(
+							"No camera or microphone found",
+							WebcamErrorCode.DEVICES_ERROR,
+							error,
+						);
+					case "NotReadableError":
+						throw new WebcamError(
+							"Camera is already in use by another application",
+							WebcamErrorCode.STREAM_ERROR,
+							error,
+						);
+					case "OverconstrainedError":
+						throw new WebcamError(
+							"Requested constraints cannot be satisfied",
+							WebcamErrorCode.CONSTRAINT_ERROR,
+							error,
+						);
+					case "SecurityError":
+						throw new WebcamError(
+							"Permission request blocked by security policy",
+							WebcamErrorCode.PERMISSION_DENIED,
+							error,
+						);
+					default:
+						throw new WebcamError(
+							`Failed to request permissions: ${error.message}`,
+							WebcamErrorCode.PERMISSION_DENIED,
+							error,
+						);
+				}
+			}
+
+			// Unknown error type
+			throw new WebcamError(
+				"Failed to request permissions",
+				WebcamErrorCode.PERMISSION_DENIED,
+				error,
+			);
 		}
 	}
 }

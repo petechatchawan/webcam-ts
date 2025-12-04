@@ -1,6 +1,6 @@
 {
 	"name": "webcam-ts",
-	"version": "3.0.0",
+	"version": "3.1.0",
 	"description": "Modern TypeScript library for webcam access in web applications",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",

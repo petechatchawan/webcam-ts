@@ -5,6 +5,63 @@ All notable changes to the Webcam-TS project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2025-12-04
+
+### ✨ New Features
+
+- **CaptureResult Enhancement**: Added `url` field to `CaptureResult` for immediate preview usage
+  - `url`: Object URL created from blob for instant preview
+  - `blob`: For upload/download operations
+  - `base64`: Always included for embedding
+  - Remember to revoke URL with `URL.revokeObjectURL()` when done
+
+### 🛠️ Improvements
+
+- **Comprehensive Error Handling**:
+  - Added `STREAM_ERROR` and `CONSTRAINT_ERROR` error codes
+  - All methods now throw `WebcamError` with specific error codes
+  - Enhanced error messages for better debugging
+  - Added `originalError` property for accessing underlying errors
+- **Input Validation**:
+  - `setZoom()` now validates zoom level (must be >= 1.0)
+  - Throws `INVALID_CONFIG` error for invalid zoom values
+- **Error Callbacks**:
+  - Device change detection errors now use `onError` callback instead of `console.error`
+  - Consistent error handling across all modules
+- **Code Quality**:
+  - Extracted default resolution to constant (1280x720)
+  - Improved resource cleanup in capture operations
+  - Better type safety in FileReader operations
+
+### 🐛 Bug Fixes
+
+- **Capture Module**: Fixed potential resource leaks by revoking object URLs on failure
+- **Stream Module**: Added proper error handling to `applyConstraints()`
+- **Device Module**: Enhanced permission request error handling with 6 specific error types
+
+### 📚 Documentation
+
+- Updated README.md with:
+  - New `CaptureResult` structure with `url` field
+  - Comprehensive error handling examples
+  - Zoom validation documentation
+  - Device change callback examples
+  - All 12 error codes documented
+
+### 🔧 Technical Details
+
+**Error Codes Added:**
+
+- `STREAM_ERROR`: Stream operation errors
+- `CONSTRAINT_ERROR`: Constraint application failures
+
+**Breaking Changes:** None - Fully backward compatible
+
+**Migration Notes:**
+
+- `CaptureResult` now includes `url` field (non-breaking addition)
+- Remember to clean up URLs: `URL.revokeObjectURL(result.url)`
+
 ## [3.0.0] - 2025-12-03
 
 ### 🔥 Breaking Changes

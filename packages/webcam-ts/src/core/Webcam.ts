@@ -243,27 +243,58 @@ export class Webcam {
 	 * Torch Control
 	 */
 	async setTorch(enabled: boolean): Promise<void> {
-		await this.stream.applyConstraints({ torch: enabled });
-		this.state.torchEnabled = enabled;
-		this._notifyStateChange();
+		try {
+			await this.stream.applyConstraints({ torch: enabled });
+			this.state.torchEnabled = enabled;
+			this._notifyStateChange();
+		} catch (error) {
+			const webcamError =
+				error instanceof WebcamError
+					? error
+					: new WebcamError("Failed to set torch", WebcamErrorCode.STREAM_ERROR, error);
+			throw webcamError;
+		}
 	}
 
 	/**
 	 * Zoom Control
 	 */
 	async setZoom(zoom: number): Promise<void> {
-		await this.stream.applyConstraints({ zoom });
-		this.state.zoomLevel = zoom;
-		this._notifyStateChange();
+		if (zoom < 1) {
+			throw new WebcamError(
+				"Zoom level must be greater than or equal to 1",
+				WebcamErrorCode.INVALID_CONFIG,
+			);
+		}
+
+		try {
+			await this.stream.applyConstraints({ zoom });
+			this.state.zoomLevel = zoom;
+			this._notifyStateChange();
+		} catch (error) {
+			const webcamError =
+				error instanceof WebcamError
+					? error
+					: new WebcamError("Failed to set zoom", WebcamErrorCode.STREAM_ERROR, error);
+			throw webcamError;
+		}
 	}
 
 	/**
 	 * Focus Mode Control
 	 */
 	async setFocusMode(mode: FocusMode): Promise<void> {
-		await this.stream.applyConstraints({ focusMode: mode });
-		this.state.focusMode = mode;
-		this._notifyStateChange();
+		try {
+			await this.stream.applyConstraints({ focusMode: mode });
+			this.state.focusMode = mode;
+			this._notifyStateChange();
+		} catch (error) {
+			const webcamError =
+				error instanceof WebcamError
+					? error
+					: new WebcamError("Failed to set focus mode", WebcamErrorCode.STREAM_ERROR, error);
+			throw webcamError;
+		}
 	}
 
 	/**
@@ -333,7 +364,15 @@ export class Webcam {
 				const devices = await this.getDevices();
 				this.config?.onDeviceChange?.(devices);
 			} catch (error) {
-				console.error("Device change detection error:", error);
+				const webcamError =
+					error instanceof WebcamError
+						? error
+						: new WebcamError(
+								"Device change detection failed",
+								WebcamErrorCode.DEVICES_ERROR,
+								error,
+						  );
+				this.config?.onError?.(webcamError);
 			}
 		};
 

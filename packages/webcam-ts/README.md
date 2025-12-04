@@ -69,20 +69,29 @@ const config = {
 // Start the camera
 await webcam.start(config);
 
-// Take a photo with default settings
-const result = await webcam.capture();
-console.log("Base64 image:", result.base64);
+// Take a photo
+const result = await webcam.captureImage();
 
-// Or with custom options
-const customCapture = await webcam.capture({
-	imageType: "image/jpeg", // default: 'image/jpeg'
-	quality: 0.8, // 0-1, default: 0.92
+// Result contains blob, url, and base64
+const { blob, url, base64, width, height, mimeType, timestamp } = result;
+
+// Use the url for preview (remember to revoke when done)
+imageElement.src = url;
+
+// Or upload the blob
+const formData = new FormData();
+formData.append("image", blob);
+
+// Clean up the URL when done
+URL.revokeObjectURL(url);
+
+// Custom capture options
+const customCapture = await webcam.captureImage({
+	imageType: "image/png", // default: 'image/jpeg'
+	quality: 0.95, // 0-1, default: 0.92
 	scale: 0.5, // 0.1-2, default: 1.0
 	mirror: false, // Override mirror setting for this capture
 });
-
-// Result contains both blob and base64 formats
-const { blob, base64, width, height, mimeType, timestamp } = customCapture;
 
 // Stop the camera when done
 webcam.stop();
@@ -97,9 +106,11 @@ webcam.stop();
 | `new Webcam(config?)`       | Creates a new webcam instance                  |
 | `start(config?)`            | Starts the camera with the given configuration |
 | `stop()`                    | Stops the camera and releases resources        |
-| `capture(options?)`         | Captures a photo with advanced options         |
+| `captureImage(options?)`    | Captures a photo with advanced options         |
 | `getDevices()`              | Lists available video devices                  |
 | `getCapabilities(deviceId)` | Gets capabilities of a specific device         |
+| `checkPermissions()`        | Checks current camera/microphone permissions   |
+| `requestPermissions(opts?)` | Requests camera/microphone permissions         |
 | `setTorch(enabled)`         | Toggles the camera's torch (if supported)      |
 | `setZoom(factor)`           | Sets the camera zoom level (if supported)      |
 | `setFocusMode(mode)`        | Sets focus mode (if supported)                 |
@@ -120,9 +131,11 @@ interface CaptureOptions {
 }
 
 interface CaptureResult {
-	/** The captured image as a Blob */
+	/** The captured image as a Blob (for upload/download) */
 	blob: Blob;
-	/** Base64 encoded image data */
+	/** Object URL for preview (remember to revoke when done) */
+	url: string;
+	/** Base64 encoded image data (always included) */
 	base64: string;
 	/** Width of the captured image in pixels */
 	width: number;
@@ -219,12 +232,17 @@ const config = {
 	},
 	onError: (error) => {
 		console.error("Error:", error.message);
+		// This callback also receives device change detection errors
 	},
 	onStreamStart: (stream) => {
 		console.log("Stream started");
 	},
 	onStreamStop: () => {
 		console.log("Stream stopped");
+	},
+	onDeviceChange: (devices) => {
+		console.log("Devices changed:", devices.length);
+		// Called when cameras are plugged/unplugged
 	},
 };
 ```
@@ -250,19 +268,46 @@ if (videoElement) {
 ### 5. Error Handling
 
 ```typescript
-import { WebcamErrorCode } from "webcam-ts";
+import { WebcamError, WebcamErrorCode } from "webcam-ts";
 
 try {
 	await webcam.start(config);
 } catch (error) {
-	if (error.code === WebcamErrorCode.PERMISSION_DENIED) {
-		console.error("Please grant camera permissions");
-	} else if (error.code === WebcamErrorCode.DEVICE_NOT_FOUND) {
-		console.error("No camera found");
-	} else {
-		console.error("Camera error:", error.message);
+	if (error instanceof WebcamError) {
+		switch (error.code) {
+			case WebcamErrorCode.PERMISSION_DENIED:
+				console.error("Camera permission denied");
+				break;
+			case WebcamErrorCode.DEVICE_NOT_FOUND:
+				console.error("No camera found");
+				break;
+			case WebcamErrorCode.DEVICE_BUSY:
+				console.error("Camera is already in use");
+				break;
+			case WebcamErrorCode.STREAM_ERROR:
+				console.error("Stream error:", error.message);
+				break;
+			default:
+				console.error("Camera error:", error.message);
+		}
+		// Access original error for debugging
+		console.debug("Original error:", error.originalError);
 	}
 }
+
+// Available error codes:
+// - PERMISSION_DENIED: User denied camera access
+// - DEVICE_NOT_FOUND: No camera device found
+// - DEVICE_BUSY: Camera is in use by another application
+// - OVERCONSTRAINED: Requested constraints cannot be satisfied
+// - CONSTRAINT_ERROR: Constraint application failed
+// - STREAM_FAILED: Stream initialization failed
+// - STREAM_ERROR: Stream operation error
+// - CAPTURE_FAILED: Image capture failed
+// - INVALID_CONFIG: Invalid configuration provided
+// - VIDEO_ELEMENT_NOT_SET: Video element not attached
+// - DEVICES_ERROR: Device enumeration failed
+// - UNKNOWN_ERROR: Unknown error occurred
 ```
 
 ### 6. Capturing Images
@@ -270,15 +315,32 @@ try {
 ```typescript
 // Basic capture
 try {
-	const result = await webcam.capture();
-	const imageUrl = URL.createObjectURL(result.blob);
-	// Use the image URL
+	const result = await webcam.captureImage();
+
+	// Use the url for preview (already created)
+	imageElement.src = result.url;
+
+	// Or use blob for upload
+	const formData = new FormData();
+	formData.append("image", result.blob);
+
+	// Or use base64 for embedding
+	const img = document.createElement("img");
+	img.src = result.base64;
+
+	// Clean up when done
+	URL.revokeObjectURL(result.url);
 } catch (error) {
 	console.error("Capture failed:", error.message);
 }
 
-// With image quality (0-1)
-const highQualityImage = await webcam.capture({ quality: 0.92 });
+// With custom options
+const customImage = await webcam.captureImage({
+	imageType: "image/png",
+	quality: 0.95,
+	scale: 0.5, // Resize to 50%
+	mirror: true, // Mirror the capture
+});
 ```
 
 ### 7. Torch/Flash Control
@@ -301,8 +363,17 @@ if (capabilities.hasTorch) {
 // Get zoom capabilities
 const capabilities = await webcam.getCapabilities(deviceId);
 if (capabilities.maxZoom && capabilities.maxZoom > 1) {
-	// Set zoom level (1.0 = no zoom)
-	await webcam.setZoom(2.0); // 2x zoom
+	try {
+		// Set zoom level (must be >= 1.0, where 1.0 = no zoom)
+		await webcam.setZoom(2.0); // 2x zoom
+
+		// Invalid zoom will throw error
+		// await webcam.setZoom(0.5); // ❌ Throws INVALID_CONFIG error
+	} catch (error) {
+		if (error.code === WebcamErrorCode.INVALID_CONFIG) {
+			console.error("Invalid zoom level");
+		}
+	}
 }
 ```
 
