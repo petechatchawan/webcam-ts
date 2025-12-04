@@ -29,6 +29,14 @@ export class WebcamService {
 	}
 
 	/**
+	 * Check if webcam is supported in the current browser
+	 * @returns true if MediaDevices API is available
+	 */
+	isSupported(): boolean {
+		return Webcam.isSupported();
+	}
+
+	/**
 	 * Requests permissions and loads available devices
 	 * @param options Permission options for video and audio access
 	 * @returns Promise<boolean> - True if permissions are granted, false otherwise
@@ -157,7 +165,7 @@ export class WebcamService {
 	 */
 	async captureImage(): Promise<CaptureResult> {
 		try {
-			return await this.webcam.capture();
+			return await this.webcam.captureImage();
 		} catch (e) {
 			const errorMessage = e instanceof Error ? e.message : "Unable to capture image";
 			console.error("Capture failed:", errorMessage);

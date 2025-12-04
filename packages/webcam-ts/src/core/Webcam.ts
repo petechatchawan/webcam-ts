@@ -60,6 +60,14 @@ export class Webcam {
 	}
 
 	/**
+	 * Check if webcam is supported in the current browser
+	 * @returns true if MediaDevices API is available
+	 */
+	static isSupported(): boolean {
+		return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+	}
+
+	/**
 	 * Start the camera
 	 */
 	async start(config?: WebcamConfiguration): Promise<void> {

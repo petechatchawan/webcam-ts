@@ -432,18 +432,22 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 	async captureImage(): Promise<void> {
 		try {
 			const captureResult = await this.webcamService.captureImage();
-			let imageBlob = captureResult.blob;
 
-			if (this.enableMirror()) {
-				imageBlob = await this.flipImageBlob(imageBlob);
-			}
-
+			// Revoke old URL if exists
 			if (this.capturedImageUrl()) {
 				URL.revokeObjectURL(this.capturedImageUrl()!);
 			}
 
-			const url = URL.createObjectURL(imageBlob);
-			this.capturedImageUrl.set(url);
+			// If mirror is enabled, we need to flip the image
+			if (this.enableMirror()) {
+				const flippedBlob = await this.flipImageBlob(captureResult.blob);
+				const url = URL.createObjectURL(flippedBlob);
+				this.capturedImageUrl.set(url);
+			} else {
+				// Use the url directly from CaptureResult
+				this.capturedImageUrl.set(captureResult.url);
+			}
+
 			this.showToast("ถ่ายภาพสำเร็จ");
 		} catch (error) {
 			console.error("Capture failed:", error);
