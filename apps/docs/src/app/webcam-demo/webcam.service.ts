@@ -33,7 +33,7 @@ export class WebcamService {
 	 * @returns true if MediaDevices API is available
 	 */
 	isSupported(): boolean {
-		return Webcam.isSupported();
+		return this.webcam.isSupported();
 	}
 
 	/**
