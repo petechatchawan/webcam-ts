@@ -1,14 +1,15 @@
 import { CaptureOptions, CaptureResult } from "../types";
 import { WebcamError, WebcamErrorCode } from "../utils/errors";
 
-export class CaptureService {
+export class Capture {
 	private canvas: HTMLCanvasElement | null = null;
 	private context: CanvasRenderingContext2D | null = null;
 
 	/**
 	 * Capture an image from the video element
+	 * Canvas is reused across captures for optimal performance
 	 * @param videoElement - The video element to capture from
-	 * @param options - Capture options including reuseCanvas for memory management
+	 * @param options - Capture options
 	 */
 	async captureImage(
 		videoElement: HTMLVideoElement,
@@ -27,10 +28,9 @@ export class CaptureService {
 			options.quality !== undefined ? Math.max(0, Math.min(1, options.quality)) : 0.92;
 		const scale = options.scale !== undefined ? Math.max(0.1, Math.min(2, options.scale)) : 1.0;
 		const mirror = options.mirror !== undefined ? options.mirror : false;
-		const reuseCanvas = options.reuseCanvas !== undefined ? options.reuseCanvas : true;
 
-		// Initialize canvas - reuse existing or create new based on option
-		if (!reuseCanvas || !this.canvas) {
+		// Initialize canvas (reuse for performance)
+		if (!this.canvas) {
 			this.canvas = document.createElement("canvas");
 			this.context = this.canvas.getContext("2d", { willReadFrequently: true });
 		}
@@ -92,7 +92,10 @@ export class CaptureService {
 			);
 		});
 
-		// Convert to Base64
+		// Create Object URL for preview
+		const url = URL.createObjectURL(blob);
+
+		// Always generate base64 for convenience
 		const base64 = await new Promise<string>((resolve, reject) => {
 			const reader = new FileReader();
 			reader.onloadend = () => resolve(reader.result as string);
@@ -100,14 +103,9 @@ export class CaptureService {
 			reader.readAsDataURL(blob);
 		});
 
-		// Clean up canvas if not reusing (better memory management for one-time captures)
-		if (!reuseCanvas) {
-			this.canvas = null;
-			this.context = null;
-		}
-
 		return {
 			blob,
+			url,
 			base64,
 			width,
 			height,

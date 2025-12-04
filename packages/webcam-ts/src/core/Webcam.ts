@@ -1,23 +1,23 @@
-import { DeviceService } from "../services/DeviceService";
-import { StreamService } from "../services/StreamService";
-import { CaptureService } from "../services/CaptureService";
 import {
-	WebcamConfiguration,
-	WebcamState,
-	WebcamStateInternal,
 	CaptureOptions,
 	CaptureResult,
 	DeviceCapability,
-	Resolution,
 	FocusMode,
 	PermissionRequestOptions,
+	Resolution,
+	WebcamConfiguration,
+	WebcamState,
+	WebcamStateInternal,
 } from "../types";
 import { WebcamError, WebcamErrorCode } from "../utils/errors";
+import { Capture } from "./capture";
+import { Device } from "./device";
+import { Stream } from "./stream";
 
 export class Webcam {
-	private deviceService: DeviceService;
-	private streamService: StreamService;
-	private captureService: CaptureService;
+	private device: Device;
+	private stream: Stream;
+	private capture: Capture;
 
 	private state: WebcamStateInternal = {
 		status: "idle",
@@ -38,15 +38,15 @@ export class Webcam {
 	constructor(
 		config?: WebcamConfiguration,
 		services?: {
-			deviceService?: DeviceService;
-			streamService?: StreamService;
-			captureService?: CaptureService;
+			device?: Device;
+			stream?: Stream;
+			capture?: Capture;
 		},
 	) {
 		// Dependency Injection: use provided services or create new instances
-		this.deviceService = services?.deviceService ?? new DeviceService();
-		this.streamService = services?.streamService ?? new StreamService();
-		this.captureService = services?.captureService ?? new CaptureService();
+		this.device = services?.device ?? new Device();
+		this.stream = services?.stream ?? new Stream();
+		this.capture = services?.capture ?? new Capture();
 
 		if (config) {
 			this.config = config;
@@ -77,7 +77,7 @@ export class Webcam {
 		try {
 			this._updateStatus("initializing");
 
-			const stream = await this.streamService.startStream(this.config);
+			const stream = await this.stream.startStream(this.config);
 			this.state.activeStream = stream;
 
 			// Setup video element
@@ -106,7 +106,7 @@ export class Webcam {
 	 * Stop the camera
 	 */
 	stop(): void {
-		this.streamService.stopStream();
+		this.stream.stopStream();
 		this.state.activeStream = null;
 
 		if (this.videoElement) {
@@ -120,7 +120,7 @@ export class Webcam {
 	/**
 	 * Capture an image
 	 */
-	async capture(options: CaptureOptions = {}): Promise<CaptureResult> {
+	async captureImage(options: CaptureOptions = {}): Promise<CaptureResult> {
 		if (!this.videoElement) {
 			throw new WebcamError("No video element attached", WebcamErrorCode.VIDEO_ELEMENT_NOT_SET);
 		}
@@ -128,7 +128,7 @@ export class Webcam {
 		// Pass mirror state to capture service if not explicitly set in options
 		const mirror = options.mirror !== undefined ? options.mirror : this.getMirror();
 
-		return this.captureService.captureImage(this.videoElement, {
+		return this.capture.captureImage(this.videoElement, {
 			...options,
 			mirror,
 		});
@@ -140,28 +140,28 @@ export class Webcam {
 	async requestPermissions(
 		options?: PermissionRequestOptions,
 	): Promise<Record<string, PermissionState>> {
-		return this.deviceService.requestPermissions(options);
+		return this.device.requestPermissions(options);
 	}
 
 	/**
 	 * Check permissions
 	 */
 	async checkPermissions(): Promise<Record<string, PermissionState>> {
-		return this.deviceService.checkPermissions();
+		return this.device.checkPermissions();
 	}
 
 	/**
 	 * Get available devices
 	 */
 	async getDevices(): Promise<MediaDeviceInfo[]> {
-		return this.deviceService.getVideoDevices();
+		return this.device.getVideoDevices();
 	}
 
 	/**
 	 * Get device capabilities
 	 */
 	async getCapabilities(deviceId: string): Promise<DeviceCapability> {
-		return this.deviceService.getDeviceCapabilities(deviceId);
+		return this.device.getDeviceCapabilities(deviceId);
 	}
 
 	/**
@@ -213,7 +213,7 @@ export class Webcam {
 		resolution: Resolution;
 		bitrate?: number;
 	} | null {
-		const settings = this.streamService.getTrackSettings();
+		const settings = this.stream.getTrackSettings();
 		if (!settings) return null;
 
 		return {
@@ -243,8 +243,8 @@ export class Webcam {
 	 * Torch Control
 	 */
 	async setTorch(enabled: boolean): Promise<void> {
-		await this.streamService.applyConstraints({ torch: enabled });
-		this.state.torch = enabled;
+		await this.stream.applyConstraints({ torch: enabled });
+		this.state.torchEnabled = enabled;
 		this._notifyStateChange();
 	}
 
@@ -252,8 +252,8 @@ export class Webcam {
 	 * Zoom Control
 	 */
 	async setZoom(zoom: number): Promise<void> {
-		await this.streamService.applyConstraints({ zoom });
-		this.state.zoom = zoom;
+		await this.stream.applyConstraints({ zoom });
+		this.state.zoomLevel = zoom;
 		this._notifyStateChange();
 	}
 
@@ -261,7 +261,7 @@ export class Webcam {
 	 * Focus Mode Control
 	 */
 	async setFocusMode(mode: FocusMode): Promise<void> {
-		await this.streamService.applyConstraints({ focusMode: mode });
+		await this.stream.applyConstraints({ focusMode: mode });
 		this.state.focusMode = mode;
 		this._notifyStateChange();
 	}
@@ -270,7 +270,7 @@ export class Webcam {
 	 * Check if torch is supported
 	 */
 	isTorchSupported(): boolean {
-		const capabilities = this.streamService.getCapabilities();
+		const capabilities = this.stream.getCapabilities();
 		return !!capabilities && "torch" in capabilities;
 	}
 
@@ -278,7 +278,7 @@ export class Webcam {
 	 * Check if zoom is supported
 	 */
 	isZoomSupported(): boolean {
-		const capabilities = this.streamService.getCapabilities();
+		const capabilities = this.stream.getCapabilities();
 		return !!capabilities && "zoom" in capabilities;
 	}
 
@@ -286,7 +286,7 @@ export class Webcam {
 	 * Check if focus is supported
 	 */
 	isFocusSupported(): boolean {
-		const capabilities = this.streamService.getCapabilities();
+		const capabilities = this.stream.getCapabilities();
 		return !!capabilities && "focusMode" in capabilities;
 	}
 
@@ -299,7 +299,7 @@ export class Webcam {
 
 	dispose(): void {
 		this.stop();
-		this.captureService.dispose();
+		this.capture.dispose();
 		this.removeDeviceChangeListener();
 	}
 

@@ -64,17 +64,16 @@ export interface WebcamConfiguration {
 }
 
 export interface CaptureOptions {
-	imageType?: string;
-	quality?: number;
-	scale?: number;
-	returnBase64?: boolean;
+	imageType?: string; // Default: 'image/jpeg'
+	quality?: number; // 0-1, Default: 0.92
+	scale?: number; // 0.1-2, Default: 1.0
 	mirror?: boolean; // Explicit mirror override for capture
-	reuseCanvas?: boolean; // Reuse canvas for better performance (default: true)
 }
 
 export interface CaptureResult {
-	blob: Blob;
-	base64: string;
+	blob: Blob; // For upload/download
+	url: string; // Object URL for preview (remember to revoke when done)
+	base64: string; // Always included
 	width: number;
 	height: number;
 	mimeType: string;
@@ -88,11 +87,11 @@ export interface WebcamStateInternal {
 	activeStream: MediaStream | null;
 	permissions: Record<string, PermissionState>;
 	videoElement?: HTMLVideoElement;
-	deviceInfo?: MediaDeviceInfo;
+	device?: MediaDeviceInfo;
 	error?: Error | null;
-	zoom?: number;
+	zoomLevel?: number;
 	focusMode?: FocusMode;
-	torch?: boolean;
+	torchEnabled?: boolean;
 }
 
 export type WebcamState = Readonly<WebcamStateInternal>;

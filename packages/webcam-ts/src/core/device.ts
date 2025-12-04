@@ -1,7 +1,7 @@
+import { DeviceCapability, FocusMode, PermissionRequestOptions } from "../types";
 import { WebcamError, WebcamErrorCode } from "../utils/errors";
-import { DeviceCapability, PermissionRequestOptions, FocusMode } from "../types";
 
-export class DeviceService {
+export class Device {
 	/**
 	 * Get a list of available video devices.
 	 */
