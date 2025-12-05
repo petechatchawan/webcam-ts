@@ -27,13 +27,7 @@ import { ToastModule } from "primeng/toast";
 import { ToggleSwitchChangeEvent, ToggleSwitchModule } from "primeng/toggleswitch";
 import { ToolbarModule } from "primeng/toolbar";
 import { TooltipModule } from "primeng/tooltip";
-import {
-	PermissionRequestOptions,
-	Resolution,
-	WebcamConfiguration,
-	WebcamState,
-	WebcamStatus,
-} from "webcam-ts";
+import { Resolution, WebcamConfiguration, WebcamState, WebcamStatus } from "webcam-ts";
 import { DeviceManagerUtils } from "../utils/device-manager-utils";
 import { WebcamService } from "./webcam.service";
 

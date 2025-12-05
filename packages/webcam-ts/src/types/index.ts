@@ -63,23 +63,6 @@ export interface WebcamConfiguration {
 	onDeviceChange?: (devices: MediaDeviceInfo[]) => void;
 }
 
-export interface CaptureOptions {
-	imageType?: string; // Default: 'image/jpeg'
-	quality?: number; // 0-1, Default: 0.92
-	scale?: number; // 0.1-2, Default: 1.0
-	mirror?: boolean; // Explicit mirror override for capture
-}
-
-export interface CaptureResult {
-	blob: Blob; // For upload/download
-	url: string; // Object URL for preview (remember to revoke when done)
-	base64: string; // Always included
-	width: number;
-	height: number;
-	mimeType: string;
-	timestamp: number;
-}
-
 export type WebcamStatus = "idle" | "initializing" | "ready" | "error";
 
 export interface WebcamStateInternal {
@@ -95,3 +78,121 @@ export interface WebcamStateInternal {
 }
 
 export type WebcamState = Readonly<WebcamStateInternal>;
+
+/**
+ * Options for captureImageData() - Real-time CV processing
+ * Lightweight options for high-performance loops (60+ FPS)
+ */
+export interface CaptureImageDataOptions {
+	/**
+	 * Scale factor for resizing (0.1-2.0)
+	 * Use lower values (0.25-0.5) for faster CV processing
+	 * @default 1.0
+	 */
+	scale?: number;
+
+	/**
+	 * Mirror/flip image horizontally
+	 * @default false
+	 */
+	mirror?: boolean;
+}
+
+/**
+ * Options for captureImage() - Snapshot/Save/Upload
+ * Full options including blob/base64 conversion
+ */
+export interface CaptureOptions extends CaptureImageDataOptions {
+	/**
+	 * Image type for blob/base64 conversion
+	 * @default "image/jpeg"
+	 */
+	imageType?: "image/jpeg" | "image/png" | "image/webp";
+
+	/**
+	 * Image quality (0-1) for lossy formats (JPEG, WebP)
+	 * @default 0.92
+	 */
+	quality?: number;
+
+	/**
+	 * Include base64 string in result
+	 * Set to false to skip base64 conversion and improve performance
+	 * @default true
+	 */
+	includeBase64?: boolean;
+}
+
+/**
+ * Result from captureImage() method
+ * Contains blob, URL, base64, and metadata
+ */
+/**
+ * Result from captureImage() method
+ * Contains blob, URL, base64, and metadata
+ */
+export interface CaptureImageResult {
+	/**
+	 * Image as Blob (for uploading/saving)
+	 */
+	blob: Blob;
+
+	/**
+	 * Object URL for the blob (remember to revoke with URL.revokeObjectURL())
+	 */
+	url: string;
+
+	/**
+	 * Base64-encoded data URL (for <img> tags or API uploads)
+	 * Format: "data:image/jpeg;base64,/9j/4AAQ..."
+	 */
+	base64?: string;
+
+	/**
+	 * Image width in pixels
+	 */
+	width: number;
+
+	/**
+	 * Image height in pixels
+	 */
+	height: number;
+
+	/**
+	 * MIME type of the image
+	 */
+	mimeType: string;
+
+	/**
+	 * Timestamp when captured (Date.now())
+	 */
+	timestamp: number;
+}
+
+/**
+ * Result from captureImageData() method
+ * Optimized for real-time CV processing - no blob/base64 conversion
+ * Use this for 60+ FPS loops with face detection, MediaPipe, TensorFlow.js, etc.
+ */
+export interface CaptureImageDataResult {
+	/**
+	 * Raw pixel data for CV processing
+	 * Can be passed directly to canvas.putImageData() or CV libraries
+	 */
+	imageData: ImageData;
+
+	/**
+	 * Image width in pixels
+	 */
+	width: number;
+
+	/**
+	 * Image height in pixels
+	 */
+	height: number;
+
+	/**
+	 * Timestamp when captured (Date.now())
+	 */
+	timestamp: number;
+}

@@ -101,42 +101,50 @@ webcam.stop();
 
 ### 🔧 Core Methods
 
-| Method                      | Description                                    |
-| --------------------------- | ---------------------------------------------- |
-| `new Webcam(config?)`       | Creates a new webcam instance                  |
-| `start(config?)`            | Starts the camera with the given configuration |
-| `stop()`                    | Stops the camera and releases resources        |
-| `captureImage(options?)`    | Captures a photo with advanced options         |
-| `getDevices()`              | Lists available video devices                  |
-| `getCapabilities(deviceId)` | Gets capabilities of a specific device         |
-| `checkPermissions()`        | Checks current camera/microphone permissions   |
-| `requestPermissions(opts?)` | Requests camera/microphone permissions         |
-| `setTorch(enabled)`         | Toggles the camera's torch (if supported)      |
-| `setZoom(factor)`           | Sets the camera zoom level (if supported)      |
-| `setFocusMode(mode)`        | Sets focus mode (if supported)                 |
-| `dispose()`                 | Cleans up all resources                        |
+| Method                       | Description                                    |
+| ---------------------------- | ---------------------------------------------- |
+| `new Webcam(config?)`        | Creates a new webcam instance                  |
+| `start(config?)`             | Starts the camera with the given configuration |
+| `stop()`                     | Stops the camera and releases resources        |
+| `captureImage(options?)`     | Captures a photo with blob/base64 (for saving) |
+| `captureImageData(options?)` | Captures ImageData for real-time CV processing |
+| `getDevices()`               | Lists available video devices                  |
+| `getCapabilities(deviceId)`  | Gets capabilities of a specific device         |
+| `checkPermissions()`         | Checks current camera/microphone permissions   |
+| `requestPermissions(opts?)`  | Requests camera/microphone permissions         |
+| `setTorch(enabled)`          | Toggles the camera's torch (if supported)      |
+| `setZoom(factor)`            | Sets the camera zoom level (if supported)      |
+| `setFocusMode(mode)`         | Sets focus mode (if supported)                 |
+| `dispose()`                  | Cleans up all resources                        |
 
 ### 📸 Capture Options
 
 ```typescript
-interface CaptureOptions {
+// For captureImageData() - Real-time CV processing
+interface CaptureImageDataOptions {
+	/** Scale factor (0.1-2) to resize the captured image (default: 1.0) */
+	scale?: number;
+	/** Mirror/flip image horizontally (default: false) */
+	mirror?: boolean;
+}
+
+// For captureImage() - Snapshot/Save/Upload
+interface CaptureOptions extends CaptureImageDataOptions {
 	/** Image type, e.g., 'image/jpeg' or 'image/png' (default: 'image/jpeg') */
 	imageType?: string;
 	/** Image quality from 0 to 1 (only applicable for image/jpeg) (default: 0.92) */
 	quality?: number;
-	/** Scale factor (0.1-2) to resize the captured image (default: 1.0) */
-	scale?: number;
-	/** Explicitly mirror the capture (overrides config.enableMirror) */
-	mirror?: boolean;
+	/** Include base64 string in result (default: true) */
+	includeBase64?: boolean;
 }
 
-interface CaptureResult {
+interface CaptureImageResult {
 	/** The captured image as a Blob (for upload/download) */
 	blob: Blob;
 	/** Object URL for preview (remember to revoke when done) */
 	url: string;
-	/** Base64 encoded image data (always included) */
-	base64: string;
+	/** Base64 encoded image data (optional, set includeBase64: false to skip) */
+	base64?: string;
 	/** Width of the captured image in pixels */
 	width: number;
 	/** Height of the captured image in pixels */
@@ -145,6 +153,35 @@ interface CaptureResult {
 	mimeType: string;
 	/** Timestamp when the capture was taken */
 	timestamp: number;
+}
+
+interface CaptureImageDataResult {
+	/** Raw pixel data for CV processing (can be passed to canvas.putImageData() or CV libraries) */
+	imageData: ImageData;
+	/** Width of the captured image in pixels */
+	width: number;
+	/** Height of the captured image in pixels */
+	height: number;
+	/** Timestamp when the capture was taken */
+	timestamp: number;
+}
+```
+
+> **Performance Tip**: Use `captureImageData()` for real-time loops (60+ FPS) and `captureImage()` only for saving snapshots.
+
+```typescript
+// ✅ DO: Real-time CV processing (fast ~2-3ms)
+function loop() {
+	const result = webcam.captureImageData({ scale: 0.5 });
+	const faces = await faceDetector.detect(result.imageData);
+	requestAnimationFrame(loop);
+}
+
+// ✅ DO: Save snapshot (slower ~20-40ms, but includes blob/base64)
+async function savePhoto() {
+	const snapshot = await webcam.captureImage({ quality: 0.95 });
+	await uploadToServer(snapshot.blob);
+	URL.revokeObjectURL(snapshot.url);
 }
 ```
 

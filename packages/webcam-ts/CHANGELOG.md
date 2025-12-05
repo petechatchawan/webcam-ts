@@ -5,6 +5,57 @@ All notable changes to the Webcam-TS project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.1] - 2025-12-05
+
+### ✨ New Features
+
+- **Separate Options Interface**: Created `CaptureImageDataOptions` interface for `captureImageData()` method
+  - Contains only relevant options: `scale` and `mirror`
+  - Improves type safety and developer experience
+  - `CaptureOptions` now extends `CaptureImageDataOptions` for backward compatibility
+
+### 🔧 Improvements
+
+- **Consistent Naming**: Renamed `CaptureResult` to `CaptureImageResult` for consistency with `CaptureImageDataResult`
+- **Better Type Safety**: TypeScript will now warn if incorrect options are used with `captureImageData()`
+- **Enhanced IDE Support**: Autocomplete now shows only relevant options for each capture method
+
+### 📚 Documentation
+
+- Updated README with separate option interfaces documentation
+- Added performance comparison between capture methods
+- Improved API reference with clearer method descriptions
+
+### 🔄 Migration Notes
+
+**Non-breaking changes:**
+
+- `CaptureResult` renamed to `CaptureImageResult` (update imports if using explicit type)
+- `captureImageData()` now uses `CaptureImageDataOptions` (fully compatible with previous usage)
+
+```typescript
+// Before (still works)
+import { CaptureResult } from "webcam-ts";
+
+// After (recommended)
+import { CaptureImageResult } from "webcam-ts";
+```
+
+## [3.2.0] - 2025-12-05
+
+### ✨ New Features
+
+- **Structured ImageData Result**: `captureImageData()` now returns `CaptureImageDataResult` instead of raw `ImageData`
+  - Includes `imageData`, `width`, `height`, and `timestamp`
+  - Maintains same performance (~2-3ms per frame)
+  - Better developer experience with metadata access
+
+### 📚 Documentation
+
+- Added comprehensive usage examples for both capture methods
+- Documented performance characteristics
+- Added migration guide for existing users
+
 ## [3.1.2] - 2025-12-04
 
 ### 🔧 Fixed
