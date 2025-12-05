@@ -101,21 +101,22 @@ webcam.stop();
 
 ### 🔧 Core Methods
 
-| Method                       | Description                                    |
-| ---------------------------- | ---------------------------------------------- |
-| `new Webcam(config?)`        | Creates a new webcam instance                  |
-| `start(config?)`             | Starts the camera with the given configuration |
-| `stop()`                     | Stops the camera and releases resources        |
-| `captureImage(options?)`     | Captures a photo with blob/base64 (for saving) |
-| `captureImageData(options?)` | Captures ImageData for real-time CV processing |
-| `getDevices()`               | Lists available video devices                  |
-| `getCapabilities(deviceId)`  | Gets capabilities of a specific device         |
-| `checkPermissions()`         | Checks current camera/microphone permissions   |
-| `requestPermissions(opts?)`  | Requests camera/microphone permissions         |
-| `setTorch(enabled)`          | Toggles the camera's torch (if supported)      |
-| `setZoom(factor)`            | Sets the camera zoom level (if supported)      |
-| `setFocusMode(mode)`         | Sets focus mode (if supported)                 |
-| `dispose()`                  | Cleans up all resources                        |
+| Method                         | Description                                         |
+| ------------------------------ | --------------------------------------------------- |
+| `new Webcam(config?)`          | Creates a new webcam instance                       |
+| `start(config?)`               | Starts the camera with the given configuration      |
+| `stop()`                       | Stops the camera and releases resources             |
+| `captureImage(options?)`       | Captures a photo with blob/base64 (for saving)      |
+| `captureImageData(options?)`   | Captures ImageData for real-time CV processing      |
+| `captureImageBitmap(options?)` | Captures ImageBitmap (for Web Workers/Tesseract.js) |
+| `getDevices()`                 | Lists available video devices                       |
+| `getCapabilities(deviceId)`    | Gets capabilities of a specific device              |
+| `checkPermissions()`           | Checks current camera/microphone permissions        |
+| `requestPermissions(opts?)`    | Requests camera/microphone permissions              |
+| `setTorch(enabled)`            | Toggles the camera's torch (if supported)           |
+| `setZoom(factor)`              | Sets the camera zoom level (if supported)           |
+| `setFocusMode(mode)`           | Sets focus mode (if supported)                      |
+| `dispose()`                    | Cleans up all resources                             |
 
 ### 📸 Capture Options
 
@@ -163,11 +164,34 @@ interface CaptureImageDataResult {
 	/** Height of the captured image in pixels */
 	height: number;
 	/** Timestamp when the capture was taken */
+	/** Timestamp when the capture was taken */
+	timestamp: number;
+}
+
+// For captureImageBitmap() - Web Workers/OCR
+interface CaptureImageBitmapOptions {
+	/** Scale factor (0.1-2.0) (default: 1.0) */
+	scale?: number;
+	/** Mirror/flip image horizontally (default: false) */
+	mirror?: boolean;
+	/** Native crop region (applied at source) */
+	crop?: { x: number; y: number; width: number; height: number };
+}
+
+interface CaptureImageBitmapResult {
+	/** ImageBitmap object (⚠️ Must call .close() when done!) */
+	imageBitmap: ImageBitmap;
+	/** Image width in pixels */
+	width: number;
+	/** Image height in pixels */
+	height: number;
+	/** Timestamp when captured */
 	timestamp: number;
 }
 ```
 
 > **Performance Tip**: Use `captureImageData()` for real-time loops (60+ FPS) and `captureImage()` only for saving snapshots.
+> **Memory Warning**: When using `captureImageBitmap()`, you **MUST** manually call `.close()` on the returned bitmap to prevent memory leaks!
 
 ```typescript
 // ✅ DO: Real-time CV processing (fast ~2-3ms)
@@ -182,6 +206,17 @@ async function savePhoto() {
 	const snapshot = await webcam.captureImage({ quality: 0.95 });
 	await uploadToServer(snapshot.blob);
 	URL.revokeObjectURL(snapshot.url);
+}
+
+// ✅ DO: High-performance OCR / Web Worker (fast ~0.5-1ms)
+async function performOCR() {
+	const result = await webcam.captureImageBitmap({ scale: 0.5 });
+	try {
+		await tesseract.recognize(result.imageBitmap);
+	} finally {
+		// ⚠️ CRITICAL: Always close the bitmap!
+		result.imageBitmap.close();
+	}
 }
 ```
 

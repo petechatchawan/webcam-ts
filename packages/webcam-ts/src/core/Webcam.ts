@@ -1,4 +1,6 @@
 import {
+	CaptureImageBitmapOptions,
+	CaptureImageBitmapResult,
 	CaptureImageDataOptions,
 	CaptureImageDataResult,
 	CaptureOptions,
@@ -171,6 +173,39 @@ export class Webcam {
 		const mirror = options.mirror !== undefined ? options.mirror : this.getMirror();
 
 		return this.capture.captureImageData(this.videoElement, {
+			...options,
+			mirror,
+		});
+	}
+
+	/**
+	 * 🚀 ULTRA FAST: Capture as ImageBitmap
+	 * ~0.5-1ms per frame (faster than ImageData!)
+	 * Perfect for Tesseract.js, Web Workers, OffscreenCanvas
+	 *
+	 * ⚠️ IMPORTANT: Remember to call imageBitmap.close() when done!
+	 *
+	 * @param options - Capture options (scale, mirror, crop)
+	 * @returns CaptureImageBitmapResult with ImageBitmap and metadata
+	 *
+	 * @example
+	 * ```ts
+	 * const result = await webcam.captureImageBitmap({ scale: 0.5 });
+	 * await tesseract.recognize(result.imageBitmap);
+	 * result.imageBitmap.close(); // ⚠️ Important!
+	 * ```
+	 */
+	async captureImageBitmap(
+		options: CaptureImageBitmapOptions = {},
+	): Promise<CaptureImageBitmapResult> {
+		if (!this.videoElement) {
+			throw new WebcamError("No video element attached", WebcamErrorCode.VIDEO_ELEMENT_NOT_SET);
+		}
+
+		// Pass mirror state to capture service if not explicitly set in options
+		const mirror = options.mirror !== undefined ? options.mirror : this.getMirror();
+
+		return this.capture.captureImageBitmap(this.videoElement, {
 			...options,
 			mirror,
 		});

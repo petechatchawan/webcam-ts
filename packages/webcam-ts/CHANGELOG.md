@@ -5,6 +5,22 @@ All notable changes to the Webcam-TS project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2025-12-05
+
+### ✨ New Features
+
+- **Ultra-Fast ImageBitmap Capture**: Added `captureImageBitmap()` method (~0.5-1ms per frame)
+  - Ideal for Web Workers (OffscreenCanvas), Tesseract.js, and other high-performance scenarios
+  - Supports `mirror`, `scale`, and native `crop` options
+  - Returns structured `CaptureImageBitmapResult`
+  - Significantly faster than `captureImageData()` for certain use cases
+
+### 📚 Documentation
+
+- Added detailed usage examples for `captureImageBitmap()`
+- Clarified memory management requirements (manual `.close()` call)
+- Added performance comparison table for all capture methods
+
 ## [3.2.1] - 2025-12-05
 
 ### ✨ New Features

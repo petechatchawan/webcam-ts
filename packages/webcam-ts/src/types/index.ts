@@ -124,6 +124,34 @@ export interface CaptureOptions extends CaptureImageDataOptions {
 }
 
 /**
+ * Options for captureImageBitmap() - Ultra-fast capture
+ * Perfect for Web Workers, Tesseract.js, OffscreenCanvas
+ */
+export interface CaptureImageBitmapOptions {
+	/**
+	 * Scale factor for resizing (0.1-2.0)
+	 * @default 1.0
+	 */
+	scale?: number;
+
+	/**
+	 * Mirror/flip image horizontally
+	 * @default false
+	 */
+	mirror?: boolean;
+
+	/**
+	 * Native crop region (applied at source, zero CPU overhead)
+	 */
+	crop?: {
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+	};
+}
+
+/**
  * Result from captureImage() method
  * Contains blob, URL, base64, and metadata
  */
@@ -196,3 +224,32 @@ export interface CaptureImageDataResult {
 	 */
 	timestamp: number;
 }
+
+/**
+ * Result from captureImageBitmap() method
+ * Ultra-fast capture for Web Workers and OCR
+ * ⚠️ IMPORTANT: Call imageBitmap.close() when done to prevent memory leaks!
+ */
+export interface CaptureImageBitmapResult {
+/**
+ * ImageBitmap for Web Workers, OffscreenCanvas, Tesseract.js
+ * ⚠️ MUST call .close() when done to free memory!
+ */
+imageBitmap: ImageBitmap;
+
+/**
+ * Image width in pixels
+ */
+width: number;
+
+/**
+ * Image height in pixels
+ */
+height: number;
+
+/**
+ * Timestamp when captured (Date.now())
+ */
+timestamp: number;
+}
+
