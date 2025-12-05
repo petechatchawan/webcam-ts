@@ -3,7 +3,7 @@ import {
 	CaptureImageBitmapResult,
 	CaptureImageDataOptions,
 	CaptureImageDataResult,
-	CaptureOptions,
+	CaptureImageOptions,
 	CaptureImageResult,
 	DeviceCapability,
 	FocusMode,
@@ -133,7 +133,7 @@ export class Webcam {
 	 * SLOW: ~20-40ms due to blob/base64 conversion
 	 * Use captureImageData() for real-time loops instead!
 	 */
-	async captureImage(options: CaptureOptions = {}): Promise<CaptureImageResult> {
+	async captureImage(options: CaptureImageOptions = {}): Promise<CaptureImageResult> {
 		if (!this.videoElement) {
 			throw new WebcamError("No video element attached", WebcamErrorCode.VIDEO_ELEMENT_NOT_SET);
 		}

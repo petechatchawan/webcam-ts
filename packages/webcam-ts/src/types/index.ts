@@ -80,13 +80,22 @@ export interface WebcamStateInternal {
 export type WebcamState = Readonly<WebcamStateInternal>;
 
 /**
- * Options for captureImageData() - Real-time CV processing
- * Lightweight options for high-performance loops (60+ FPS)
+ * Crop region for capture operations
+ * Defines a rectangular region of interest in the source video
  */
-export interface CaptureImageDataOptions {
+export interface CropRegion {
+	x: number; // x coordinate in pixels
+	y: number; // y coordinate in pixels
+	width: number; // width in pixels
+	height: number; // height in pixels
+}
+
+/**
+ * Base options shared across all capture methods
+ */
+export interface BaseCaptureOptions {
 	/**
 	 * Scale factor for resizing (0.1-2.0)
-	 * Use lower values (0.25-0.5) for faster CV processing
 	 * @default 1.0
 	 */
 	scale?: number;
@@ -96,13 +105,19 @@ export interface CaptureImageDataOptions {
 	 * @default false
 	 */
 	mirror?: boolean;
+
+	/**
+	 * Native crop region (applied at source)
+	 * Defines which part of the video frame to capture
+	 */
+	crop?: CropRegion;
 }
 
 /**
  * Options for captureImage() - Snapshot/Save/Upload
  * Full options including blob/base64 conversion
  */
-export interface CaptureOptions extends CaptureImageDataOptions {
+export interface CaptureImageOptions extends BaseCaptureOptions {
 	/**
 	 * Image type for blob/base64 conversion
 	 * @default "image/jpeg"
@@ -124,37 +139,21 @@ export interface CaptureOptions extends CaptureImageDataOptions {
 }
 
 /**
- * Options for captureImageBitmap() - Ultra-fast capture
- * Perfect for Web Workers, Tesseract.js, OffscreenCanvas
+ * Options for captureImageData() - Real-time CV processing
+ * Lightweight options for high-performance loops (60+ FPS)
  */
-export interface CaptureImageBitmapOptions {
-	/**
-	 * Scale factor for resizing (0.1-2.0)
-	 * @default 1.0
-	 */
-	scale?: number;
-
-	/**
-	 * Mirror/flip image horizontally
-	 * @default false
-	 */
-	mirror?: boolean;
-
-	/**
-	 * Native crop region (applied at source, zero CPU overhead)
-	 */
-	crop?: {
-		x: number;
-		y: number;
-		width: number;
-		height: number;
-	};
+export interface CaptureImageDataOptions extends BaseCaptureOptions {
+	// Inherits scale, mirror, crop
 }
 
 /**
- * Result from captureImage() method
- * Contains blob, URL, base64, and metadata
+ * Options for captureImageBitmap() - Ultra-fast capture
+ * Perfect for Web Workers, Tesseract.js, OffscreenCanvas
  */
+export interface CaptureImageBitmapOptions extends BaseCaptureOptions {
+	// Inherits scale, mirror, crop
+}
+
 /**
  * Result from captureImage() method
  * Contains blob, URL, base64, and metadata
@@ -231,25 +230,24 @@ export interface CaptureImageDataResult {
  * ⚠️ IMPORTANT: Call imageBitmap.close() when done to prevent memory leaks!
  */
 export interface CaptureImageBitmapResult {
-/**
- * ImageBitmap for Web Workers, OffscreenCanvas, Tesseract.js
- * ⚠️ MUST call .close() when done to free memory!
- */
-imageBitmap: ImageBitmap;
+	/**
+	 * ImageBitmap for Web Workers, OffscreenCanvas, Tesseract.js
+	 * ⚠️ MUST call .close() when done to free memory!
+	 */
+	imageBitmap: ImageBitmap;
 
-/**
- * Image width in pixels
- */
-width: number;
+	/**
+	 * Image width in pixels
+	 */
+	width: number;
 
-/**
- * Image height in pixels
- */
-height: number;
+	/**
+	 * Image height in pixels
+	 */
+	height: number;
 
-/**
- * Timestamp when captured (Date.now())
- */
-timestamp: number;
+	/**
+	 * Timestamp when captured (Date.now())
+	 */
+	timestamp: number;
 }
-

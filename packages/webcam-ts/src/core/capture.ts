@@ -4,7 +4,7 @@ import {
 	CaptureImageDataOptions,
 	CaptureImageDataResult,
 	CaptureImageResult,
-	CaptureOptions,
+	CaptureImageOptions,
 } from "../types";
 import { WebcamError, WebcamErrorCode } from "../utils/errors";
 
@@ -17,6 +17,10 @@ export class Capture {
 	private cachedDimensions = { width: 0, height: 0 };
 	private cachedScale = 1.0;
 	private cachedMirror = false;
+
+	// Optimization for captureImageBitmap mirroring (Lazy init)
+	private mirrorCanvas: HTMLCanvasElement | null = null;
+	private mirrorContext: CanvasRenderingContext2D | null = null;
 
 	constructor() {
 		// Pre-initialize canvas for better performance
@@ -54,9 +58,12 @@ export class Capture {
 
 		const scale = options.scale !== undefined ? Math.max(0.1, Math.min(2, options.scale)) : 1.0;
 		const mirror = options.mirror ?? false;
+		const crop = options.crop;
 
-		const width = Math.floor(videoElement.videoWidth * scale);
-		const height = Math.floor(videoElement.videoHeight * scale);
+		const sourceWidth = crop ? crop.width : videoElement.videoWidth;
+		const sourceHeight = crop ? crop.height : videoElement.videoHeight;
+		const width = Math.floor(sourceWidth * scale);
+		const height = Math.floor(sourceHeight * scale);
 
 		// Only resize when dimensions change
 		if (
@@ -81,7 +88,11 @@ export class Capture {
 
 		// Draw video frame to canvas
 		try {
-			ctx.drawImage(videoElement, 0, 0, width, height);
+			if (crop) {
+				ctx.drawImage(videoElement, crop.x, crop.y, crop.width, crop.height, 0, 0, width, height);
+			} else {
+				ctx.drawImage(videoElement, 0, 0, width, height);
+			}
 		} catch (error) {
 			throw new WebcamError(
 				"Failed to draw video to canvas",
@@ -116,7 +127,7 @@ export class Capture {
 	 */
 	async captureImage(
 		videoElement: HTMLVideoElement,
-		options: CaptureOptions = {},
+		options: CaptureImageOptions = {},
 	): Promise<CaptureImageResult> {
 		if (!videoElement || videoElement.readyState < 2) {
 			throw new WebcamError(
@@ -132,9 +143,12 @@ export class Capture {
 		const scale = options.scale !== undefined ? Math.max(0.1, Math.min(2, options.scale)) : 1.0;
 		const mirror = options.mirror ?? false;
 		const includeBase64 = options.includeBase64 ?? true;
+		const crop = options.crop;
 
-		const width = Math.floor(videoElement.videoWidth * scale);
-		const height = Math.floor(videoElement.videoHeight * scale);
+		const sourceWidth = crop ? crop.width : videoElement.videoWidth;
+		const sourceHeight = crop ? crop.height : videoElement.videoHeight;
+		const width = Math.floor(sourceWidth * scale);
+		const height = Math.floor(sourceHeight * scale);
 
 		// Resize if needed
 		if (
@@ -155,7 +169,11 @@ export class Capture {
 
 		// Draw to canvas
 		try {
-			ctx.drawImage(videoElement, 0, 0, width, height);
+			if (crop) {
+				ctx.drawImage(videoElement, crop.x, crop.y, crop.width, crop.height, 0, 0, width, height);
+			} else {
+				ctx.drawImage(videoElement, 0, 0, width, height);
+			}
 		} catch (error) {
 			throw new WebcamError(
 				"Failed to draw video to canvas",
@@ -273,58 +291,21 @@ export class Capture {
 		const crop = options.crop;
 
 		try {
-			let imageBitmap: ImageBitmap;
-
 			// Calculate dimensions
-			const sourceWidth = videoElement.videoWidth;
-			const sourceHeight = videoElement.videoHeight;
+			const sourceWidth = crop ? crop.width : videoElement.videoWidth;
+			const sourceHeight = crop ? crop.height : videoElement.videoHeight;
 			const targetWidth = Math.floor(sourceWidth * scale);
 			const targetHeight = Math.floor(sourceHeight * scale);
 
-			// Build createImageBitmap options
-			const bitmapOptions: ImageBitmapOptions = {
-				resizeWidth: targetWidth,
-				resizeHeight: targetHeight,
-				resizeQuality: "high",
-			};
+			// FAST PATH: No mirror (Direct createImageBitmap) 🚀
+			if (!mirror) {
+				const bitmapOptions: ImageBitmapOptions = {
+					resizeWidth: targetWidth,
+					resizeHeight: targetHeight,
+					resizeQuality: "high",
+				};
 
-			// Apply mirroring if needed
-			if (mirror) {
-				// ImageBitmap doesn't support mirroring directly
-				// We need to use canvas for mirroring
-				const tempCanvas = document.createElement("canvas");
-				tempCanvas.width = targetWidth;
-				tempCanvas.height = targetHeight;
-				const tempCtx = tempCanvas.getContext("2d");
-
-				if (!tempCtx) {
-					throw new Error("Failed to create temporary canvas context");
-				}
-
-				// Apply mirror transform
-				tempCtx.setTransform(-1, 0, 0, 1, targetWidth, 0);
-
-				// Draw video to canvas
-				if (crop) {
-					tempCtx.drawImage(
-						videoElement,
-						crop.x,
-						crop.y,
-						crop.width,
-						crop.height,
-						0,
-						0,
-						targetWidth,
-						targetHeight,
-					);
-				} else {
-					tempCtx.drawImage(videoElement, 0, 0, targetWidth, targetHeight);
-				}
-
-				// Create ImageBitmap from canvas
-				imageBitmap = await createImageBitmap(tempCanvas);
-			} else {
-				// No mirroring - use native createImageBitmap (faster)
+				let imageBitmap: ImageBitmap;
 				if (crop) {
 					imageBitmap = await createImageBitmap(
 						videoElement,
@@ -337,12 +318,68 @@ export class Capture {
 				} else {
 					imageBitmap = await createImageBitmap(videoElement, bitmapOptions);
 				}
+
+				return {
+					imageBitmap,
+					width: targetWidth,
+					height: targetHeight,
+					timestamp: Date.now(),
+				};
 			}
+
+			// SLOW PATH: Mirroring (Requires Canvas)
+			// Using Lazy Initialization & Object Pooling to avoid GC pressure
+
+			// 1. Create canvas if needed (Lazy init)
+			if (!this.mirrorCanvas) {
+				this.mirrorCanvas = document.createElement("canvas");
+				this.mirrorContext = this.mirrorCanvas.getContext("2d", {
+					alpha: false, // 10-15% faster without alpha
+					desynchronized: true, // Better for real-time video
+				});
+
+				if (!this.mirrorContext) {
+					throw new WebcamError(
+						"Failed to create mirror canvas context",
+						WebcamErrorCode.UNKNOWN_ERROR,
+					);
+				}
+			}
+
+			// 2. Resize if needed (Clears canvas automatically)
+			if (this.mirrorCanvas.width !== targetWidth || this.mirrorCanvas.height !== targetHeight) {
+				this.mirrorCanvas.width = targetWidth;
+				this.mirrorCanvas.height = targetHeight;
+			}
+
+			const ctx = this.mirrorContext!;
+
+			// 3. Draw with mirror transform
+			ctx.setTransform(-1, 0, 0, 1, targetWidth, 0);
+
+			if (crop) {
+				ctx.drawImage(
+					videoElement,
+					crop.x,
+					crop.y,
+					crop.width,
+					crop.height,
+					0,
+					0,
+					targetWidth,
+					targetHeight,
+				);
+			} else {
+				ctx.drawImage(videoElement, 0, 0, targetWidth, targetHeight);
+			}
+
+			// 4. Create Bitmap from cached canvas
+			const imageBitmap = await createImageBitmap(this.mirrorCanvas);
 
 			return {
 				imageBitmap,
-				width: imageBitmap.width,
-				height: imageBitmap.height,
+				width: targetWidth,
+				height: targetHeight,
 				timestamp: Date.now(),
 			};
 		} catch (error) {
@@ -407,8 +444,16 @@ export class Capture {
 			this.canvas.width = 0;
 			this.canvas.height = 0;
 		}
+		if (this.mirrorCanvas) {
+			this.mirrorCanvas.width = 0;
+			this.mirrorCanvas.height = 0;
+		}
+
 		this.canvas = null;
 		this.context = null;
+		this.mirrorCanvas = null;
+		this.mirrorContext = null;
+
 		this.reusableImageData = null;
 		this.cachedDimensions = { width: 0, height: 0 };
 	}

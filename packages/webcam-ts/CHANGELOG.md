@@ -5,6 +5,37 @@ All notable changes to the Webcam-TS project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.1] - 2025-12-06
+
+### 🔧 Improvements
+
+- **Refactored Type Definitions**: Introduced `BaseCaptureOptions` to eliminate Code duplication
+  - `CaptureImageDataOptions`, `CaptureOptions`, and `CaptureImageBitmapOptions` now all extend `BaseCaptureOptions`
+  - Ensures consistent option availability (scale, mirror, crop) across all methods
+  - Cleaner and more maintainable type hierarchy
+
+## [3.4.0] - 2025-12-06
+
+### ✨ New Features
+
+- **Universal Cropping Support**: Added `crop` option to all capture methods (`captureImageData`, `captureImage`, `captureImageBitmap`)
+  - Allows capturing a specific region of interest from the video feed
+  - Supports scaling and mirroring simultaneously with cropping
+  - optimized implementation using native canvas source-rect drawing
+
+### ⚡ Performance
+
+- **Refined Capture Logic**: Unified resizing and drawing logic across all methods for better maintainability and performance consistency
+
+## [3.3.1] - 2025-12-06
+
+### ⚡ Performance
+
+- **Optimized ImageBitmap Capture**: Implemented lazy initialization and object pooling for `captureImageBitmap()` mirror operations
+  - Eliminates Garbage Collection (GC) pressure during high-frequency loops (60+ FPS)
+  - Reuses canvas resources instead of creating new ones for each frame
+  - Significant stability improvement for long-running real-time applications
+
 ## [3.3.0] - 2025-12-05
 
 ### ✨ New Features
