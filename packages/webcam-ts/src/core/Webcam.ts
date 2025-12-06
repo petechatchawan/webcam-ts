@@ -89,8 +89,9 @@ export class Webcam {
 		try {
 			this._updateStatus("initializing");
 
-			const stream = await this.stream.startStream(this.config);
+			const { stream, usedResolution } = await this.stream.startStream(this.config);
 			this.state.activeStream = stream;
+			this.state.activeResolution = usedResolution || undefined;
 
 			// Setup video element
 			if (this.videoElement) {
@@ -120,6 +121,7 @@ export class Webcam {
 	stop(): void {
 		this.stream.stopStream();
 		this.state.activeStream = null;
+		this.state.activeResolution = undefined;
 		if (this.videoElement) {
 			this.videoElement.srcObject = null;
 		}
@@ -262,10 +264,17 @@ export class Webcam {
 
 	/**
 	 * Get current resolution
+	 * Returns the resolution that was used to start the camera with the original label
 	 */
 	getCurrentResolution(): Resolution | null {
 		if (!this.state.activeStream) return null;
 
+		// If we have the stored resolution with the original label, return it
+		if (this.state.activeResolution) {
+			return this.state.activeResolution;
+		}
+
+		// Fallback: get actual resolution from track settings
 		const tracks = this.state.activeStream.getVideoTracks();
 		if (tracks.length === 0) return null;
 

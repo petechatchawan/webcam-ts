@@ -5,6 +5,34 @@ All notable changes to the Webcam-TS project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.2] - 2025-12-07
+
+### 🐛 Bug Fixes
+
+- **Resolution Label Tracking**: Fixed `getCurrentResolution()` to return the original user-defined label instead of generating a generic label
+  - Previously: Opening camera with `{ label: 'S720', width: 720, height: 720 }` would return `label: "720x720"`
+  - Now: Returns the original `label: "S720"` as specified in `preferredResolutions`
+  - Added `activeResolution` field to `WebcamStateInternal` to store the resolution used when starting the camera
+  - `Stream.startStream()` now returns both the stream and the resolution that was successfully used
+  - Maintains backward compatibility with fallback to generated labels when no resolution is stored
+
+### 🔧 Technical Details
+
+**Changes:**
+
+- Added `activeResolution?: Resolution` to `WebcamStateInternal` interface
+- Modified `Stream.startStream()` to return `{ stream: MediaStream; usedResolution: Resolution | null }`
+- Updated `Webcam.start()` to store the used resolution in state
+- Enhanced `getCurrentResolution()` to prioritize stored resolution with original label
+- Updated `Webcam.stop()` to clear `activeResolution` on cleanup
+
+**Use Cases:**
+
+- Display user-friendly resolution labels in UI (e.g., "HD", "4K", "Square HD")
+- Track which resolution preset was actually used for analytics
+- Verify that the camera opened with the correct resolution configuration
+- Show current resolution status with meaningful labels
+
 ## [3.4.1] - 2025-12-06
 
 ### 🔧 Improvements

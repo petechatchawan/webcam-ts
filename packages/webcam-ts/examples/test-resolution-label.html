@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="th">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Test Resolution Label - Webcam-TS</title>
+		<style>
+			body {
+				font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+				max-width: 800px;
+				margin: 50px auto;
+				padding: 20px;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: #fff;
+			}
+			.container {
+				background: rgba(255, 255, 255, 0.1);
+				backdrop-filter: blur(10px);
+				border-radius: 20px;
+				padding: 30px;
+				box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+			}
+			h1 {
+				text-align: center;
+				margin-bottom: 30px;
+			}
+			.info-box {
+				background: rgba(255, 255, 255, 0.2);
+				padding: 20px;
+				border-radius: 10px;
+				margin: 20px 0;
+			}
+			.info-box h3 {
+				margin-top: 0;
+				color: #ffd700;
+			}
+			.info-item {
+				margin: 10px 0;
+				font-size: 16px;
+			}
+			.info-item strong {
+				color: #ffd700;
+			}
+			button {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+				border: none;
+				padding: 12px 24px;
+				border-radius: 8px;
+				cursor: pointer;
+				font-size: 16px;
+				margin: 5px;
+				transition: transform 0.2s;
+			}
+			button:hover {
+				transform: scale(1.05);
+			}
+			button:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+			video {
+				width: 100%;
+				max-width: 640px;
+				border-radius: 10px;
+				margin: 20px auto;
+				display: block;
+			}
+			.controls {
+				text-align: center;
+				margin: 20px 0;
+			}
+			.success {
+				color: #4ade80;
+			}
+			.error {
+				color: #f87171;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>🎥 ทดสอบ Resolution Label</h1>
+
+			<div class="info-box">
+				<h3>📋 วัตถุประสงค์</h3>
+				<p>
+					ทดสอบว่า
+					<code>getCurrentResolution()</code>
+					คืนค่า label ที่ถูกต้องตามที่กำหนด (เช่น S720, S1080, S1920) แทนที่จะเป็น "720x720"
+				</p>
+			</div>
+
+			<video id="videoElement" autoplay playsinline></video>
+
+			<div class="controls">
+				<button id="btnS720" onclick="startWithResolution('S720', 720, 720)">
+					เปิดกล้อง S720 (720x720)
+				</button>
+				<button id="btnS1080" onclick="startWithResolution('S1080', 1080, 1080)">
+					เปิดกล้อง S1080 (1080x1080)
+				</button>
+				<button id="btnS1920" onclick="startWithResolution('S1920', 1920, 1920)">
+					เปิดกล้อง S1920 (1920x1920)
+				</button>
+				<button id="btnStop" onclick="stopCamera()" disabled>ปิดกล้อง</button>
+			</div>
+
+			<div class="info-box" id="resultBox" style="display: none">
+				<h3>✅ ผลการทดสอบ</h3>
+				<div class="info-item">
+					<strong>Label ที่กำหนด:</strong>
+					<span id="requestedLabel">-</span>
+				</div>
+				<div class="info-item">
+					<strong>getCurrentResolution().label:</strong>
+					<span id="currentLabel" class="success">-</span>
+				</div>
+				<div class="info-item">
+					<strong>Width:</strong>
+					<span id="currentWidth">-</span>
+				</div>
+				<div class="info-item">
+					<strong>Height:</strong>
+					<span id="currentHeight">-</span>
+				</div>
+				<div class="info-item">
+					<strong>สถานะ:</strong>
+					<span id="testStatus">-</span>
+				</div>
+			</div>
+
+			<div class="info-box">
+				<h3>ℹ️ คำอธิบาย</h3>
+				<ul>
+					<li>
+						<strong>ก่อนแก้ไข:</strong>
+						getCurrentResolution() จะคืนค่า label เป็น "720x720" แม้ว่าจะเปิดด้วย S720
+					</li>
+					<li>
+						<strong>หลังแก้ไข:</strong>
+						getCurrentResolution() จะคืนค่า label เป็น "S720" ตามที่กำหนดไว้
+					</li>
+					<li>
+						<strong>วิธีทดสอบ:</strong>
+						กดปุ่มเปิดกล้องด้วย resolution ที่ต้องการ แล้วดูผลลัพธ์ด้านล่าง
+					</li>
+				</ul>
+			</div>
+		</div>
+
+		<script type="module">
+			import { Webcam } from "../dist/index.js";
+
+			const videoElement = document.getElementById("videoElement");
+			const webcam = new Webcam();
+
+			window.startWithResolution = async function (label, width, height) {
+				try {
+					// แสดงผลที่กำหนด
+					document.getElementById("requestedLabel").textContent = label;
+					document.getElementById("resultBox").style.display = "block";
+					document.getElementById("testStatus").textContent = "⏳ กำลังเปิดกล้อง...";
+					document.getElementById("testStatus").className = "";
+
+					// เปิดกล้องด้วย resolution ที่กำหนด
+					await webcam.start({
+						videoElement: videoElement,
+						preferredResolutions: [{ label: label, width: width, height: height }],
+					});
+
+					// รอให้ video พร้อม
+					await new Promise((resolve) => {
+						if (videoElement.readyState >= 2) {
+							resolve();
+						} else {
+							videoElement.addEventListener("loadeddata", resolve, { once: true });
+						}
+					});
+
+					// ดึงข้อมูล resolution ปัจจุบัน
+					const currentResolution = webcam.getCurrentResolution();
+
+					if (currentResolution) {
+						document.getElementById("currentLabel").textContent = currentResolution.label;
+						document.getElementById("currentWidth").textContent = currentResolution.width;
+						document.getElementById("currentHeight").textContent = currentResolution.height;
+
+						// ตรวจสอบว่า label ตรงกันหรือไม่
+						if (currentResolution.label === label) {
+							document.getElementById("testStatus").textContent = "✅ ผ่าน! Label ตรงกับที่กำหนด";
+							document.getElementById("testStatus").className = "success";
+							document.getElementById("currentLabel").className = "success";
+						} else {
+							document.getElementById(
+								"testStatus",
+							).textContent = `❌ ไม่ผ่าน! ได้ "${currentResolution.label}" แทนที่จะเป็น "${label}"`;
+							document.getElementById("testStatus").className = "error";
+							document.getElementById("currentLabel").className = "error";
+						}
+					} else {
+						document.getElementById("testStatus").textContent =
+							"❌ ไม่สามารถดึงข้อมูล resolution ได้";
+						document.getElementById("testStatus").className = "error";
+					}
+
+					// Enable stop button
+					document.getElementById("btnStop").disabled = false;
+					document.getElementById("btnS720").disabled = true;
+					document.getElementById("btnS1080").disabled = true;
+					document.getElementById("btnS1920").disabled = true;
+				} catch (error) {
+					console.error("Error:", error);
+					document.getElementById("testStatus").textContent = `❌ เกิดข้อผิดพลาด: ${error.message}`;
+					document.getElementById("testStatus").className = "error";
+				}
+			};
+
+			window.stopCamera = function () {
+				webcam.stop();
+				document.getElementById("btnStop").disabled = true;
+				document.getElementById("btnS720").disabled = false;
+				document.getElementById("btnS1080").disabled = false;
+				document.getElementById("btnS1920").disabled = false;
+				document.getElementById("testStatus").textContent = "⏹️ ปิดกล้องแล้ว";
+				document.getElementById("testStatus").className = "";
+			};
+		</script>
+	</body>
+</html>

@@ -1,4 +1,4 @@
-import { WebcamConfiguration } from "../types";
+import { Resolution, WebcamConfiguration } from "../types";
 import { WebcamError, WebcamErrorCode } from "../utils/errors";
 
 // Default resolution when no specific resolution is requested
@@ -14,9 +14,13 @@ export class Stream {
 		return this.activeStream;
 	}
 
-	async startStream(config: WebcamConfiguration): Promise<MediaStream> {
+	async startStream(config: WebcamConfiguration): Promise<{
+		stream: MediaStream;
+		usedResolution: Resolution | null;
+	}> {
 		try {
 			let stream: MediaStream | null = null;
+			let usedResolution: Resolution | null = null;
 
 			if (Array.isArray(config.preferredResolutions)) {
 				let lastError: Error | undefined;
@@ -27,6 +31,7 @@ export class Stream {
 							preferredResolutions: resolution,
 						});
 						stream = await navigator.mediaDevices.getUserMedia(constraints);
+						usedResolution = resolution; // Store the resolution that worked
 						break; // Found a working resolution
 					} catch (error) {
 						lastError = error instanceof Error ? error : new Error("Failed to get media stream");
@@ -39,10 +44,12 @@ export class Stream {
 			} else {
 				const constraints = await this._buildConstraints(config);
 				stream = await navigator.mediaDevices.getUserMedia(constraints);
+				// Store the single resolution if provided
+				usedResolution = config.preferredResolutions || null;
 			}
 
 			this.activeStream = stream;
-			return stream;
+			return { stream, usedResolution };
 		} catch (error) {
 			throw this._handleStartError(error, config);
 		}

@@ -75,6 +75,7 @@ export interface WebcamStateInternal {
 	zoomLevel?: number;
 	focusMode?: FocusMode;
 	torchEnabled?: boolean;
+	activeResolution?: Resolution; // Store the resolution that was used to start the stream
 }
 
 export type WebcamState = Readonly<WebcamStateInternal>;
