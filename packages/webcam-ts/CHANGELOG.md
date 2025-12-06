@@ -5,6 +5,15 @@ All notable changes to the Webcam-TS project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.3] - 2025-12-07
+
+### 🔧 Improvements
+
+- **File Naming Standardization**: Renamed core module from `Webcam.ts` to `webcam.ts` (lowercase)
+  - Ensures consistency across case-sensitive filesystems (Linux servers)
+  - Prevents deployment issues on production environments
+  - All compiled output now uses lowercase naming convention
+
 ## [3.4.2] - 2025-12-07
 
 ### 🐛 Bug Fixes
