@@ -37,87 +37,6 @@ export class Capture {
 	}
 
 	/**
-	 * FASTEST: Capture as ImageData for real-time CV processing
-	 * ~2-3ms per frame at 640x480
-	 * Perfect for MediaPipe, Pico.js, TensorFlow.js loops
-	 *
-	 * @param videoElement - The video element to capture from
-	 * @param options - Capture options (scale, mirror)
-	 * @returns CaptureImageDataResult with ImageData and metadata
-	 */
-	captureImageData(
-		videoElement: HTMLVideoElement,
-		options: CaptureImageDataOptions = {},
-	): CaptureImageDataResult {
-		if (!videoElement || videoElement.readyState < 2) {
-			throw new WebcamError(
-				"Video element is not ready for capture",
-				WebcamErrorCode.VIDEO_ELEMENT_NOT_SET,
-			);
-		}
-
-		const scale = options.scale !== undefined ? Math.max(0.1, Math.min(2, options.scale)) : 1.0;
-		const mirror = options.mirror ?? false;
-		const crop = options.crop;
-
-		const sourceWidth = crop ? crop.width : videoElement.videoWidth;
-		const sourceHeight = crop ? crop.height : videoElement.videoHeight;
-		const width = Math.floor(sourceWidth * scale);
-		const height = Math.floor(sourceHeight * scale);
-
-		// Only resize when dimensions change
-		if (
-			this.cachedDimensions.width !== width ||
-			this.cachedDimensions.height !== height ||
-			this.cachedScale !== scale
-		) {
-			this.resizeCanvas(width, height, scale);
-		}
-
-		const ctx = this.context!;
-
-		// Use setTransform instead of save/restore (faster)
-		if (mirror !== this.cachedMirror) {
-			if (mirror) {
-				ctx.setTransform(-1, 0, 0, 1, width, 0);
-			} else {
-				ctx.setTransform(1, 0, 0, 1, 0, 0);
-			}
-			this.cachedMirror = mirror;
-		}
-
-		// Draw video frame to canvas
-		try {
-			if (crop) {
-				ctx.drawImage(videoElement, crop.x, crop.y, crop.width, crop.height, 0, 0, width, height);
-			} else {
-				ctx.drawImage(videoElement, 0, 0, width, height);
-			}
-		} catch (error) {
-			throw new WebcamError(
-				"Failed to draw video to canvas",
-				WebcamErrorCode.CAPTURE_FAILED,
-				error,
-			);
-		}
-
-		// Reuse ImageData object to eliminate GC pressure
-		if (!this.reusableImageData) {
-			this.reusableImageData = ctx.getImageData(0, 0, width, height);
-		} else {
-			// In-place update (fastest method)
-			ctx.getImageData(0, 0, width, height, this.reusableImageData);
-		}
-
-		return {
-			imageData: this.reusableImageData,
-			width,
-			height,
-			timestamp: Date.now(),
-		};
-	}
-
-	/**
 	 * Original method: Capture with blob/base64 (SLOW ~20-40ms)
 	 * Use ONLY for saving snapshots, NOT for real-time loops!
 	 *
@@ -245,6 +164,82 @@ export class Capture {
 			width,
 			height,
 			mimeType: imageType,
+			timestamp: Date.now(),
+		};
+	}
+
+	/**
+	 * FASTEST: Capture as ImageData for real-time CV processing
+	 * ~2-3ms per frame at 640x480
+	 * Perfect for MediaPipe, Pico.js, TensorFlow.js loops
+	 *
+	 * @param videoElement - The video element to capture from
+	 * @param options - Capture options (scale, mirror)
+	 * @returns CaptureImageDataResult with ImageData and metadata
+	 */
+	captureImageData(
+		videoElement: HTMLVideoElement,
+		options: CaptureImageDataOptions = {},
+	): CaptureImageDataResult {
+		if (!videoElement || videoElement.readyState < 2) {
+			throw new WebcamError(
+				"Video element is not ready for capture",
+				WebcamErrorCode.VIDEO_ELEMENT_NOT_SET,
+			);
+		}
+
+		const scale = options.scale !== undefined ? Math.max(0.1, Math.min(2, options.scale)) : 1.0;
+		const mirror = options.mirror ?? false;
+		const crop = options.crop;
+
+		const sourceWidth = crop ? crop.width : videoElement.videoWidth;
+		const sourceHeight = crop ? crop.height : videoElement.videoHeight;
+		const width = Math.floor(sourceWidth * scale);
+		const height = Math.floor(sourceHeight * scale);
+
+		// Only resize when dimensions change
+		if (
+			this.cachedDimensions.width !== width ||
+			this.cachedDimensions.height !== height ||
+			this.cachedScale !== scale
+		) {
+			this.resizeCanvas(width, height, scale);
+		}
+
+		const ctx = this.context!;
+
+		// Use setTransform instead of save/restore (faster)
+		if (mirror !== this.cachedMirror) {
+			if (mirror) {
+				ctx.setTransform(-1, 0, 0, 1, width, 0);
+			} else {
+				ctx.setTransform(1, 0, 0, 1, 0, 0);
+			}
+			this.cachedMirror = mirror;
+		}
+
+		// Draw video frame to canvas
+		try {
+			if (crop) {
+				ctx.drawImage(videoElement, crop.x, crop.y, crop.width, crop.height, 0, 0, width, height);
+			} else {
+				ctx.drawImage(videoElement, 0, 0, width, height);
+			}
+		} catch (error) {
+			throw new WebcamError(
+				"Failed to draw video to canvas",
+				WebcamErrorCode.CAPTURE_FAILED,
+				error,
+			);
+		}
+
+		// Always get new ImageData as context.getImageData returns a new object
+		this.reusableImageData = ctx.getImageData(0, 0, width, height);
+
+		return {
+			imageData: this.reusableImageData,
+			width,
+			height,
 			timestamp: Date.now(),
 		};
 	}

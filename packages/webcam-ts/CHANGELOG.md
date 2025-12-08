@@ -5,6 +5,14 @@ All notable changes to the Webcam-TS project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.4] - 2025-12-08
+
+### 🐛 Bug Fixes
+
+- **Capture Logic**: Fixed `captureImageData()` causing static images by removing incorrect in-place update optimization
+  - `ctx.getImageData()` always returns a new object and does not support in-place updates via argument
+  - Ensured `reusableImageData` is correctly updated with new frame data every capture
+
 ## [3.4.3] - 2025-12-07
 
 ### 🔧 Improvements

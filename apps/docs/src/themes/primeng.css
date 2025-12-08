@@ -1,78 +1,155 @@
 :root {
-  --p-button-label-font-weight: 400;
-  --p-overlay-modal-padding: 0px;
-  --p-breadcrumb-padding: 0px;
-  --p-breadcrumb-background: transparent;
-  --p-dialog-content-padding: 0px;
-  --p-drawer-width: 320px;
-  --p-drawer-content-padding: 0px;
+	--p-button-label-font-weight: 400;
+	--p-overlay-modal-padding: 0px;
+	--p-breadcrumb-padding: 0px;
+	--p-breadcrumb-background: transparent;
+	--p-dialog-content-padding: 0px;
+	--p-drawer-width: 320px;
+	--p-drawer-content-padding: 0px;
 }
 
 .custom-dialog {
-  width: 100vw !important;
-  height: 100vh !important;
-  max-height: 100% !important;
-} 
+	width: 100vw !important;
+	height: 100vh !important;
+	max-height: 100% !important;
+}
 
 /* Override PrimeNG Breadcrumb */
 .p-breadcrumb {
-  padding: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  @apply text-xs sm:text-sm md:text-base;
+	padding: 0 !important;
+	background: transparent !important;
+	border: none !important;
+	font-size: 0.75rem; /* 12px */
 
-  .p-icon {
-    @apply h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5;
-  }
+	.p-icon {
+		height: 0.75rem;
+		width: 0.75rem;
+	}
+}
+
+@media (min-width: 640px) {
+	.p-breadcrumb {
+		font-size: 0.875rem; /* 14px */
+
+		.p-icon {
+			height: 1rem;
+			width: 1rem;
+		}
+	}
+}
+
+@media (min-width: 768px) {
+	.p-breadcrumb {
+		font-size: 1rem; /* 16px */
+
+		.p-icon {
+			height: 1.25rem;
+			width: 1.25rem;
+		}
+	}
 }
 
 .global-dialog {
-  @apply p-0 !important;
+	padding: 0 !important;
 }
 
 .installment-plan-dialog {
-  width: 100% !important;
-  max-width: 860px !important;
-  min-height: 90% !important;
-  @apply mx-4;
+	width: 100% !important;
+	max-width: 860px !important;
+	min-height: 90% !important;
+	margin-left: 1rem;
+	margin-right: 1rem;
 }
 
 /* Custom Product Confirm Dialog */
 .product-confirm-dialog {
-  @apply w-[90%] sm:w-full sm:max-w-[360px] overflow-hidden rounded-lg;
+	width: 90%;
+	overflow: hidden;
+	border-radius: 0.5rem;
+}
+
+@media (min-width: 640px) {
+	.product-confirm-dialog {
+		width: 100%;
+		max-width: 360px;
+	}
 }
 
 .product-confirm-dialog .p-dialog-header {
-  @apply bg-white px-4 py-3 sm:px-6 sm:py-4;
-  @apply text-center;
+	background-color: white;
+	padding: 0.75rem 1rem;
+	text-align: center;
+}
+
+@media (min-width: 640px) {
+	.product-confirm-dialog .p-dialog-header {
+		padding: 1rem 1.5rem;
+	}
 }
 
 .product-confirm-dialog .p-dialog-title {
-  @apply text-base sm:text-lg font-medium text-[#002E60];
+	font-size: 1rem;
+	font-weight: 500;
+	color: #002e60;
+}
+
+@media (min-width: 640px) {
+	.product-confirm-dialog .p-dialog-title {
+		font-size: 1.125rem;
+	}
 }
 
 .product-confirm-dialog .p-dialog-content {
-  @apply w-full overflow-hidden bg-white p-0;
-  max-width: 100%;
+	width: 100%;
+	overflow: hidden;
+	background-color: white;
+	padding: 0;
+	max-width: 100%;
 }
 
 .p-confirmdialog-message {
-  @apply w-full;
+	width: 100%;
 }
 
 /* Fix for long text in dialog messages */
 .p-confirmdialog-message p {
-  @apply overflow-hidden text-wrap break-words text-sm sm:text-base md:text-lg;
-  word-break: break-word;
-  max-width: 100%;
+	overflow: hidden;
+	text-wrap: wrap;
+	overflow-wrap: break-word;
+	font-size: 0.875rem;
+	word-break: break-word;
+	max-width: 100%;
+}
+
+@media (min-width: 640px) {
+	.p-confirmdialog-message p {
+		font-size: 1rem;
+	}
+}
+
+@media (min-width: 768px) {
+	.p-confirmdialog-message p {
+		font-size: 1.125rem;
+	}
 }
 
 .product-confirm-dialog .p-dialog-footer {
-  @apply flex flex-row gap-2 bg-white p-3 sm:p-4;
+	display: flex;
+	flex-direction: row;
+	gap: 0.5rem;
+	background-color: white;
+	padding: 0.75rem;
+}
+
+@media (min-width: 640px) {
+	.product-confirm-dialog .p-dialog-footer {
+		padding: 1rem;
+	}
 }
 
 .product-confirm-dialog p-button {
-  @apply w-full rounded-lg;
+	width: 100%;
+	border-radius: 0.5rem;
 }
 
 p-inputtext,
@@ -80,52 +157,126 @@ p-inputnumber,
 p-select,
 p-dropdown,
 input {
-  @apply w-full !text-sm sm:!text-base md:!text-lg;
+	width: 100%;
+	font-size: 0.875rem !important;
+}
+
+@media (min-width: 640px) {
+	p-inputtext,
+	p-inputnumber,
+	p-select,
+	p-dropdown,
+	input {
+		font-size: 1rem !important;
+	}
+}
+
+@media (min-width: 768px) {
+	p-inputtext,
+	p-inputnumber,
+	p-select,
+	p-dropdown,
+	input {
+		font-size: 1.125rem !important;
+	}
 }
 
 p-select {
-  span {
-     @apply w-full !text-sm sm:!text-base md:!text-lg;
-  }
+	span {
+		width: 100%;
+		font-size: 0.875rem !important;
+	}
+}
+
+@media (min-width: 640px) {
+	p-select span {
+		font-size: 1rem !important;
+	}
+}
+
+@media (min-width: 768px) {
+	p-select span {
+		font-size: 1.125rem !important;
+	}
 }
 
 .p-select-list-container {
- @apply w-full !text-sm sm:!text-base md:!text-lg;
+	width: 100%;
+	font-size: 0.875rem !important;
+}
+
+@media (min-width: 640px) {
+	.p-select-list-container {
+		font-size: 1rem !important;
+	}
+}
+
+@media (min-width: 768px) {
+	.p-select-list-container {
+		font-size: 1.125rem !important;
+	}
 }
 
 p-button {
-  .p-button-label {
-    @apply text-sm sm:text-base md:text-lg font-normal;
-  }
+	.p-button-label {
+		font-size: 0.875rem;
+		font-weight: 400;
+	}
+}
+
+@media (min-width: 640px) {
+	p-button .p-button-label {
+		font-size: 1rem;
+	}
+}
+
+@media (min-width: 768px) {
+	p-button .p-button-label {
+		font-size: 1.125rem;
+	}
 }
 
 /* PrimeNG Drawer Styles */
 .p-drawer {
-  .p-drawer-content {
-    @apply p-0;
-  }
+	.p-drawer-content {
+		padding: 0;
+	}
 
-  .p-drawer-header {
-    @apply p-0;
-  }
+	.p-drawer-header {
+		padding: 0;
+	}
 
-  .p-drawer-footer {
-    @apply p-0;
-  }
+	.p-drawer-footer {
+		padding: 0;
+	}
 
-  /* Ensure menu item borders are visible */
-  .menu-item-expanded-box {
-    border: 1px solid hsl(var(--secondary)) !important;
-  }
+	/* Ensure menu item borders are visible */
+	.menu-item-expanded-box {
+		border: 1px solid hsl(var(--secondary)) !important;
+	}
 
-  .menu-item-expanded-box.active {
-    border: 1px solid hsl(var(--primary)) !important;
-  }
+	.menu-item-expanded-box.active {
+		border: 1px solid hsl(var(--primary)) !important;
+	}
 }
 
 p-message .p-message-text {
-  @apply text-xs sm:text-sm md:text-base font-normal text-destructive;
-  line-height: 1.2 !important;
+	font-size: 0.75rem; /* 12px */
+	font-weight: 400;
+	color: hsl(var(--destructive));
+	line-height: 1.2 !important;
+}
+
+@media (min-width: 640px) {
+	p-message .p-message-text {
+		font-size: 0.875rem; /* 14px */
+	}
+}
+
+@media (min-width: 768px) {
+	p-message .p-message-text {
+		font-size: 1rem; /* 16px */
+	}
 }
 
 /*
@@ -135,39 +286,51 @@ p-message .p-message-text {
  */
 
 :host ::ng-deep .p-dropdown {
-  width: 100%;
+	width: 100%;
 }
 
 :host ::ng-deep .p-dropdown-panel {
-  max-width: none;
+	max-width: none;
 }
 
 /* Ensure dropdown items display properly */
 :host ::ng-deep .p-dropdown-items {
-  padding: 0;
+	padding: 0;
 }
 
 :host ::ng-deep .p-dropdown-item {
-  white-space: normal;
-  word-break: break-word;
-  @apply text-sm sm:text-base md:text-lg;
+	white-space: normal;
+	word-break: break-word;
+	font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+	:host ::ng-deep .p-dropdown-item {
+		font-size: 1rem;
+	}
+}
+
+@media (min-width: 768px) {
+	:host ::ng-deep .p-dropdown-item {
+		font-size: 1.125rem;
+	}
 }
 
 /* Global z-index management */
 .p-toast-container {
-  z-index: 99999 !important;
-  position: fixed !important;
+	z-index: 99999 !important;
+	position: fixed !important;
 }
 
 .p-dialog-mask {
-  z-index: 9000 !important;
+	z-index: 9000 !important;
 }
 
 .p-component-overlay {
-  z-index: 9500 !important;
+	z-index: 9500 !important;
 }
 
 /* Ensure toast is always on top */
 body .p-toast {
-  z-index: 99999 !important;
+	z-index: 99999 !important;
 }
