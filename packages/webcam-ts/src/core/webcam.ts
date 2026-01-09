@@ -126,6 +126,7 @@ export class Webcam {
 			this.videoElement.srcObject = null;
 		}
 
+		this.capture.clearInternalCache();
 		this._updateStatus("idle");
 		this.config?.onStreamStop?.();
 	}
@@ -135,14 +136,14 @@ export class Webcam {
 	 * SLOW: ~20-40ms due to blob/base64 conversion
 	 * Use captureImageData() for real-time loops instead!
 	 */
-	async captureImage(options: CaptureImageOptions = {}): Promise<CaptureImageResult> {
+	async captureImageAsBase64(options: CaptureImageOptions = {}): Promise<CaptureImageResult> {
 		if (!this.videoElement) {
 			throw new WebcamError("No video element attached", WebcamErrorCode.VIDEO_ELEMENT_NOT_SET);
 		}
 
 		// Pass mirror state to capture service if not explicitly set in options
 		const mirror = options.mirror !== undefined ? options.mirror : this.getMirror();
-		return this.capture.captureImage(this.videoElement, {
+		return this.capture.captureImageAsBase64(this.videoElement, {
 			...options,
 			mirror,
 		});
@@ -416,7 +417,6 @@ export class Webcam {
 
 	dispose(): void {
 		this.stop();
-		this.capture.dispose();
 		this.removeDeviceChangeListener();
 	}
 

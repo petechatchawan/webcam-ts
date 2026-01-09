@@ -112,6 +112,13 @@ export interface BaseCaptureOptions {
 	 * Defines which part of the video frame to capture
 	 */
 	crop?: CropRegion;
+
+	/**
+	 * Optional target canvas for custom rendering
+	 * If provided, the capture will use this canvas instead of creating a new one
+	 * Useful for sharing canvas between different components or for pre-allocated canvas
+	 */
+	targetCanvas?: HTMLCanvasElement;
 }
 
 /**
