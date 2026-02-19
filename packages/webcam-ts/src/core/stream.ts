@@ -93,8 +93,19 @@ export class Stream {
 		}
 
 		try {
-			await track.applyConstraints({ advanced: [constraints] });
+			// Fast path: apply constraints directly.
+			await track.applyConstraints(constraints as MediaTrackConstraints);
 		} catch (error) {
+			// Compatibility fallback for browsers that require advanced constraints.
+			if (error instanceof Error && error.name === "TypeError") {
+				try {
+					await track.applyConstraints({ advanced: [constraints] });
+					return;
+				} catch (fallbackError) {
+					error = fallbackError;
+				}
+			}
+
 			if (error instanceof Error && error.name === "OverconstrainedError") {
 				throw new WebcamError(
 					"Cannot apply constraints: not supported by device",
@@ -162,6 +173,10 @@ export class Stream {
 	}
 
 	private _handleStartError(error: unknown): WebcamError {
+		if (error instanceof WebcamError) {
+			return error;
+		}
+
 		let baseMsg = `Failed to start camera`;
 		let code = WebcamErrorCode.UNKNOWN_ERROR;
 		const mediaError = error as { name?: string };

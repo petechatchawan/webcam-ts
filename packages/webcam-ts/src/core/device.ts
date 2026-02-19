@@ -7,6 +7,9 @@ import type {
 import { WebcamError, WebcamErrorCode } from "../utils/errors.js";
 
 export class Device {
+	private readonly CAPABILITY_CACHE_TTL_MS = 30_000;
+	private capabilityCache = new Map<string, { value: DeviceCapability; expiresAt: number }>();
+
 	/**
 	 * Get a list of available video devices.
 	 */
@@ -14,8 +17,21 @@ export class Device {
 		try {
 			const mediaDevices = this._getMediaDevicesOrThrow("enumerateDevices");
 			const devices = await mediaDevices.enumerateDevices();
-			return devices.filter((device) => device.kind === "videoinput");
+			const videoDevices = devices.filter((device) => device.kind === "videoinput");
+
+			// Keep capability cache bounded to currently visible devices.
+			const validDeviceIds = new Set(videoDevices.map((device) => device.deviceId));
+			for (const cachedDeviceId of this.capabilityCache.keys()) {
+				if (!validDeviceIds.has(cachedDeviceId)) {
+					this.capabilityCache.delete(cachedDeviceId);
+				}
+			}
+
+			return videoDevices;
 		} catch (error) {
+			if (error instanceof WebcamError) {
+				throw error;
+			}
 			throw new WebcamError("Failed to enumerate devices", WebcamErrorCode.DEVICES_ERROR, error);
 		}
 	}
@@ -24,6 +40,11 @@ export class Device {
 	 * Get the capabilities of a specific device.
 	 */
 	async getDeviceCapabilities(deviceId: string): Promise<DeviceCapability> {
+		const cachedCapability = this.capabilityCache.get(deviceId);
+		if (cachedCapability && cachedCapability.expiresAt > Date.now()) {
+			return cachedCapability.value;
+		}
+
 		let testStream: MediaStream | null = null;
 		try {
 			const mediaDevices = this._getMediaDevicesOrThrow("getUserMedia");
@@ -32,10 +53,17 @@ export class Device {
 				video: { deviceId: { exact: deviceId } },
 			});
 			const track = testStream.getVideoTracks()[0];
+			if (!track) {
+				throw new WebcamError(
+					"No video track found for requested device",
+					WebcamErrorCode.DEVICES_ERROR,
+				);
+			}
+
 			const capabilities = track.getCapabilities();
 			const settings = track.getSettings();
 
-			return {
+			const deviceCapability: DeviceCapability = {
 				deviceId,
 				label: track.label,
 				maxWidth: capabilities.width?.max || settings.width || 1920,
@@ -55,7 +83,17 @@ export class Device {
 				minZoom: (capabilities as any).zoom?.min,
 				supportedFocusModes: (capabilities as any).focusMode as FocusMode[],
 			};
+
+			this.capabilityCache.set(deviceId, {
+				value: deviceCapability,
+				expiresAt: Date.now() + this.CAPABILITY_CACHE_TTL_MS,
+			});
+
+			return deviceCapability;
 		} catch (error) {
+			if (error instanceof WebcamError) {
+				throw error;
+			}
 			throw new WebcamError(
 				`Failed to get device capabilities: ${
 					error instanceof Error ? error.message : "Unknown error"
@@ -128,6 +166,10 @@ export class Device {
 
 			return await this.checkPermissions();
 		} catch (error) {
+			if (error instanceof WebcamError) {
+				throw error;
+			}
+
 			// Handle specific permission errors
 			if (error instanceof Error) {
 				switch (error.name) {

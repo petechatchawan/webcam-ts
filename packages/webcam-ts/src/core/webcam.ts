@@ -22,7 +22,7 @@ import { Stream } from "./stream.js";
 export class Webcam {
 	private device: Device;
 	private stream: Stream;
-	private capture: Capture;
+	private capture?: Capture;
 
 	private state: WebcamStateInternal = {
 		status: "idle",
@@ -55,7 +55,7 @@ export class Webcam {
 		// Dependency Injection: use provided services or create new instances
 		this.device = services?.device ?? new Device();
 		this.stream = services?.stream ?? new Stream();
-		this.capture = services?.capture ?? new Capture();
+		this.capture = services?.capture;
 
 		if (config) {
 			this.config = config;
@@ -116,11 +116,7 @@ export class Webcam {
 			// Setup video element
 			if (this.videoElement) {
 				this.videoElement.srcObject = stream;
-
-				// Handle Mirror (Preview only)
-				if (this.config.enableMirror) {
-					this.setMirror(true);
-				}
+				this.setMirror(!!this.config.enableMirror);
 			}
 
 			if (!this._isStartRequestCurrent(startRequestId)) {
@@ -173,7 +169,7 @@ export class Webcam {
 
 		// Pass mirror state to capture service if not explicitly set in options
 		const mirror = options.mirror !== undefined ? options.mirror : this.getMirror();
-		return this.capture.captureImageAsBase64(this.videoElement, {
+		return this._getCapture().captureImageAsBase64(this.videoElement, {
 			...options,
 			mirror,
 		});
@@ -205,7 +201,7 @@ export class Webcam {
 		// Pass mirror state to capture service if not explicitly set in options
 		const mirror = options.mirror !== undefined ? options.mirror : this.getMirror();
 
-		return this.capture.captureImageData(this.videoElement, {
+		return this._getCapture().captureImageData(this.videoElement, {
 			...options,
 			mirror,
 		});
@@ -238,7 +234,7 @@ export class Webcam {
 		// Pass mirror state to capture service if not explicitly set in options
 		const mirror = options.mirror !== undefined ? options.mirror : this.getMirror();
 
-		return this.capture.captureImageBitmap(this.videoElement, {
+		return this._getCapture().captureImageBitmap(this.videoElement, {
 			...options,
 			mirror,
 		});
@@ -446,16 +442,43 @@ export class Webcam {
 	 * Get current state
 	 */
 	getState(): WebcamState {
-		return { ...this.state };
+		const permissions = Object.freeze({ ...this.state.permissions });
+		const activeResolution = this.state.activeResolution
+			? Object.freeze({ ...this.state.activeResolution })
+			: undefined;
+
+		return Object.freeze({
+			...this.state,
+			permissions,
+			activeResolution,
+		}) as WebcamState;
 	}
 
 	dispose(): void {
 		this.stop();
 		this.removeDeviceChangeListener();
-		this.capture.dispose();
+		if (this.capture) {
+			this.capture.dispose();
+		}
 	}
 
 	// --- Private Helpers ---
+
+	private _getCapture(): Capture {
+		if (this.capture) {
+			return this.capture;
+		}
+
+		if (typeof document === "undefined" || typeof document.createElement !== "function") {
+			throw new WebcamError(
+				"Capture API requires a browser environment with document support",
+				WebcamErrorCode.CAPTURE_FAILED,
+			);
+		}
+
+		this.capture = new Capture();
+		return this.capture;
+	}
 
 	private _isStartRequestCurrent(requestId: number): boolean {
 		return requestId === this.startRequestId;
@@ -477,9 +500,12 @@ export class Webcam {
 
 		if (this.videoElement) {
 			this.videoElement.srcObject = null;
+			this.setMirror(false);
 		}
 
-		this.capture.clearInternalCache();
+		if (this.capture) {
+			this.capture.clearInternalCache();
+		}
 
 		if (this.state.status !== "idle") {
 			this._updateStatus("idle");
