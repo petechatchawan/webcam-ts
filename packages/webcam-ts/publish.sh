@@ -1,29 +1,34 @@
 #!/bin/bash
-# Webcam-TS 2.0.0 Publish Script
+# Webcam-TS publish script
 
-echo "🚀 Publishing Webcam-TS 2.0.0"
+set -euo pipefail
 
 # Navigate to package directory
 cd "$(dirname "$0")"
+
+VERSION=$(node -p "require('./package.json').version")
+TARBALL="webcam-ts-${VERSION}.tgz"
+
+echo "🚀 Publishing Webcam-TS ${VERSION}"
 
 echo "📦 Building package..."
 npm run build
 
 echo "🧪 Running tests (if available)..."
-npm test --if-present
+npm run test
 
 echo "📋 Creating package..."
 npm pack
 
-echo "✅ Package created: webcam-ts-2.0.0.tgz"
+echo "✅ Package created: ${TARBALL}"
 
 echo "📝 To publish to npm registry:"
-echo "  npm publish webcam-ts-2.0.0.tgz"
+echo "  npm publish ${TARBALL}"
 echo ""
 echo "📝 To publish as beta:"
-echo "  npm publish webcam-ts-2.0.0.tgz --tag beta"
+echo "  npm publish ${TARBALL} --tag beta"
 echo ""
 echo "📝 To install locally for testing:"
-echo "  npm install ./webcam-ts-2.0.0.tgz"
+echo "  npm install ./${TARBALL}"
 
 echo "🎉 Package ready for publishing!"

@@ -2,8 +2,17 @@
 	"name": "webcam-ts",
 	"version": "3.4.7",
 	"description": "Modern TypeScript library for webcam access in web applications",
-	"main": "dist/index.js",
-	"types": "dist/index.d.ts",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		}
+	},
+	"sideEffects": false,
 	"files": [
 		"dist/**/*",
 		"README.md"
@@ -35,9 +44,13 @@
 		"url": "https://github.com/petechatchawan/webcam-ts/issues"
 	},
 	"scripts": {
-		"build": "tsc",
+		"clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+		"build": "npm run clean && tsc",
+		"typecheck": "tsc --noEmit",
+		"lint": "npm run typecheck",
+		"test": "npm run build && node --test test/webcam.test.mjs",
 		"prepare": "npm run build",
-		"prepublishOnly": "npm run build"
+		"prepublishOnly": "npm run lint && npm run test"
 	},
 	"devDependencies": {
 		"@types/node": "^24.0.7",
