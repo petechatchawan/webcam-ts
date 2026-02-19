@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { Webcam } from "../dist/index.js";
+import { Webcam, WebcamError, WebcamErrorCode } from "../dist/index.js";
+import { Device } from "../dist/core/device.js";
+import { Stream } from "../dist/core/stream.js";
 
 function createDeferred() {
 	let resolve;
@@ -100,6 +102,30 @@ function baseConfig(overrides = {}) {
 		preferredResolutions: { label: "HD", width: 1280, height: 720 },
 		...overrides,
 	};
+}
+
+async function withMockNavigator(overrides, callback) {
+	const originalDescriptors = new Map();
+
+	for (const [key, value] of Object.entries(overrides)) {
+		originalDescriptors.set(key, Object.getOwnPropertyDescriptor(globalThis.navigator, key));
+		Object.defineProperty(globalThis.navigator, key, {
+			value,
+			configurable: true,
+		});
+	}
+
+	try {
+		return await callback();
+	} finally {
+		for (const [key, descriptor] of originalDescriptors.entries()) {
+			if (descriptor) {
+				Object.defineProperty(globalThis.navigator, key, descriptor);
+				continue;
+			}
+			delete globalThis.navigator[key];
+		}
+	}
 }
 
 test("start() stops existing stream before restart", async () => {
@@ -299,4 +325,189 @@ test("dispose() releases capture resources", () => {
 
 	webcam.dispose();
 	assert.equal(disposeCalls, 1);
+});
+
+test("getState() returns immutable permission snapshots", () => {
+	const webcam = new Webcam(baseConfig(), {
+		stream: createStreamService(),
+		device: createDeviceService(),
+		capture: createCaptureService(),
+	});
+
+	const state = webcam.getState();
+	assert.throws(() => {
+		state.permissions.camera = "denied";
+	}, TypeError);
+	assert.equal(webcam.getState().permissions.camera, "prompt");
+});
+
+test("start() keeps mirror state in sync with latest config", async () => {
+	let activeStream = null;
+	const track = createMockTrack();
+	const stream = createMockStream(track);
+	const videoElement = {
+		srcObject: null,
+		style: { transform: "" },
+	};
+
+	const streamService = createStreamService({
+		getActiveStream() {
+			return activeStream;
+		},
+		async startStream() {
+			activeStream = stream;
+			return { stream, usedResolution: null };
+		},
+		stopStream() {
+			if (activeStream) {
+				activeStream.getTracks().forEach((currentTrack) => currentTrack.stop());
+				activeStream = null;
+			}
+		},
+	});
+
+	const webcam = new Webcam(
+		baseConfig({
+			enableMirror: true,
+			videoElement,
+		}),
+		{
+			stream: streamService,
+			device: createDeviceService(),
+			capture: createCaptureService(),
+		},
+	);
+
+	await webcam.start();
+	assert.equal(videoElement.style.transform, "scaleX(-1)");
+
+	await webcam.start({
+		enableMirror: false,
+		videoElement,
+	});
+	assert.equal(videoElement.style.transform, "");
+});
+
+test("Device.requestPermissions() preserves WebcamError code from environment checks", async () => {
+	const device = new Device();
+
+	await withMockNavigator(
+		{
+			mediaDevices: undefined,
+		},
+		async () => {
+			await assert.rejects(
+				() => device.requestPermissions(),
+				(error) =>
+					error instanceof WebcamError && error.code === WebcamErrorCode.DEVICES_ERROR,
+			);
+		},
+	);
+});
+
+test("Device.getDeviceCapabilities() uses cache to avoid duplicate getUserMedia calls", async () => {
+	const device = new Device();
+	let getUserMediaCalls = 0;
+
+	const track = {
+		stop() {},
+		getCapabilities() {
+			return {
+				width: { min: 320, max: 1920 },
+				height: { min: 240, max: 1080 },
+				frameRate: { min: 15, max: 30 },
+			};
+		},
+		getSettings() {
+			return {
+				width: 1920,
+				height: 1080,
+			};
+		},
+	};
+
+	const testStream = {
+		getVideoTracks() {
+			return [track];
+		},
+		getTracks() {
+			return [track];
+		},
+	};
+
+	await withMockNavigator(
+		{
+			mediaDevices: {
+				async enumerateDevices() {
+					return [{ kind: "videoinput", deviceId: "cam-1", label: "Camera 1" }];
+				},
+				async getUserMedia() {
+					getUserMediaCalls += 1;
+					return testStream;
+				},
+			},
+		},
+		async () => {
+			const first = await device.getDeviceCapabilities("cam-1");
+			const second = await device.getDeviceCapabilities("cam-1");
+
+			assert.equal(getUserMediaCalls, 1);
+			assert.deepEqual(second, first);
+		},
+	);
+});
+
+test("Stream.startStream() preserves upstream WebcamError code", async () => {
+	const stream = new Stream();
+
+	await withMockNavigator(
+		{
+			mediaDevices: undefined,
+		},
+		async () => {
+			await assert.rejects(
+				() => stream.startStream(baseConfig()),
+				(error) =>
+					error instanceof WebcamError && error.code === WebcamErrorCode.STREAM_FAILED,
+			);
+		},
+	);
+});
+
+test("Stream.applyConstraints() retries with advanced constraints on TypeError", async () => {
+	const stream = new Stream();
+	const applyCalls = [];
+	let callCount = 0;
+
+	const track = {
+		async applyConstraints(constraints) {
+			applyCalls.push(constraints);
+			callCount += 1;
+			if (callCount === 1) {
+				throw new TypeError("Unsupported direct constraints format");
+			}
+		},
+		getSettings() {
+			return {};
+		},
+		getCapabilities() {
+			return {};
+		},
+		stop() {},
+	};
+
+	stream.activeStream = {
+		getVideoTracks() {
+			return [track];
+		},
+		getTracks() {
+			return [track];
+		},
+	};
+
+	await stream.applyConstraints({ torch: true });
+
+	assert.equal(applyCalls.length, 2);
+	assert.deepEqual(applyCalls[0], { torch: true });
+	assert.deepEqual(applyCalls[1], { advanced: [{ torch: true }] });
 });
