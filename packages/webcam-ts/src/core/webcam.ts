@@ -243,9 +243,7 @@ export class Webcam {
 	/**
 	 * Request permissions
 	 */
-	async requestPermissions(
-		options?: PermissionRequestOptions,
-	): Promise<PermissionMap> {
+	async requestPermissions(options?: PermissionRequestOptions): Promise<PermissionMap> {
 		const permissions = await this.device.requestPermissions(options);
 		this._updatePermissions(permissions);
 		return permissions;

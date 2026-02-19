@@ -35,7 +35,10 @@ export class Capture {
 	constructor() {
 		// Pre-initialize canvas for better performance
 		this.canvas = document.createElement("canvas");
-		this.context = this.canvas.getContext("2d", this.OPTIMIZED_CONTEXT_OPTIONS) as CanvasRenderingContext2D | null;
+		this.context = this.canvas.getContext(
+			"2d",
+			this.OPTIMIZED_CONTEXT_OPTIONS,
+		) as CanvasRenderingContext2D | null;
 
 		if (!this.context) {
 			throw new WebcamError("Failed to create canvas context", WebcamErrorCode.UNKNOWN_ERROR);
@@ -77,7 +80,9 @@ export class Capture {
 		const height = Math.floor(sourceHeight * scale);
 
 		let canvas = targetCanvas || this.canvas;
-		let ctx = targetCanvas ? this.getOrCreateContext(targetCanvas, this.OPTIMIZED_CONTEXT_OPTIONS) : this.context;
+		let ctx = targetCanvas
+			? this.getOrCreateContext(targetCanvas, this.OPTIMIZED_CONTEXT_OPTIONS)
+			: this.context;
 
 		if (!canvas || !ctx) {
 			throw new WebcamError("Canvas or context is not available", WebcamErrorCode.UNKNOWN_ERROR);
@@ -218,7 +223,9 @@ export class Capture {
 		const height = Math.floor(sourceHeight * scale);
 
 		let canvas = targetCanvas || this.canvas;
-		let ctx = targetCanvas ? this.getOrCreateContext(targetCanvas, this.OPTIMIZED_CONTEXT_OPTIONS) : this.context;
+		let ctx = targetCanvas
+			? this.getOrCreateContext(targetCanvas, this.OPTIMIZED_CONTEXT_OPTIONS)
+			: this.context;
 
 		if (!canvas || !ctx) {
 			throw new WebcamError("Canvas or context is not available", WebcamErrorCode.UNKNOWN_ERROR);
@@ -367,7 +374,10 @@ export class Capture {
 			} else {
 				if (!this.mirrorCanvas) {
 					this.mirrorCanvas = document.createElement("canvas");
-					this.mirrorContext = this.mirrorCanvas.getContext("2d", this.OPTIMIZED_CONTEXT_OPTIONS) as CanvasRenderingContext2D | null;
+					this.mirrorContext = this.mirrorCanvas.getContext(
+						"2d",
+						this.OPTIMIZED_CONTEXT_OPTIONS,
+					) as CanvasRenderingContext2D | null;
 
 					if (!this.mirrorContext) {
 						throw new WebcamError(
@@ -524,10 +534,7 @@ export class Capture {
 		}
 
 		if (!ctx) {
-			throw new WebcamError(
-				"Failed to get canvas context",
-				WebcamErrorCode.UNKNOWN_ERROR,
-			);
+			throw new WebcamError("Failed to get canvas context", WebcamErrorCode.UNKNOWN_ERROR);
 		}
 
 		return ctx;
