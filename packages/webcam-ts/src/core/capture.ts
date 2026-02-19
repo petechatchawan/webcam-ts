@@ -1,12 +1,12 @@
-import {
+import type {
 	CaptureImageBitmapOptions,
 	CaptureImageBitmapResult,
 	CaptureImageDataOptions,
 	CaptureImageDataResult,
 	CaptureImageOptions,
 	CaptureImageResult,
-} from "../types";
-import { WebcamError, WebcamErrorCode } from "../utils/errors";
+} from "../types/index.js";
+import { WebcamError, WebcamErrorCode } from "../utils/errors.js";
 
 export class Capture {
 	private canvas: HTMLCanvasElement | null = null;

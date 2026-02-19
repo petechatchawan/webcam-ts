@@ -15,9 +15,9 @@ export enum WebcamErrorCode {
 
 export class WebcamError extends Error {
 	constructor(
-		public message: string,
+		message: string,
 		public code: WebcamErrorCode = WebcamErrorCode.UNKNOWN_ERROR,
-		public originalError?: any,
+		public originalError?: unknown,
 	) {
 		super(message);
 		this.name = "WebcamError";

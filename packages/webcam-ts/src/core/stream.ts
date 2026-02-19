@@ -1,5 +1,5 @@
-import { Resolution, WebcamConfiguration } from "../types";
-import { WebcamError, WebcamErrorCode } from "../utils/errors";
+import type { Resolution, WebcamConfiguration } from "../types/index.js";
+import { WebcamError, WebcamErrorCode } from "../utils/errors.js";
 
 // Default resolution when no specific resolution is requested
 const DEFAULT_RESOLUTION = {
@@ -19,10 +19,18 @@ export class Stream {
 		usedResolution: Resolution | null;
 	}> {
 		try {
+			const mediaDevices = this._getMediaDevicesOrThrow();
 			let stream: MediaStream | null = null;
 			let usedResolution: Resolution | null = null;
 
 			if (Array.isArray(config.preferredResolutions)) {
+				if (config.preferredResolutions.length === 0) {
+					throw new WebcamError(
+						"Invalid resolution: preferredResolutions cannot be empty",
+						WebcamErrorCode.INVALID_CONFIG,
+					);
+				}
+
 				let lastError: Error | undefined;
 				for (const resolution of config.preferredResolutions) {
 					try {
@@ -30,7 +38,7 @@ export class Stream {
 							...config,
 							preferredResolutions: resolution,
 						});
-						stream = await navigator.mediaDevices.getUserMedia(constraints);
+						stream = await mediaDevices.getUserMedia(constraints);
 						usedResolution = resolution; // Store the resolution that worked
 						break; // Found a working resolution
 					} catch (error) {
@@ -43,7 +51,7 @@ export class Stream {
 				}
 			} else {
 				const constraints = await this._buildConstraints(config);
-				stream = await navigator.mediaDevices.getUserMedia(constraints);
+				stream = await mediaDevices.getUserMedia(constraints);
 				// Store the single resolution if provided
 				usedResolution = config.preferredResolutions || null;
 			}
@@ -51,7 +59,7 @@ export class Stream {
 			this.activeStream = stream;
 			return { stream, usedResolution };
 		} catch (error) {
-			throw this._handleStartError(error, config);
+			throw this._handleStartError(error);
 		}
 	}
 
@@ -143,20 +151,31 @@ export class Stream {
 		};
 	}
 
-	private _handleStartError(error: any, config: WebcamConfiguration): WebcamError {
+	private _getMediaDevicesOrThrow(): MediaDevices {
+		if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+			throw new WebcamError(
+				"MediaDevices API is not supported in this environment",
+				WebcamErrorCode.STREAM_FAILED,
+			);
+		}
+		return navigator.mediaDevices;
+	}
+
+	private _handleStartError(error: unknown): WebcamError {
 		let baseMsg = `Failed to start camera`;
 		let code = WebcamErrorCode.UNKNOWN_ERROR;
+		const mediaError = error as { name?: string };
 
-		if (error?.name === "NotAllowedError") {
+		if (mediaError?.name === "NotAllowedError") {
 			baseMsg = "Camera access denied";
 			code = WebcamErrorCode.PERMISSION_DENIED;
-		} else if (error?.name === "NotFoundError") {
+		} else if (mediaError?.name === "NotFoundError") {
 			baseMsg = "Camera device not found";
 			code = WebcamErrorCode.DEVICE_NOT_FOUND;
-		} else if (error?.name === "NotReadableError") {
+		} else if (mediaError?.name === "NotReadableError") {
 			baseMsg = "Camera is already in use";
 			code = WebcamErrorCode.DEVICE_BUSY;
-		} else if (error?.name === "OverconstrainedError") {
+		} else if (mediaError?.name === "OverconstrainedError") {
 			baseMsg = "Camera constraints not satisfied";
 			code = WebcamErrorCode.OVERCONSTRAINED;
 		}

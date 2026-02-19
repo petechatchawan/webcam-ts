@@ -1,3 +1,3 @@
-export { Webcam } from "./core/webcam";
-export * from "./types";
-export { WebcamError, WebcamErrorCode } from "./utils/errors";
+export { Webcam } from "./core/webcam.js";
+export * from "./types/index.js";
+export { WebcamError, WebcamErrorCode } from "./utils/errors.js";

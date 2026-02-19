@@ -1,5 +1,10 @@
-import { DeviceCapability, FocusMode, PermissionRequestOptions } from "../types";
-import { WebcamError, WebcamErrorCode } from "../utils/errors";
+import type {
+	DeviceCapability,
+	FocusMode,
+	PermissionMap,
+	PermissionRequestOptions,
+} from "../types/index.js";
+import { WebcamError, WebcamErrorCode } from "../utils/errors.js";
 
 export class Device {
 	/**
@@ -7,7 +12,8 @@ export class Device {
 	 */
 	async getVideoDevices(): Promise<MediaDeviceInfo[]> {
 		try {
-			const devices = await navigator.mediaDevices.enumerateDevices();
+			const mediaDevices = this._getMediaDevicesOrThrow("enumerateDevices");
+			const devices = await mediaDevices.enumerateDevices();
 			return devices.filter((device) => device.kind === "videoinput");
 		} catch (error) {
 			throw new WebcamError("Failed to enumerate devices", WebcamErrorCode.DEVICES_ERROR, error);
@@ -18,17 +24,16 @@ export class Device {
 	 * Get the capabilities of a specific device.
 	 */
 	async getDeviceCapabilities(deviceId: string): Promise<DeviceCapability> {
+		let testStream: MediaStream | null = null;
 		try {
+			const mediaDevices = this._getMediaDevicesOrThrow("getUserMedia");
 			// Test stream to get capabilities
-			const testStream = await navigator.mediaDevices.getUserMedia({
+			testStream = await mediaDevices.getUserMedia({
 				video: { deviceId: { exact: deviceId } },
 			});
 			const track = testStream.getVideoTracks()[0];
 			const capabilities = track.getCapabilities();
 			const settings = track.getSettings();
-
-			// Stop test stream
-			testStream.getTracks().forEach((t) => t.stop());
 
 			return {
 				deviceId,
@@ -58,14 +63,25 @@ export class Device {
 				WebcamErrorCode.DEVICES_ERROR,
 				error,
 			);
+		} finally {
+			if (testStream) {
+				testStream.getTracks().forEach((track) => track.stop());
+			}
 		}
 	}
 
 	/**
 	 * Check current permissions
 	 */
-	async checkPermissions(): Promise<Record<string, PermissionState>> {
-		const permissions: Record<string, PermissionState> = {};
+	async checkPermissions(): Promise<PermissionMap> {
+		const permissions: PermissionMap = {
+			camera: "prompt",
+			microphone: "prompt",
+		};
+
+		if (typeof navigator === "undefined" || !navigator.permissions?.query) {
+			return permissions;
+		}
 
 		try {
 			const cameraPerm = await navigator.permissions.query({ name: "camera" as PermissionName });
@@ -89,11 +105,22 @@ export class Device {
 	 */
 	async requestPermissions(
 		options: PermissionRequestOptions = { video: true, audio: false },
-	): Promise<Record<string, PermissionState>> {
+	): Promise<PermissionMap> {
+		const requestVideo = options.video ?? true;
+		const requestAudio = options.audio ?? false;
+
+		if (!requestVideo && !requestAudio) {
+			throw new WebcamError(
+				"Invalid permission request: at least one of video or audio must be true",
+				WebcamErrorCode.INVALID_CONFIG,
+			);
+		}
+
 		try {
-			const stream = await navigator.mediaDevices.getUserMedia({
-				video: options.video || false,
-				audio: options.audio || false,
+			const mediaDevices = this._getMediaDevicesOrThrow("getUserMedia");
+			const stream = await mediaDevices.getUserMedia({
+				video: requestVideo,
+				audio: requestAudio,
 			});
 
 			// Stop stream immediately
@@ -134,6 +161,12 @@ export class Device {
 							WebcamErrorCode.PERMISSION_DENIED,
 							error,
 						);
+					case "TypeError":
+						throw new WebcamError(
+							"Permission request failed: invalid constraints",
+							WebcamErrorCode.INVALID_CONFIG,
+							error,
+						);
 					default:
 						throw new WebcamError(
 							`Failed to request permissions: ${error.message}`,
@@ -150,5 +183,23 @@ export class Device {
 				error,
 			);
 		}
+	}
+
+	private _getMediaDevicesOrThrow(method: "getUserMedia" | "enumerateDevices"): MediaDevices {
+		if (typeof navigator === "undefined" || !navigator.mediaDevices) {
+			throw new WebcamError(
+				"MediaDevices API is not supported in this environment",
+				WebcamErrorCode.DEVICES_ERROR,
+			);
+		}
+
+		if (typeof navigator.mediaDevices[method] !== "function") {
+			throw new WebcamError(
+				`MediaDevices.${method} is not supported in this environment`,
+				WebcamErrorCode.DEVICES_ERROR,
+			);
+		}
+
+		return navigator.mediaDevices;
 	}
 }

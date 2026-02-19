@@ -1,4 +1,5 @@
 export type FocusMode = "manual" | "single-shot" | "continuous" | "auto" | "none";
+export type PermissionMap = Record<"camera" | "microphone", PermissionState>;
 
 declare global {
 	interface MediaTrackConstraintSet {
@@ -55,11 +56,11 @@ export interface WebcamConfiguration {
 	enableMirror?: boolean;
 
 	// Callbacks
-	onStateChange?: (state: any) => void;
+	onStateChange?: (state: WebcamState) => void;
 	onStreamStart?: (stream: MediaStream) => void;
 	onStreamStop?: () => void;
 	onError?: (error: Error) => void;
-	onPermissionChange?: (permissions: Record<string, PermissionState>) => void;
+	onPermissionChange?: (permissions: PermissionMap) => void;
 	onDeviceChange?: (devices: MediaDeviceInfo[]) => void;
 }
 
@@ -68,7 +69,7 @@ export type WebcamStatus = "idle" | "initializing" | "ready" | "error";
 export interface WebcamStateInternal {
 	status: WebcamStatus;
 	activeStream: MediaStream | null;
-	permissions: Record<string, PermissionState>;
+	permissions: PermissionMap;
 	videoElement?: HTMLVideoElement;
 	device?: MediaDeviceInfo;
 	error?: Error | null;

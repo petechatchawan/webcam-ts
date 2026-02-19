@@ -1,4 +1,4 @@
-import {
+import type {
 	CaptureImageBitmapOptions,
 	CaptureImageBitmapResult,
 	CaptureImageDataOptions,
@@ -7,16 +7,17 @@ import {
 	CaptureImageResult,
 	DeviceCapability,
 	FocusMode,
+	PermissionMap,
 	PermissionRequestOptions,
 	Resolution,
 	WebcamConfiguration,
 	WebcamState,
 	WebcamStateInternal,
-} from "../types";
-import { WebcamError, WebcamErrorCode } from "../utils/errors";
-import { Capture } from "./capture";
-import { Device } from "./device";
-import { Stream } from "./stream";
+} from "../types/index.js";
+import { WebcamError, WebcamErrorCode } from "../utils/errors.js";
+import { Capture } from "./capture.js";
+import { Device } from "./device.js";
+import { Stream } from "./stream.js";
 
 export class Webcam {
 	private device: Device;
@@ -26,13 +27,17 @@ export class Webcam {
 	private state: WebcamStateInternal = {
 		status: "idle",
 		activeStream: null,
-		permissions: {},
+		permissions: {
+			camera: "prompt",
+			microphone: "prompt",
+		},
 		error: null,
 	};
 
 	private config?: WebcamConfiguration;
 	private videoElement?: HTMLVideoElement;
 	private deviceChangeListener?: () => void;
+	private startRequestId = 0;
 
 	/**
 	 * Constructor with optional dependency injection for better testability
@@ -68,7 +73,11 @@ export class Webcam {
 	 * @returns true if MediaDevices API is available
 	 */
 	isSupported(): boolean {
-		return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+		return !!(
+			typeof navigator !== "undefined" &&
+			navigator.mediaDevices &&
+			navigator.mediaDevices.getUserMedia
+		);
 	}
 
 	/**
@@ -86,10 +95,21 @@ export class Webcam {
 			throw new WebcamError("Configuration is required", WebcamErrorCode.INVALID_CONFIG);
 		}
 
+		const startRequestId = ++this.startRequestId;
+
 		try {
+			if (this.state.activeStream || this.stream.getActiveStream()) {
+				this._stopCurrentSession();
+			}
+
 			this._updateStatus("initializing");
 
 			const { stream, usedResolution } = await this.stream.startStream(this.config);
+			if (!this._isStartRequestCurrent(startRequestId)) {
+				this._cleanupSupersededStream(stream);
+				return;
+			}
+
 			this.state.activeStream = stream;
 			this.state.activeResolution = usedResolution || undefined;
 
@@ -103,9 +123,19 @@ export class Webcam {
 				}
 			}
 
+			if (!this._isStartRequestCurrent(startRequestId)) {
+				this._cleanupSupersededStream(stream);
+				return;
+			}
+
 			this._updateStatus("ready");
+			void this.checkPermissions().catch(() => undefined);
 			this.config.onStreamStart?.(stream);
 		} catch (error) {
+			if (!this._isStartRequestCurrent(startRequestId)) {
+				return;
+			}
+
 			const webcamError =
 				error instanceof WebcamError
 					? error
@@ -119,22 +149,22 @@ export class Webcam {
 	 * Stop the camera
 	 */
 	stop(): void {
-		this.stream.stopStream();
-		this.state.activeStream = null;
-		this.state.activeResolution = undefined;
-		if (this.videoElement) {
-			this.videoElement.srcObject = null;
-		}
+		this.startRequestId += 1;
+		this._stopCurrentSession();
+	}
 
-		this.capture.clearInternalCache();
-		this._updateStatus("idle");
-		this.config?.onStreamStop?.();
+	/**
+	 * Capture an image (for snapshots/saving)
+	 */
+	async captureImage(options: CaptureImageOptions = {}): Promise<CaptureImageResult> {
+		return this.captureImageAsBase64(options);
 	}
 
 	/**
 	 * Capture an image (for snapshots/saving)
 	 * SLOW: ~20-40ms due to blob/base64 conversion
 	 * Use captureImageData() for real-time loops instead!
+	 * @deprecated Use captureImage() instead.
 	 */
 	async captureImageAsBase64(options: CaptureImageOptions = {}): Promise<CaptureImageResult> {
 		if (!this.videoElement) {
@@ -219,15 +249,19 @@ export class Webcam {
 	 */
 	async requestPermissions(
 		options?: PermissionRequestOptions,
-	): Promise<Record<string, PermissionState>> {
-		return this.device.requestPermissions(options);
+	): Promise<PermissionMap> {
+		const permissions = await this.device.requestPermissions(options);
+		this._updatePermissions(permissions);
+		return permissions;
 	}
 
 	/**
 	 * Check permissions
 	 */
-	async checkPermissions(): Promise<Record<string, PermissionState>> {
-		return this.device.checkPermissions();
+	async checkPermissions(): Promise<PermissionMap> {
+		const permissions = await this.device.checkPermissions();
+		this._updatePermissions(permissions);
+		return permissions;
 	}
 
 	/**
@@ -418,9 +452,57 @@ export class Webcam {
 	dispose(): void {
 		this.stop();
 		this.removeDeviceChangeListener();
+		this.capture.dispose();
 	}
 
 	// --- Private Helpers ---
+
+	private _isStartRequestCurrent(requestId: number): boolean {
+		return requestId === this.startRequestId;
+	}
+
+	private _cleanupSupersededStream(stream: MediaStream): void {
+		stream.getTracks().forEach((track) => track.stop());
+	}
+
+	private _stopCurrentSession(): void {
+		const hadActiveSession =
+			this.state.status === "initializing" ||
+			!!this.state.activeStream ||
+			!!this.stream.getActiveStream();
+
+		this.stream.stopStream();
+		this.state.activeStream = null;
+		this.state.activeResolution = undefined;
+
+		if (this.videoElement) {
+			this.videoElement.srcObject = null;
+		}
+
+		this.capture.clearInternalCache();
+
+		if (this.state.status !== "idle") {
+			this._updateStatus("idle");
+		}
+
+		if (hadActiveSession) {
+			this.config?.onStreamStop?.();
+		}
+	}
+
+	private _updatePermissions(permissions: PermissionMap): void {
+		const hasChanged =
+			this.state.permissions.camera !== permissions.camera ||
+			this.state.permissions.microphone !== permissions.microphone;
+
+		if (!hasChanged) {
+			return;
+		}
+
+		this.state.permissions = { ...permissions };
+		this.config?.onPermissionChange?.(this.state.permissions);
+		this._notifyStateChange();
+	}
 
 	private _updateStatus(status: WebcamStateInternal["status"]): void {
 		this.state.status = status;
@@ -443,7 +525,7 @@ export class Webcam {
 	 * Setup device change listener to detect when devices are added/removed
 	 */
 	private setupDeviceChangeListener(): void {
-		if (!navigator.mediaDevices?.addEventListener) return;
+		if (typeof navigator === "undefined" || !navigator.mediaDevices?.addEventListener) return;
 
 		this.deviceChangeListener = async () => {
 			try {
@@ -469,7 +551,11 @@ export class Webcam {
 	 * Remove device change listener
 	 */
 	private removeDeviceChangeListener(): void {
-		if (this.deviceChangeListener && navigator.mediaDevices?.removeEventListener) {
+		if (
+			this.deviceChangeListener &&
+			typeof navigator !== "undefined" &&
+			navigator.mediaDevices?.removeEventListener
+		) {
 			navigator.mediaDevices.removeEventListener("devicechange", this.deviceChangeListener);
 			this.deviceChangeListener = undefined;
 		}
