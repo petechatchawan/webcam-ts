@@ -107,6 +107,7 @@ webcam.stop();
 | `start(config?)`               | Starts the camera with the given configuration      |
 | `stop()`                       | Stops the camera and releases resources             |
 | `captureImage(options?)`       | Captures a photo with blob/base64 (for saving)      |
+| `captureImageAsBase64(opts?)`  | Backward-compatible alias of `captureImage()`       |
 | `captureImageData(options?)`   | Captures ImageData for real-time CV processing      |
 | `captureImageBitmap(options?)` | Captures ImageBitmap (for Web Workers/Tesseract.js) |
 | `getDevices()`                 | Lists available video devices                       |
@@ -223,6 +224,8 @@ async function performOCR() {
 ### ⚙️ Configuration Options
 
 ```typescript
+type PermissionMap = Record<"camera" | "microphone", PermissionState>;
+
 interface WebcamConfiguration {
 	deviceInfo?: MediaDeviceInfo; // Selected camera device
 	videoElement?: HTMLVideoElement; // Video element to display the stream
@@ -241,7 +244,7 @@ interface WebcamConfiguration {
 	onError?: (error: Error) => void;
 	onStreamStart?: (stream: MediaStream) => void;
 	onStreamStop?: () => void;
-	onPermissionChange?: (permissions: Record<string, PermissionState>) => void;
+	onPermissionChange?: (permissions: PermissionMap) => void;
 	onDeviceChange?: (devices: MediaDeviceInfo[]) => void;
 }
 ```

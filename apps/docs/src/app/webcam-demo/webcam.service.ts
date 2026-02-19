@@ -107,11 +107,7 @@ export class WebcamService {
 					this._state.set(state);
 				},
 				onStreamStart: async (stream: MediaStream) => {
-					console.log("Stream started:", stream);
-					const activeDevice = await this.webcam.getCurrentDevice();
-					console.log("Active device:", activeDevice);
-					const activeResolution = this.webcam.getCurrentResolution();
-					console.log("Active resolution:", activeResolution);
+					console.log("Stream started", stream);
 				},
 				onStreamStop: () => {
 					console.log("Stream stopped");
