@@ -38,6 +38,16 @@ import {
 } from "webcam-ts";
 import { DeviceManagerUtils } from "../utils/device-manager-utils";
 import { WebcamService } from "./webcam.service";
+import { WebcamErrorUtils } from "../utils/webcam-error-utils";
+import { WebcamPreviewComponent } from "./components/webcam-preview/webcam-preview.component";
+import { WebcamControlsComponent } from "./components/webcam-controls/webcam-controls.component";
+import {
+	WebcamSettingsComponent,
+	ResolutionGroup,
+} from "./components/webcam-settings/webcam-settings.component";
+import { WebcamDiagnosticsComponent } from "./components/webcam-diagnostics/webcam-diagnostics.component";
+import { ConfirmationService } from "primeng/api";
+import { ConfirmDialogModule } from "primeng/confirmdialog";
 
 interface UiState {
 	isLoading: boolean;
@@ -56,6 +66,8 @@ interface StartErrorInfo {
 	detail: string | null;
 	updatePermissionState: "denied" | null;
 }
+
+export type GlobalPermissionState = "checking" | "granted" | "denied" | "prompt";
 
 @Component({
 	selector: "app-webcam-demo",
@@ -78,8 +90,13 @@ interface StartErrorInfo {
 		DialogModule,
 		SkeletonModule,
 		ImageModule,
+		ConfirmDialogModule,
+		WebcamPreviewComponent,
+		WebcamControlsComponent,
+		WebcamSettingsComponent,
+		WebcamDiagnosticsComponent,
 	],
-	providers: [MessageService],
+	providers: [MessageService, ConfirmationService],
 	templateUrl: "./webcam-demo.component.html",
 	styleUrls: ["./webcam-demo.component.css"],
 })
@@ -87,11 +104,13 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 	// Services
 	private readonly messageService = inject(MessageService);
 	readonly webcamService = inject(WebcamService);
+	private readonly deviceManagerUtils = inject(DeviceManagerUtils);
+	private readonly confirmationService = inject(ConfirmationService);
 	private vConsoleInstance: { destroy: () => void } | null = null;
 
 	// Template References
-	@ViewChild("videoElement", { static: false })
-	videoElementRef!: ElementRef<HTMLVideoElement>;
+	@ViewChild("preview", { static: false })
+	previewComponent!: WebcamPreviewComponent;
 
 	// Resolution Presets
 	readonly resolutions: Resolution[] = [
@@ -127,6 +146,55 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 		{ label: "UW4K", width: 3440, height: 1440 },
 	];
 
+	readonly resolutionGroups: ResolutionGroup[] = [
+		{
+			label: "Standard Video (Landscape)",
+			items: [
+				{ label: "VGA", width: 640, height: 480 },
+				{ label: "HD", width: 1280, height: 720 },
+				{ label: "FHD", width: 1920, height: 1080 },
+				{ label: "QHD", width: 2560, height: 1440 },
+				{ label: "4K", width: 3840, height: 2160 },
+			],
+		},
+		{
+			label: "Portrait Mode",
+			items: [
+				{ label: "VGA-P", width: 480, height: 640 },
+				{ label: "HD-P", width: 720, height: 1280 },
+				{ label: "FHD-P", width: 1080, height: 1920 },
+				{ label: "QHD-P", width: 1440, height: 2560 },
+				{ label: "4K-P", width: 2160, height: 3840 },
+			],
+		},
+		{
+			label: "Square (Instagram/Social)",
+			items: [
+				{ label: "SQ-SD", width: 640, height: 640 },
+				{ label: "SQ-HD", width: 720, height: 720 },
+				{ label: "SQ-FHD", width: 1080, height: 1080 },
+				{ label: "SQ-QHD", width: 1440, height: 1440 },
+				{ label: "SQ-UHD", width: 1920, height: 1920 },
+			],
+		},
+		{
+			label: "Common Web/Mobile",
+			items: [
+				{ label: "QVGA", width: 320, height: 240 },
+				{ label: "SVGA", width: 800, height: 600 },
+				{ label: "XGA", width: 1024, height: 768 },
+				{ label: "WXGA", width: 1366, height: 768 },
+			],
+		},
+		{
+			label: "Ultra Wide",
+			items: [
+				{ label: "UWFHD", width: 2560, height: 1080 },
+				{ label: "UW4K", width: 3440, height: 1440 },
+			],
+		},
+	];
+
 	// State Signals
 	readonly webcamState = signal<WebcamState>(this.webcamService.webcam.getState());
 	readonly error = signal<string | null>(null);
@@ -144,7 +212,7 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 	readonly selectDeviceDetails = signal<MediaDeviceInfo | null>(null);
 	readonly deviceCapabilitiesTestResult = signal<DeviceCapability | null>(null);
 	readonly helpDialogVisible = signal(false);
-	readonly permissionState = signal<"checking" | "granted" | "denied" | "prompt">("checking");
+	readonly permissionState = signal<GlobalPermissionState>("checking");
 	readonly devices = signal<MediaDeviceInfo[]>([]);
 	readonly errorTitle = signal<string | null>(null);
 	readonly errorDetails = signal<string | null>(null);
@@ -167,7 +235,7 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 			(device: MediaDeviceInfo) => device.deviceId === selectedDev.deviceId,
 		);
 
-		if (!deviceInfo || !this.videoElementRef?.nativeElement) {
+		if (!deviceInfo || !this.previewComponent?.videoElementRef?.nativeElement) {
 			console.warn("No device info or video element found");
 			return null;
 		}
@@ -175,7 +243,7 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 		return {
 			deviceInfo,
 			preferredResolutions: this.selectedResolution(),
-			videoElement: this.videoElementRef.nativeElement,
+			videoElement: this.previewComponent.videoElementRef.nativeElement,
 			enableMirror: this.enableMirror(),
 			enableAudio: this.enableAudio(),
 		} as WebcamConfiguration;
@@ -221,7 +289,7 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 
 			if (state.status !== "ready") {
 				if (state.status === "idle" || state.status === "error") {
-					const videoElement = this.videoElementRef?.nativeElement;
+					const videoElement = this.previewComponent?.videoElementRef?.nativeElement;
 					if (videoElement) {
 						videoElement.srcObject = null;
 					}
@@ -307,10 +375,10 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 	async checkPermissionState(): Promise<void> {
 		try {
 			const result = await navigator.permissions.query({ name: "camera" as PermissionName });
-			this.permissionState.set(result.state as "granted" | "denied" | "prompt");
+			this.permissionState.set(result.state as GlobalPermissionState);
 
 			result.onchange = () => {
-				this.permissionState.set(result.state as "granted" | "denied" | "prompt");
+				this.permissionState.set(result.state as GlobalPermissionState);
 			};
 		} catch (error) {
 			console.warn("Permission API not supported, will request directly");
@@ -378,7 +446,7 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 		} catch (error: unknown) {
 			console.error("Permission request failed:", error);
 			this.permissionState.set("denied");
-			const errorName = this.getErrorName(error);
+			const errorName = WebcamErrorUtils.getErrorName(error);
 			if (errorName === "NotAllowedError") {
 				this.showToast("ไม่ได้รับอนุญาตให้เข้าถึงกล้อง");
 				this.showPermissionGuidance();
@@ -438,7 +506,7 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 			this.showToast("ปิดกล้องแล้ว");
 		}
 
-		const videoElement = this.videoElementRef?.nativeElement;
+		const videoElement = this.previewComponent?.videoElementRef?.nativeElement;
 		if (videoElement) {
 			videoElement.srcObject = null;
 			Object.keys(this.videoEventListeners).forEach((eventName) => {
@@ -543,8 +611,17 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 
 	clearCapturedImage() {
 		if (this.capturedImageUrl()) {
-			URL.revokeObjectURL(this.capturedImageUrl()!);
-			this.capturedImageUrl.set(null);
+			this.confirmationService.confirm({
+				message: "คุณแน่ใจหรือไม่ว่าต้องการลบภาพถ่ายนี้?",
+				acceptLabel: "ลบรูปภาพ",
+				rejectLabel: "ยกเลิก",
+				acceptButtonStyleClass: "p-button-danger",
+				accept: () => {
+					URL.revokeObjectURL(this.capturedImageUrl()!);
+					this.capturedImageUrl.set(null);
+					this.showToast("ลบภาพถ่ายแล้ว");
+				},
+			});
 		}
 	}
 
@@ -554,9 +631,8 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 
 	async testSelectDevice(facing: "front" | "back") {
 		try {
-			const deviceManagerUtils = new DeviceManagerUtils();
 			const devices = await this.webcamService.getAvailableDevices();
-			const selectDevice = await deviceManagerUtils.selectCamera(devices, facing);
+			const selectDevice = await this.deviceManagerUtils.selectCamera(devices, facing);
 
 			if (selectDevice) {
 				this.selectDeviceDetails.set(selectDevice);
@@ -616,6 +692,14 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 		}
 	}
 
+	async onResolutionChangeDirect(res: Resolution) {
+		this.selectedResolution.set(res);
+		if (this.uiState().isReady) {
+			await this.switchResolution();
+			this.showToast(`เปลี่ยนความละเอียดเป็น ${res.label}`);
+		}
+	}
+
 	async onResolutionChange(event: SelectChangeEvent) {
 		this.selectedResolution.set(event.value);
 		if (this.uiState().isReady) {
@@ -624,34 +708,36 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 		}
 	}
 
-	async onMirrorChange(event: ToggleSwitchChangeEvent) {
-		this.enableMirror.set(event.checked);
+	async onMirrorChange(checked: boolean | any) {
+		const isChecked = typeof checked === "boolean" ? checked : checked.checked;
+		this.enableMirror.set(isChecked);
 		if (this.uiState().isReady) {
 			await this.switchDevice();
 		}
 	}
 
-	async toggleAudio(event: ToggleSwitchChangeEvent) {
-		this.enableAudio.set(event.checked);
+	async toggleAudio(checked: boolean | any) {
+		const isChecked = typeof checked === "boolean" ? checked : checked.checked;
+		this.enableAudio.set(isChecked);
 		if (this.uiState().isReady) {
 			await this.switchDevice();
 		}
 	}
 
-	async onZoomChange(event: SliderChangeEvent) {
-		const zoomLevel = event.value as number;
+	async onZoomChange(value: number | any) {
+		const zoomLevel = typeof value === "number" ? value : value.value;
 		this.zoomValue.set(zoomLevel);
 
 		try {
 			await this.webcamService.webcam.setZoom(zoomLevel);
 		} catch (error) {
 			console.error("Failed to set zoom:", error);
-			this.showToast("ไม่สามารถปรับซูมได้");
+			// Throttle toast if wanted, omitted for now
 		}
 	}
 
-	async toggleTorch(event: ToggleSwitchChangeEvent) {
-		const enabled = event.checked;
+	async toggleTorch(checked: boolean | any) {
+		const enabled = typeof checked === "boolean" ? checked : checked.checked;
 		this.enableTorch.set(enabled);
 
 		try {
@@ -691,7 +777,7 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 	}
 
 	private applyStartError(error: unknown): void {
-		const startError = this.getStartErrorInfo(error);
+		const startError = WebcamErrorUtils.getStartErrorInfo(error, this.selectedResolution());
 		this.setErrorState(startError.title, startError.message, startError.detail);
 
 		if (startError.updatePermissionState) {
@@ -699,76 +785,6 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 		}
 
 		this.showToast(startError.message, "error", startError.title);
-	}
-
-	private getStartErrorInfo(error: unknown): StartErrorInfo {
-		const errorCode = this.getErrorCode(error);
-		const errorName = this.getErrorName(error);
-		const rawMessage = this.getErrorMessage(error);
-		const resolution = this.selectedResolution();
-
-		if (
-			errorCode === WebcamErrorCode.PERMISSION_DENIED ||
-			errorName === "NotAllowedError" ||
-			errorName === "SecurityError"
-		) {
-			return {
-				title: "ยังไม่ได้รับสิทธิ์เข้าถึงกล้อง",
-				message: "โปรดอนุญาตการใช้งานกล้องจากเบราว์เซอร์ก่อนเริ่มใช้งาน",
-				detail: rawMessage,
-				updatePermissionState: "denied",
-			};
-		}
-
-		if (errorCode === WebcamErrorCode.DEVICE_NOT_FOUND || errorName === "NotFoundError") {
-			return {
-				title: "ไม่พบอุปกรณ์กล้อง",
-				message: "ไม่พบกล้องที่ใช้งานได้ กรุณาตรวจสอบการเชื่อมต่อหรือเลือกกล้องใหม่",
-				detail: rawMessage,
-				updatePermissionState: null,
-			};
-		}
-
-		if (errorCode === WebcamErrorCode.DEVICE_BUSY || errorName === "NotReadableError") {
-			return {
-				title: "กล้องกำลังถูกใช้งาน",
-				message: "กล้องถูกใช้งานโดยแอปอื่นอยู่ กรุณาปิดแอปอื่นแล้วลองใหม่",
-				detail: rawMessage,
-				updatePermissionState: null,
-			};
-		}
-
-		if (
-			errorCode === WebcamErrorCode.OVERCONSTRAINED ||
-			errorCode === WebcamErrorCode.CONSTRAINT_ERROR ||
-			errorName === "OverconstrainedError"
-		) {
-			return {
-				title: "ความละเอียดไม่รองรับ",
-				message: `กล้องไม่รองรับ ${resolution.label} (${resolution.width}x${resolution.height}) ลองลดความละเอียดแล้วเริ่มใหม่`,
-				detail: rawMessage,
-				updatePermissionState: null,
-			};
-		}
-
-		if (
-			errorCode === WebcamErrorCode.VIDEO_ELEMENT_NOT_SET ||
-			errorCode === WebcamErrorCode.INVALID_CONFIG
-		) {
-			return {
-				title: "การตั้งค่าเริ่มกล้องไม่ถูกต้อง",
-				message: "เกิดข้อผิดพลาดในการตั้งค่ากล้อง กรุณารีเฟรชหน้าแล้วลองใหม่",
-				detail: rawMessage,
-				updatePermissionState: null,
-			};
-		}
-
-		return {
-			title: "ไม่สามารถเปิดกล้องได้",
-			message: "เกิดข้อผิดพลาดระหว่างเปิดกล้อง กรุณาลองอีกครั้ง",
-			detail: rawMessage,
-			updatePermissionState: null,
-		};
 	}
 
 	private setErrorState(title: string, message: string, detail: string | null = null): void {
@@ -781,41 +797,6 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 		this.errorTitle.set(null);
 		this.error.set(null);
 		this.errorDetails.set(null);
-	}
-
-	private getErrorCode(error: unknown): string | null {
-		if (typeof error !== "object" || error === null || !("code" in error)) {
-			return null;
-		}
-
-		const code = (error as { code?: unknown }).code;
-		return typeof code === "string" ? code : null;
-	}
-
-	private getErrorName(error: unknown): string | null {
-		if (error instanceof Error) {
-			return error.name;
-		}
-
-		if (typeof error === "object" && error !== null && "name" in error) {
-			const name = (error as { name?: unknown }).name;
-			return typeof name === "string" ? name : null;
-		}
-
-		return null;
-	}
-
-	private getErrorMessage(error: unknown): string | null {
-		if (error instanceof Error) {
-			return error.message;
-		}
-
-		if (typeof error === "object" && error !== null && "message" in error) {
-			const message = (error as { message?: unknown }).message;
-			return typeof message === "string" ? message : null;
-		}
-
-		return null;
 	}
 
 	showToast(

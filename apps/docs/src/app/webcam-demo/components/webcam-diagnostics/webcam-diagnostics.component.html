@@ -1,0 +1,203 @@
+<div class="space-y-6 mt-6">
+	<!-- Diagnostics -->
+	<div
+		class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/60 p-5 sm:p-6 lg:p-7">
+		<h3 class="text-base font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+			<span class="material-symbols-rounded text-blue-500 text-xl">info</span>
+			ข้อมูลระบบ
+		</h3>
+		<div class="space-y-2">
+			<div
+				class="flex justify-between items-start py-2 border-b border-gray-100 dark:border-slate-700">
+				<span class="text-xs font-medium text-gray-500 dark:text-gray-400">อุปกรณ์</span>
+				<span class="text-xs text-gray-900 dark:text-white text-right max-w-[60%]">
+					{{ deviceType() }}
+				</span>
+			</div>
+			<div
+				class="flex justify-between items-start py-2 border-b border-gray-100 dark:border-slate-700">
+				<span class="text-xs font-medium text-gray-500 dark:text-gray-400">กล้อง</span>
+				<span class="text-xs text-gray-900 dark:text-white text-right max-w-[60%] truncate">
+					{{ cameraName() || "N/A" }}
+				</span>
+			</div>
+			<div
+				class="flex justify-between items-start py-2 border-b border-gray-100 dark:border-slate-700">
+				<span class="text-xs font-medium text-gray-500 dark:text-gray-400">ความละเอียด</span>
+				<span class="text-xs text-gray-900 dark:text-white">
+					{{ resolution().width }}×{{ resolution().height }}
+				</span>
+			</div>
+			<div
+				class="flex justify-between items-start py-2 border-b border-gray-100 dark:border-slate-700">
+				<span class="text-xs font-medium text-gray-500 dark:text-gray-400">ไฟแฟลช</span>
+				<span class="text-xs text-gray-900 dark:text-white">
+					{{ deviceCapability()?.hasTorch ? "รองรับ" : "ไม่รองรับ" }}
+				</span>
+			</div>
+			<div
+				class="flex justify-between items-start py-2 border-b border-gray-100 dark:border-slate-700">
+				<span class="text-xs font-medium text-gray-500 dark:text-gray-400">ซูม</span>
+				<span class="text-xs text-gray-900 dark:text-white">
+					{{ deviceCapability()?.hasZoom ? minZoom() + "x - " + maxZoom() + "x" : "ไม่รองรับ" }}
+				</span>
+			</div>
+			<div class="flex justify-between items-start py-2">
+				<span class="text-xs font-medium text-gray-500 dark:text-gray-400">โฟกัส</span>
+				<span class="text-xs text-gray-900 dark:text-white">
+					{{ deviceCapability()?.hasFocus ? "รองรับ" : "ไม่รองรับ" }}
+				</span>
+			</div>
+		</div>
+	</div>
+
+	<!-- Quick Actions -->
+	<div
+		class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/60 p-5 sm:p-6 lg:p-7">
+		<h3 class="text-base font-semibold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+			<span class="material-symbols-rounded text-blue-500 text-xl">bolt</span>
+			ทางลัด
+		</h3>
+		<div class="grid grid-cols-2 gap-3">
+			<button
+				class="p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-900/40 dark:hover:to-blue-800/40 transition-all flex flex-col items-center gap-2 cursor-pointer"
+				(click)="testSelectDevice.emit('front')">
+				<span class="material-symbols-rounded text-blue-600 dark:text-blue-400 text-2xl">
+					person
+				</span>
+				<span class="text-xs font-medium text-gray-700 dark:text-gray-300">ทดสอบกล้องหน้า</span>
+			</button>
+			<button
+				class="p-3 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-900/40 dark:hover:to-purple-800/40 transition-all flex flex-col items-center gap-2 cursor-pointer"
+				(click)="testSelectDevice.emit('back')">
+				<span class="material-symbols-rounded text-purple-600 dark:text-purple-400 text-2xl">
+					photo_camera
+				</span>
+				<span class="text-xs font-medium text-gray-700 dark:text-gray-300">ทดสอบกล้องหลัง</span>
+			</button>
+		</div>
+
+		<!-- Test Capabilities Button -->
+		<button
+			class="w-full mt-3 p-3 rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/40 dark:hover:to-emerald-800/40 transition-all flex items-center justify-center gap-2 cursor-pointer"
+			(click)="testDeviceCapabilities.emit()"
+			[disabled]="!selectedDevice()">
+			<span class="material-symbols-rounded text-emerald-600 dark:text-emerald-400 text-xl">
+				science
+			</span>
+			<span class="text-sm font-medium text-gray-700 dark:text-gray-300">ทดสอบความสามารถกล้อง</span>
+		</button>
+
+		<!-- Test Results Display -->
+		<div
+			*ngIf="selectDeviceDetails()"
+			class="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+			<div class="flex items-center gap-2 mb-3">
+				<span class="material-symbols-rounded text-blue-600 dark:text-blue-400 text-lg">info</span>
+				<h4 class="text-sm font-semibold text-gray-900 dark:text-white">ผลการทดสอบกล้อง</h4>
+			</div>
+			<div class="space-y-2 text-xs">
+				<div class="flex justify-between">
+					<span class="text-gray-600 dark:text-gray-400">ชื่ออุปกรณ์:</span>
+					<span class="text-gray-900 dark:text-white font-medium">
+						{{ selectDeviceDetails()?.label }}
+					</span>
+				</div>
+				<div class="flex justify-between">
+					<span class="text-gray-600 dark:text-gray-400">Device ID:</span>
+					<span class="text-gray-900 dark:text-white font-mono text-[10px]">
+						{{ selectDeviceDetails()?.deviceId?.substring(0, 20) }}...
+					</span>
+				</div>
+				<div class="flex justify-between">
+					<span class="text-gray-600 dark:text-gray-400">ประเภท:</span>
+					<span class="text-gray-900 dark:text-white font-medium">
+						{{ selectDeviceDetails()?.kind }}
+					</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Device Capabilities Test Results -->
+		<div
+			*ngIf="deviceCapabilitiesTestResult() as caps"
+			class="mt-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/60">
+			<div class="flex items-center gap-2 mb-4">
+				<span class="material-symbols-rounded text-emerald-600 dark:text-emerald-400 text-lg">
+					check_circle
+				</span>
+				<h4 class="text-sm font-semibold text-gray-900 dark:text-white">ความสามารถของกล้อง</h4>
+			</div>
+			<div class="space-y-2 text-xs">
+				<!-- Device Info -->
+				<div class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+					<span class="text-gray-600 dark:text-gray-400">ชื่ออุปกรณ์:</span>
+					<span class="text-gray-900 dark:text-white font-medium text-right max-w-[60%]">
+						{{ caps.label }}
+					</span>
+				</div>
+				<div class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+					<span class="text-gray-600 dark:text-gray-400">Device ID:</span>
+					<span
+						class="text-gray-900 dark:text-white font-mono text-[10px] text-right max-w-[60%] break-all">
+						{{ caps.deviceId.substring(0, 30) }}...
+					</span>
+				</div>
+
+				<!-- Resolution -->
+				<div class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+					<span class="text-gray-600 dark:text-gray-400">ความละเอียดสูงสุด:</span>
+					<span class="text-gray-900 dark:text-white font-medium">
+						{{ caps.maxWidth }}×{{ caps.maxHeight }}
+					</span>
+				</div>
+				<div class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+					<span class="text-gray-600 dark:text-gray-400">ความละเอียดต่ำสุด:</span>
+					<span class="text-gray-900 dark:text-white font-medium">
+						{{ caps.minWidth }}×{{ caps.minHeight }}
+					</span>
+				</div>
+
+				<!-- Frame Rates -->
+				<div
+					*ngIf="(caps.supportedFrameRates?.length ?? 0) > 0"
+					class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+					<span class="text-gray-600 dark:text-gray-400">อัตราเฟรม:</span>
+					<span class="text-gray-900 dark:text-white font-medium">
+						{{ caps.supportedFrameRates?.join(", ") }} fps
+					</span>
+				</div>
+
+				<!-- Features -->
+				<div class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+					<span class="text-gray-600 dark:text-gray-400">ไฟแฟลช:</span>
+					<span class="text-gray-900 dark:text-white font-medium">
+						{{ caps.hasTorch ? "✓ รองรับ" : "✗ ไม่รองรับ" }}
+					</span>
+				</div>
+				<div class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
+					<span class="text-gray-600 dark:text-gray-400">ซูม:</span>
+					<span class="text-gray-900 dark:text-white font-medium">
+						{{
+							caps.hasZoom
+								? "✓ รองรับ (" + caps.minZoom + "x - " + caps.maxZoom + "x)"
+								: "✗ ไม่รองรับ"
+						}}
+					</span>
+				</div>
+				<div class="flex justify-between py-1">
+					<span class="text-gray-600 dark:text-gray-400">โฟกัส:</span>
+					<span class="text-gray-900 dark:text-white font-medium">
+						{{ caps.hasFocus ? "✓ รองรับ" : "✗ ไม่รองรับ" }}
+					</span>
+				</div>
+				<div *ngIf="(caps.supportedFocusModes?.length ?? 0) > 0" class="flex justify-between py-1">
+					<span class="text-gray-600 dark:text-gray-400">โหมดโฟกัส:</span>
+					<span class="text-gray-900 dark:text-white font-medium text-right max-w-[60%]">
+						{{ caps.supportedFocusModes?.join(", ") }}
+					</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

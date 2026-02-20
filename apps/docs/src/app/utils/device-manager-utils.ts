@@ -1,3 +1,4 @@
+import { Injectable } from "@angular/core";
 import { UAInfo } from "ua-info";
 
 export type CameraSelector = (devices: CameraDevice[]) => CameraDevice | null;
@@ -127,6 +128,7 @@ export const mockDeviceNew: MediaDeviceInfo[] = [
 
 export type CameraType = "environment" | "user";
 
+@Injectable({ providedIn: "root" })
 export class DeviceManagerUtils {
 	private readonly availableDevices = new Map<string, CameraDevice>();
 	private uaInfo = new UAInfo();

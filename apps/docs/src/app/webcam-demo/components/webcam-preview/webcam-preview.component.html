@@ -1,0 +1,111 @@
+<div
+	[class]="
+		'relative w-full bg-black transition-all duration-300 group overflow-hidden flex items-center justify-center ' +
+		getAspectClass()
+	">
+	<!-- Loading State -->
+	<div
+		*ngIf="isLoading()"
+		class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/90">
+		<p-progressSpinner styleClass="w-12 h-12" strokeWidth="3"></p-progressSpinner>
+		<p class="mt-4 text-gray-400 text-sm">กำลังเปิดกล้อง...</p>
+	</div>
+
+	<!-- Error State -->
+	<div
+		*ngIf="error()"
+		class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-red-50 dark:bg-red-950/50 p-5 sm:p-6 text-center">
+		<div
+			class="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
+			<span class="material-symbols-rounded text-red-600 dark:text-red-400 text-2xl">warning</span>
+		</div>
+		<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+			{{ errorTitle() || "ไม่สามารถเปิดกล้องได้" }}
+		</h3>
+		<p class="text-sm text-gray-600 dark:text-gray-400 max-w-sm">{{ error() }}</p>
+		<p *ngIf="errorDetails()" class="text-xs text-gray-500 dark:text-gray-400 mt-2 max-w-sm">
+			{{ errorDetails() }}
+		</p>
+		<div class="mt-4 flex w-full max-w-xs flex-col gap-2">
+			<p-button
+				size="small"
+				styleClass="w-full"
+				(onClick)="startCamera.emit()"
+				[disabled]="isStartingCamera()">
+				<span class="material-symbols-rounded mr-2 text-base">refresh</span>
+				{{ isStartingCamera() ? "กำลังลองใหม่..." : "ลองอีกครั้ง" }}
+			</p-button>
+			<p-button
+				*ngIf="permissionState() !== 'granted'"
+				severity="secondary"
+				size="small"
+				[text]="true"
+				styleClass="w-full"
+				(onClick)="showPermissionGuidance.emit()">
+				<span class="material-symbols-rounded mr-2 text-base">help</span>
+				วิธีอนุญาตกล้อง
+			</p-button>
+		</div>
+	</div>
+
+	<!-- Permission Prompt -->
+	<div
+		*ngIf="permissionState() === 'prompt' || permissionState() === 'denied'"
+		class="absolute inset-0 z-20 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
+		<div class="max-w-sm text-center">
+			<div
+				class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+				<span class="material-symbols-rounded text-blue-600 dark:text-blue-400 text-3xl">lock</span>
+			</div>
+			<h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">ต้องการเข้าถึงกล้อง</h3>
+			<p class="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+				กรุณาอนุญาตให้เข้าถึงกล้อง ข้อมูลจะถูกประมวลผลบนเครื่องของคุณเท่านั้น
+			</p>
+			<div class="flex flex-col gap-2">
+				<p-button (onClick)="requestPermissions.emit()" styleClass="w-full">
+					<span class="material-symbols-rounded mr-2 text-base">check</span>
+					อนุญาต
+				</p-button>
+				<p-button
+					severity="secondary"
+					(onClick)="showPermissionGuidance.emit()"
+					[text]="true"
+					styleClass="w-full">
+					<span class="material-symbols-rounded mr-2 text-base">help</span>
+					วิธีแก้ไข
+				</p-button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Idle State -->
+	<div
+		*ngIf="!isReady() && !isLoading() && !error() && permissionState() === 'granted'"
+		class="absolute inset-0 z-10 w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border-b border-slate-100 dark:border-slate-700/60">
+		<div
+			class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white dark:bg-slate-700 shadow-lg flex items-center justify-center mb-4 transition-transform hover:scale-105">
+			<span class="material-symbols-rounded text-gray-400 dark:text-gray-500 text-3xl sm:text-4xl">
+				videocam_off
+			</span>
+		</div>
+		<p class="text-gray-600 dark:text-gray-400 mb-5 font-medium">กล้องถูกปิดอยู่</p>
+		<p-button
+			(onClick)="startCamera.emit()"
+			[disabled]="!canStart() || isStartingCamera()"
+			styleClass="px-8 py-2.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all">
+			<span class="material-symbols-rounded mr-2">power_settings_new</span>
+			เปิดกล้อง
+		</p-button>
+	</div>
+
+	<!-- Video Element -->
+	<video
+		#videoElement
+		autoplay
+		playsinline
+		muted
+		[class]="
+			'w-full h-full object-contain bg-black transition-transform duration-300 ' +
+			(enableMirror() ? 'scale-x-[-1]' : '')
+		"></video>
+</div>
