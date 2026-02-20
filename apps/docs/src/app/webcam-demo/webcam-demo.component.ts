@@ -172,6 +172,7 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 				{ label: "SQ-SD", width: 640, height: 640 },
 				{ label: "SQ-HD", width: 720, height: 720 },
 				{ label: "SQ-FHD", width: 1080, height: 1080 },
+				{ label: "SQ-1280", width: 1280, height: 1280 },
 				{ label: "SQ-QHD", width: 1440, height: 1440 },
 				{ label: "SQ-UHD", width: 1920, height: 1920 },
 			],
