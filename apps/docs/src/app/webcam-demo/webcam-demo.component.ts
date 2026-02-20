@@ -8,7 +8,6 @@ import {
 	computed,
 	effect,
 	inject,
-	isDevMode,
 	signal,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
@@ -351,7 +350,7 @@ export class WebcamDemoComponent implements OnInit, OnDestroy {
 	}
 
 	private async initializeVConsole(): Promise<void> {
-		if (!isDevMode() || typeof window === "undefined" || this.vConsoleInstance) {
+		if (typeof window === "undefined" || this.vConsoleInstance) {
 			return;
 		}
 
