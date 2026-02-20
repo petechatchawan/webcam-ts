@@ -524,7 +524,8 @@ export class Webcam {
 		}
 
 		this.state.permissions = { ...permissions };
-		this.config?.onPermissionChange?.(this.state.permissions);
+		const permissionSnapshot = Object.freeze({ ...this.state.permissions }) as PermissionMap;
+		this.config?.onPermissionChange?.(permissionSnapshot);
 		this._notifyStateChange();
 	}
 

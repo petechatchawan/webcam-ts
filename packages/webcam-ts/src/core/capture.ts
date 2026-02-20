@@ -386,6 +386,7 @@ export class Capture {
 						);
 					}
 				}
+				canvas = this.mirrorCanvas;
 				ctx = this.mirrorContext!;
 			}
 

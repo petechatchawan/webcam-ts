@@ -43,6 +43,9 @@ export class Stream {
 						break; // Found a working resolution
 					} catch (error) {
 						lastError = error instanceof Error ? error : new Error("Failed to get media stream");
+						if (!this._shouldRetryWithNextResolution(error)) {
+							throw error;
+						}
 						continue;
 					}
 				}
@@ -170,6 +173,19 @@ export class Stream {
 			);
 		}
 		return navigator.mediaDevices;
+	}
+
+	private _shouldRetryWithNextResolution(error: unknown): boolean {
+		if (error instanceof WebcamError) {
+			return error.code === WebcamErrorCode.OVERCONSTRAINED;
+		}
+
+		if (!(error instanceof Error)) {
+			return false;
+		}
+
+		// "ConstraintNotSatisfiedError" is the legacy name used by some browsers.
+		return error.name === "OverconstrainedError" || error.name === "ConstraintNotSatisfiedError";
 	}
 
 	private _handleStartError(error: unknown): WebcamError {

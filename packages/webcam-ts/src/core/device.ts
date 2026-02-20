@@ -79,9 +79,9 @@ export class Device {
 				hasZoom: "zoom" in capabilities,
 				hasTorch: "torch" in capabilities,
 				hasFocus: "focusMode" in capabilities,
-				maxZoom: (capabilities as any).zoom?.max, // Cast still needed if types not fully picked up globally yet, but we defined them
-				minZoom: (capabilities as any).zoom?.min,
-				supportedFocusModes: (capabilities as any).focusMode as FocusMode[],
+				maxZoom: capabilities.zoom?.max,
+				minZoom: capabilities.zoom?.min,
+				supportedFocusModes: capabilities.focusMode as FocusMode[] | undefined,
 			};
 
 			this.capabilityCache.set(deviceId, {

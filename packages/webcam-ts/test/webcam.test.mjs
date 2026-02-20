@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { Webcam, WebcamError, WebcamErrorCode } from "../dist/index.js";
+import { Capture } from "../dist/core/capture.js";
 import { Device } from "../dist/core/device.js";
 import { Stream } from "../dist/core/stream.js";
 
@@ -269,6 +270,33 @@ test("requestPermissions() and checkPermissions() update permission state and ca
 	assert.deepEqual(permissionEvents[1], { camera: "denied", microphone: "prompt" });
 });
 
+test("onPermissionChange() receives immutable snapshot without mutating internal state", async () => {
+	const webcam = new Webcam(
+		baseConfig({
+			onPermissionChange(permissions) {
+				assert.equal(Object.isFrozen(permissions), true);
+				try {
+					permissions.camera = "denied";
+				} catch {
+					// Expected in strict mode when object is frozen.
+				}
+			},
+		}),
+		{
+			stream: createStreamService(),
+			capture: createCaptureService(),
+			device: createDeviceService({
+				async requestPermissions() {
+					return { camera: "granted", microphone: "prompt" };
+				},
+			}),
+		},
+	);
+
+	await webcam.requestPermissions({ video: true, audio: false });
+	assert.equal(webcam.getState().permissions.camera, "granted");
+});
+
 test("captureImage() is available as alias of captureImageAsBase64()", async () => {
 	const videoElement = {
 		srcObject: null,
@@ -398,8 +426,7 @@ test("Device.requestPermissions() preserves WebcamError code from environment ch
 		async () => {
 			await assert.rejects(
 				() => device.requestPermissions(),
-				(error) =>
-					error instanceof WebcamError && error.code === WebcamErrorCode.DEVICES_ERROR,
+				(error) => error instanceof WebcamError && error.code === WebcamErrorCode.DEVICES_ERROR,
 			);
 		},
 	);
@@ -467,9 +494,73 @@ test("Stream.startStream() preserves upstream WebcamError code", async () => {
 		async () => {
 			await assert.rejects(
 				() => stream.startStream(baseConfig()),
-				(error) =>
-					error instanceof WebcamError && error.code === WebcamErrorCode.STREAM_FAILED,
+				(error) => error instanceof WebcamError && error.code === WebcamErrorCode.STREAM_FAILED,
 			);
+		},
+	);
+});
+
+test("Stream.startStream() retries only constraint errors when preferredResolutions is an array", async () => {
+	const stream = new Stream();
+	let getUserMediaCalls = 0;
+	const busyError = Object.assign(new Error("busy"), { name: "NotReadableError" });
+
+	await withMockNavigator(
+		{
+			mediaDevices: {
+				async getUserMedia() {
+					getUserMediaCalls += 1;
+					throw busyError;
+				},
+			},
+		},
+		async () => {
+			await assert.rejects(
+				() =>
+					stream.startStream({
+						preferredResolutions: [
+							{ label: "640p", width: 640, height: 480 },
+							{ label: "720p", width: 1280, height: 720 },
+							{ label: "1080p", width: 1920, height: 1080 },
+						],
+					}),
+				(error) => error instanceof WebcamError && error.code === WebcamErrorCode.DEVICE_BUSY,
+			);
+			assert.equal(getUserMediaCalls, 1);
+		},
+	);
+});
+
+test("Stream.startStream() continues to next resolution on OverconstrainedError", async () => {
+	const stream = new Stream();
+	let getUserMediaCalls = 0;
+
+	const firstError = Object.assign(new Error("unsupported"), { name: "OverconstrainedError" });
+	const track = createMockTrack();
+	const successStream = createMockStream(track);
+
+	await withMockNavigator(
+		{
+			mediaDevices: {
+				async getUserMedia() {
+					getUserMediaCalls += 1;
+					if (getUserMediaCalls === 1) {
+						throw firstError;
+					}
+					return successStream;
+				},
+			},
+		},
+		async () => {
+			const result = await stream.startStream({
+				preferredResolutions: [
+					{ label: "4K", width: 3840, height: 2160 },
+					{ label: "720p", width: 1280, height: 720 },
+				],
+			});
+
+			assert.equal(getUserMediaCalls, 2);
+			assert.equal(result.usedResolution?.label, "720p");
 		},
 	);
 });
@@ -510,4 +601,77 @@ test("Stream.applyConstraints() retries with advanced constraints on TypeError",
 	assert.equal(applyCalls.length, 2);
 	assert.deepEqual(applyCalls[0], { torch: true });
 	assert.deepEqual(applyCalls[1], { advanced: [{ torch: true }] });
+});
+
+test("Capture.captureImageBitmap() succeeds on first call with mirror enabled", async () => {
+	const originalDocument = globalThis.document;
+	const originalCreateImageBitmap = globalThis.createImageBitmap;
+
+	const context2d = {
+		setTransform() {},
+		drawImage() {},
+		getImageData() {
+			return { data: new Uint8ClampedArray(4), width: 1, height: 1 };
+		},
+		putImageData() {},
+	};
+
+	const createMockCanvas = () => ({
+		width: 0,
+		height: 0,
+		getContext() {
+			return context2d;
+		},
+		toBlob(callback) {
+			callback(new Blob());
+		},
+	});
+
+	Object.defineProperty(globalThis, "document", {
+		configurable: true,
+		value: {
+			createElement(tag) {
+				assert.equal(tag, "canvas");
+				return createMockCanvas();
+			},
+		},
+	});
+
+	Object.defineProperty(globalThis, "createImageBitmap", {
+		configurable: true,
+		value: async () => ({
+			close() {},
+		}),
+	});
+
+	try {
+		const capture = new Capture();
+		const videoElement = {
+			readyState: 2,
+			videoWidth: 640,
+			videoHeight: 480,
+		};
+
+		const result = await capture.captureImageBitmap(videoElement, { mirror: true });
+		assert.equal(result.width, 640);
+		assert.equal(result.height, 480);
+	} finally {
+		if (originalDocument) {
+			Object.defineProperty(globalThis, "document", {
+				configurable: true,
+				value: originalDocument,
+			});
+		} else {
+			delete globalThis.document;
+		}
+
+		if (originalCreateImageBitmap) {
+			Object.defineProperty(globalThis, "createImageBitmap", {
+				configurable: true,
+				value: originalCreateImageBitmap,
+			});
+		} else {
+			delete globalThis.createImageBitmap;
+		}
+	}
 });
