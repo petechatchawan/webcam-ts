@@ -1,9 +1,9 @@
 <div
-	class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-slate-900 p-3 sm:p-4 lg:p-6">
+	class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-slate-900 p-3 pb-24 sm:p-4 sm:pb-6 lg:p-6">
 	<!-- Header - Simplified -->
 	<header class="max-w-7xl mx-auto mb-4 sm:mb-6">
 		<div
-			class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5 flex items-center justify-between">
+			class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<div class="flex items-center gap-3">
 				<div
 					class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
@@ -55,10 +55,10 @@
 	<!-- Main Content -->
 	<main class="max-w-7xl mx-auto">
 		<div
-			class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
+			class="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3"
 			[style]="{ '--p-primary-color': 'rgb(59 130 246)', '--p-primary-contrast-color': '#ffffff' }">
 			<!-- Video Section - Takes 2 columns on desktop -->
-			<div class="lg:col-span-2 space-y-4">
+			<div class="space-y-4 lg:col-span-2">
 				<!-- Video Container -->
 				<div class="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
 					<div class="relative aspect-video bg-black group">
@@ -73,7 +73,7 @@
 						<!-- Error State -->
 						<div
 							*ngIf="error()"
-							class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-red-50 dark:bg-red-950/50 p-6 text-center">
+							class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-red-50 dark:bg-red-950/50 p-5 sm:p-6 text-center">
 							<div
 								class="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
 								<span class="material-symbols-rounded text-red-600 dark:text-red-400 text-2xl">
@@ -81,13 +81,34 @@
 								</span>
 							</div>
 							<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-								เกิดข้อผิดพลาด
+								{{ errorTitle() || "ไม่สามารถเปิดกล้องได้" }}
 							</h3>
-							<p class="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-sm">{{ error() }}</p>
-							<p-button size="small" (onClick)="startCamera()">
-								<span class="material-symbols-rounded mr-2 text-base">refresh</span>
-								ลองอีกครั้ง
-							</p-button>
+							<p class="text-sm text-gray-600 dark:text-gray-400 max-w-sm">{{ error() }}</p>
+							<p
+								*ngIf="errorDetails()"
+								class="text-xs text-gray-500 dark:text-gray-400 mt-2 max-w-sm">
+								{{ errorDetails() }}
+							</p>
+							<div class="mt-4 flex w-full max-w-xs flex-col gap-2">
+								<p-button
+									size="small"
+									styleClass="w-full"
+									(onClick)="startCamera()"
+									[disabled]="isStartingCamera()">
+									<span class="material-symbols-rounded mr-2 text-base">refresh</span>
+									{{ isStartingCamera() ? "กำลังลองใหม่..." : "ลองอีกครั้ง" }}
+								</p-button>
+								<p-button
+									*ngIf="permissionState() !== 'granted'"
+									severity="secondary"
+									size="small"
+									[text]="true"
+									styleClass="w-full"
+									(onClick)="showPermissionGuidance()">
+									<span class="material-symbols-rounded mr-2 text-base">help</span>
+									วิธีอนุญาตกล้อง
+								</p-button>
+							</div>
 						</div>
 
 						<!-- Permission Prompt -->
@@ -140,7 +161,9 @@
 								</span>
 							</div>
 							<p class="text-gray-600 dark:text-gray-400 mb-4">กล้องปิดอยู่</p>
-							<p-button (onClick)="startCamera()" [disabled]="!uiState().canStart">
+							<p-button
+								(onClick)="startCamera()"
+								[disabled]="!uiState().canStart || isStartingCamera()">
 								เปิดกล้อง
 							</p-button>
 						</div>
@@ -159,16 +182,16 @@
 
 					<!-- Video Controls Toolbar -->
 					<div
-						class="p-3 sm:p-4 border-t border-gray-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-800">
-						<div class="flex items-center gap-3">
+						class="p-3 sm:p-4 border-t border-gray-100 dark:border-slate-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white dark:bg-slate-800">
+						<div class="flex items-center gap-3 min-w-0">
 							<div
 								class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
 								<span class="material-symbols-rounded text-blue-600 dark:text-blue-400">
 									videocam
 								</span>
 							</div>
-							<div class="flex flex-col">
-								<span class="text-sm font-semibold text-gray-900 dark:text-white">
+							<div class="flex flex-col min-w-0">
+								<span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
 									{{ getCurrentCameraName() || "กล้อง" }}
 								</span>
 								<span class="text-xs text-gray-500 dark:text-gray-400">
@@ -177,7 +200,16 @@
 							</div>
 						</div>
 
-						<div class="flex gap-2">
+						<div class="hidden sm:flex sm:items-center sm:gap-2">
+							<p-button
+								(onClick)="startCamera()"
+								[disabled]="!uiState().canStart || isStartingCamera()"
+								styleClass="!w-10 !h-10 !p-0 rounded-full"
+								pTooltip="เปิดกล้อง"
+								tooltipPosition="top">
+								<span class="material-symbols-rounded">play_arrow</span>
+							</p-button>
+
 							<p-button
 								(onClick)="captureImage()"
 								[disabled]="!uiState().canCapture"
@@ -247,10 +279,13 @@
 					<div class="space-y-4">
 						<!-- Camera Select -->
 						<div>
-							<label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+							<label
+								for="camera-select"
+								class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
 								กล้อง
 							</label>
 							<p-select
+								inputId="camera-select"
 								[options]="devices()"
 								[(ngModel)]="selectedDevice"
 								optionLabel="label"
@@ -267,7 +302,6 @@
 								</ng-template>
 								<ng-template pTemplate="item" let-d>
 									<div class="flex items-center gap-2 py-1">
-										<span class="material-symbols-rounded text-gray-400 text-base">videocam</span>
 										<span class="text-sm truncate">{{ d.label }}</span>
 									</div>
 								</ng-template>
@@ -276,10 +310,13 @@
 
 						<!-- Resolution Select -->
 						<div>
-							<label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+							<label
+								for="resolution-select"
+								class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
 								ความละเอียด
 							</label>
 							<p-select
+								inputId="resolution-select"
 								[options]="resolutions"
 								[(ngModel)]="selectedResolution"
 								optionLabel="label"
@@ -289,7 +326,6 @@
 								[disabled]="uiState().isLoading">
 								<ng-template pTemplate="selectedItem" let-r>
 									<div class="flex items-center gap-2">
-										<span class="material-symbols-rounded text-blue-500 text-base">hd</span>
 										<span class="text-sm">
 											{{ r?.label }}
 											<span class="text-gray-400 text-xs">({{ r?.width }}x{{ r?.height }})</span>
@@ -510,7 +546,7 @@
 
 					<!-- Device Capabilities Test Results -->
 					<div
-						*ngIf="deviceCapabilitiesTestResult()"
+						*ngIf="deviceCapabilitiesTestResult() as caps"
 						class="mt-4 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
 						<div class="flex items-center gap-2 mb-3">
 							<span class="material-symbols-rounded text-emerald-600 dark:text-emerald-400 text-lg">
@@ -526,7 +562,7 @@
 								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
 								<span class="text-gray-600 dark:text-gray-400">ชื่ออุปกรณ์:</span>
 								<span class="text-gray-900 dark:text-white font-medium text-right max-w-[60%]">
-									{{ deviceCapabilitiesTestResult()?.label }}
+									{{ caps.label }}
 								</span>
 							</div>
 							<div
@@ -534,7 +570,7 @@
 								<span class="text-gray-600 dark:text-gray-400">Device ID:</span>
 								<span
 									class="text-gray-900 dark:text-white font-mono text-[10px] text-right max-w-[60%] break-all">
-									{{ deviceCapabilitiesTestResult()?.deviceId?.substring(0, 30) }}...
+									{{ caps.deviceId.substring(0, 30) }}...
 								</span>
 							</div>
 
@@ -543,28 +579,24 @@
 								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
 								<span class="text-gray-600 dark:text-gray-400">ความละเอียดสูงสุด:</span>
 								<span class="text-gray-900 dark:text-white font-medium">
-									{{ deviceCapabilitiesTestResult()?.maxWidth }}×{{
-										deviceCapabilitiesTestResult()?.maxHeight
-									}}
+									{{ caps.maxWidth }}×{{ caps.maxHeight }}
 								</span>
 							</div>
 							<div
 								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
 								<span class="text-gray-600 dark:text-gray-400">ความละเอียดต่ำสุด:</span>
 								<span class="text-gray-900 dark:text-white font-medium">
-									{{ deviceCapabilitiesTestResult()?.minWidth }}×{{
-										deviceCapabilitiesTestResult()?.minHeight
-									}}
+									{{ caps.minWidth }}×{{ caps.minHeight }}
 								</span>
 							</div>
 
 							<!-- Frame Rates -->
 							<div
-								*ngIf="deviceCapabilitiesTestResult()?.supportedFrameRates?.length > 0"
+								*ngIf="(caps.supportedFrameRates?.length ?? 0) > 0"
 								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
 								<span class="text-gray-600 dark:text-gray-400">อัตราเฟรม:</span>
 								<span class="text-gray-900 dark:text-white font-medium">
-									{{ deviceCapabilitiesTestResult()?.supportedFrameRates?.join(", ") }} fps
+									{{ caps.supportedFrameRates?.join(", ") }} fps
 								</span>
 							</div>
 
@@ -573,7 +605,7 @@
 								class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800">
 								<span class="text-gray-600 dark:text-gray-400">ไฟแฟลช:</span>
 								<span class="text-gray-900 dark:text-white font-medium">
-									{{ deviceCapabilitiesTestResult()?.hasTorch ? "✓ รองรับ" : "✗ ไม่รองรับ" }}
+									{{ caps.hasTorch ? "✓ รองรับ" : "✗ ไม่รองรับ" }}
 								</span>
 							</div>
 							<div
@@ -581,12 +613,8 @@
 								<span class="text-gray-600 dark:text-gray-400">ซูม:</span>
 								<span class="text-gray-900 dark:text-white font-medium">
 									{{
-										deviceCapabilitiesTestResult()?.hasZoom
-											? "✓ รองรับ (" +
-											  deviceCapabilitiesTestResult()?.minZoom +
-											  "x - " +
-											  deviceCapabilitiesTestResult()?.maxZoom +
-											  "x)"
+										caps.hasZoom
+											? "✓ รองรับ (" + caps.minZoom + "x - " + caps.maxZoom + "x)"
 											: "✗ ไม่รองรับ"
 									}}
 								</span>
@@ -594,15 +622,15 @@
 							<div class="flex justify-between py-1">
 								<span class="text-gray-600 dark:text-gray-400">โฟกัส:</span>
 								<span class="text-gray-900 dark:text-white font-medium">
-									{{ deviceCapabilitiesTestResult()?.hasFocus ? "✓ รองรับ" : "✗ ไม่รองรับ" }}
+									{{ caps.hasFocus ? "✓ รองรับ" : "✗ ไม่รองรับ" }}
 								</span>
 							</div>
 							<div
-								*ngIf="deviceCapabilitiesTestResult()?.supportedFocusModes?.length > 0"
+								*ngIf="(caps.supportedFocusModes?.length ?? 0) > 0"
 								class="flex justify-between py-1">
 								<span class="text-gray-600 dark:text-gray-400">โหมดโฟกัส:</span>
 								<span class="text-gray-900 dark:text-white font-medium text-right max-w-[60%]">
-									{{ deviceCapabilitiesTestResult()?.supportedFocusModes?.join(", ") }}
+									{{ caps.supportedFocusModes?.join(", ") }}
 								</span>
 							</div>
 						</div>
@@ -611,4 +639,35 @@
 			</div>
 		</div>
 	</main>
+
+	<!-- Mobile Quick Bar -->
+	<div
+		class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm p-3 sm:hidden">
+		<div class="mx-auto max-w-7xl grid grid-cols-3 gap-2">
+			<button
+				type="button"
+				class="h-11 rounded-lg bg-blue-600 text-white text-xs font-semibold flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+				(click)="startCamera()"
+				[disabled]="!uiState().canStart || isStartingCamera()">
+				<span class="material-symbols-rounded text-base">play_arrow</span>
+				<span>{{ isStartingCamera() ? "รอ..." : "เริ่ม" }}</span>
+			</button>
+			<button
+				type="button"
+				class="h-11 rounded-lg bg-slate-100 dark:bg-slate-700 text-gray-800 dark:text-gray-100 text-xs font-semibold flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+				(click)="captureImage()"
+				[disabled]="!uiState().canCapture">
+				<span class="material-symbols-rounded text-base">camera_alt</span>
+				<span>ถ่าย</span>
+			</button>
+			<button
+				type="button"
+				class="h-11 rounded-lg bg-red-600 text-white text-xs font-semibold flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+				(click)="stopCamera()"
+				[disabled]="!uiState().canStop">
+				<span class="material-symbols-rounded text-base">stop</span>
+				<span>หยุด</span>
+			</button>
+		</div>
+	</div>
 </div>
