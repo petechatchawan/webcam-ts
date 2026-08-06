@@ -7,6 +7,8 @@ The mobile playground exposes two explicit resolution constraint modes:
 - `exact` — default; the selected width and height are mandatory.
 - `ideal` — optional best-effort mode; the browser may negotiate another size.
 
+The selected mode is part of the camera request, the committed requested-resolution snapshot, diagnostics, and preview overlay.
+
 ## Request mapping
 
 For a selected preset `(width, height)`:
