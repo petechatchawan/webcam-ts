@@ -7,7 +7,7 @@ on:
       - master
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -20,10 +20,8 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Checkout branch head
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -36,8 +34,8 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      - name: Install dependencies and refresh lockfile
-        run: pnpm install --no-frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Verify playground clean room
         run: node scripts/verify-playground-clean-room.mjs
@@ -61,16 +59,3 @@ jobs:
         run: pnpm --dir apps/playground build
         env:
           GITHUB_ACTIONS: "true"
-
-      - name: Commit verified lockfile
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          if git diff --quiet -- pnpm-lock.yaml; then
-            echo "Lockfile is already current."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pnpm-lock.yaml
-          git commit -m "chore: refresh playground lockfile"
-          git push origin HEAD:${GITHUB_HEAD_REF}
