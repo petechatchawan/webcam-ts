@@ -25,7 +25,9 @@ import {
   appendEventLog,
   buildCameraRequest,
   deriveCommandAvailability,
+  hasCameraPermission,
   projectCameraError,
+  projectRequestedResolution,
   replaceObjectUrl,
 } from "./playground-logic.js";
 import type {
@@ -143,6 +145,7 @@ export class CameraController {
       devices: Object.freeze([]),
       availability: deriveCommandAvailability(cameraState.status),
       controls: emptyControls,
+      requestedResolution: null,
       capture: null,
       error: null,
       events: Object.freeze([]),
@@ -195,20 +198,24 @@ export class CameraController {
   }
 
   async start(selection: CameraSelection): Promise<void> {
+    this.assertCameraPermission("start");
     this.preview.setMirror(selection.mirror);
     await this.run(() => this.camera.start(buildCameraRequest(selection)));
+    this.patch({ requestedResolution: projectRequestedResolution(selection) });
     await this.refreshAfterStreamChange();
   }
 
   async switch(selection: CameraSelection): Promise<void> {
+    this.assertCameraPermission("switch");
     this.preview.setMirror(selection.mirror);
     await this.run(() => this.camera.switch(buildCameraRequest(selection)));
+    this.patch({ requestedResolution: projectRequestedResolution(selection) });
     await this.refreshAfterStreamChange();
   }
 
   async stop(): Promise<void> {
     await this.run(() => this.camera.stop());
-    this.patch({ controls: emptyControls });
+    this.patch({ controls: emptyControls, requestedResolution: null });
   }
 
   async requestPermissions(audio: boolean): Promise<void> {
@@ -290,6 +297,23 @@ export class CameraController {
     }
   }
 
+  private assertCameraPermission(operation: "start" | "switch"): void {
+    this.assertUsable();
+    if (hasCameraPermission(this.snapshot.permissions.camera)) return;
+
+    const error = Object.assign(
+      new Error("Allow camera access before starting or switching a camera session."),
+      {
+        code: "PERMISSION_REQUIRED",
+        operation,
+        recoverable: true,
+        context: Object.freeze({ permission: this.snapshot.permissions.camera }),
+      },
+    );
+    this.recordFailure(error);
+    throw error;
+  }
+
   private async refreshAfterStreamChange(): Promise<void> {
     this.refreshControls();
     try {
@@ -338,9 +362,11 @@ export class CameraController {
 
   private onCameraEvent(event: CameraEvent): void {
     if (event.type === "state-changed") {
+      const stableWithoutStream = event.state.status === "idle" || event.state.status === "disposed";
       this.patch({
         camera: event.state,
         availability: deriveCommandAvailability(event.state.status),
+        ...(stableWithoutStream ? { requestedResolution: null } : {}),
       });
     }
     if (event.type === "operation-failed" || event.type === "session-ended") {
