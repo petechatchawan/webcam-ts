@@ -5,7 +5,7 @@ import {
   buildCameraRequest,
   deriveCommandAvailability,
   replaceObjectUrl,
-} from "../dist/playground-logic.js";
+} from "../dist-test/playground-logic.js";
 
 test("active status enables switch and stop but not start", () => {
   assert.deepEqual(deriveCommandAvailability("active"), {
@@ -24,6 +24,7 @@ test("request uses exact device and ideal resolution", () => {
       width: 1280,
       height: 720,
       audio: false,
+      mirror: false,
     }),
     {
       deviceId: "camera-2",
