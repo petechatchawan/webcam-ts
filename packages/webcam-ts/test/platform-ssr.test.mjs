@@ -33,3 +33,16 @@ test("browser errors are normalized once at the platform boundary", () => {
   assert.equal(error.operation, "start");
   assert.equal(error.cause, denied);
 });
+
+test("overconstrained errors preserve the failed constraint for diagnostics", () => {
+  const overconstrained = Object.assign(new Error("width is unavailable"), {
+    name: "OverconstrainedError",
+    constraint: "width",
+  });
+  const error = normalizeBrowserError(overconstrained, "start");
+  assert.equal(error.code, "CONSTRAINT_UNSATISFIED");
+  assert.deepEqual(error.context, {
+    browserErrorName: "OverconstrainedError",
+    constraint: "width",
+  });
+});
