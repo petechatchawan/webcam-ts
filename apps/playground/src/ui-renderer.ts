@@ -285,6 +285,7 @@ export class UiRenderer {
       ? `Actual ${actualWidth}×${actualHeight}`
       : "Actual —";
     this.actualResolution.dataset.available = String(hasActual);
+    this.previewShell.dataset.active = String(hasActual);
     this.previewShell.style.setProperty("--preview-aspect-ratio", `${frameWidth} / ${frameHeight}`);
     this.previewShell.dataset.orientation =
       frameWidth === frameHeight ? "square" : frameWidth < frameHeight ? "portrait" : "landscape";
