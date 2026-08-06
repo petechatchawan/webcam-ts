@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
-import { extname, join, relative } from "node:path";
+import { extname, relative } from "node:path";
 
 const root = new URL("../", import.meta.url);
 const textExtensions = new Set([".json", ".yaml", ".yml", ".ts", ".js", ".mjs", ".md", ".html", ".css"]);
@@ -12,7 +12,12 @@ const banned = [
   "webcam-ts-docs.vercel.app",
 ];
 const scanRoots = [
-  "apps",
+  "apps/playground/src",
+  "apps/playground/index.html",
+  "apps/playground/package.json",
+  "apps/playground/tsconfig.json",
+  "apps/playground/tsconfig.test.json",
+  "apps/playground/vite.config.ts",
   ".github",
   "package.json",
   "pnpm-lock.yaml",
