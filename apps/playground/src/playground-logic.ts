@@ -61,6 +61,7 @@ export function projectRequestedResolution(
   return Object.freeze({
     id: selection.resolutionId,
     label: selection.resolutionLabel,
+    mode: selection.resolutionMode,
     width: selection.width,
     height: selection.height,
   });
@@ -71,8 +72,8 @@ export function buildCameraRequest(selection: CameraSelection): CameraRequest {
     deviceId?: string;
     facingMode?: "user" | "environment";
     resolution?: {
-      width: { ideal: number };
-      height: { ideal: number };
+      width: { exact: number } | { ideal: number };
+      height: { exact: number } | { ideal: number };
     };
     audio: boolean;
   } = { audio: selection.audio };
@@ -85,10 +86,16 @@ export function buildCameraRequest(selection: CameraSelection): CameraRequest {
   }
 
   if (selection.width > 0 && selection.height > 0) {
-    request.resolution = {
-      width: { ideal: selection.width },
-      height: { ideal: selection.height },
-    };
+    const mode = selection.resolutionMode === "ideal" ? "ideal" : "exact";
+    request.resolution = mode === "ideal"
+      ? {
+          width: { ideal: selection.width },
+          height: { ideal: selection.height },
+        }
+      : {
+          width: { exact: selection.width },
+          height: { exact: selection.height },
+        };
   }
 
   return request;
@@ -132,6 +139,34 @@ export function projectCameraError(error: unknown): PlaygroundError {
     ...(operation ? { operation } : {}),
     recoverable,
     ...(context ? { context } : {}),
+  });
+}
+
+export function projectResolutionSelectionError(
+  error: unknown,
+  selection: CameraSelection,
+): PlaygroundError {
+  const projected = projectCameraError(error);
+  if (projected.code !== "CONSTRAINT_UNSATISFIED" || selection.resolutionMode !== "exact") {
+    return projected;
+  }
+
+  const failedConstraint =
+    typeof projected.context?.constraint === "string" && projected.context.constraint.length > 0
+      ? projected.context.constraint
+      : "resolution";
+  const context = Object.freeze({
+    ...(projected.context ?? {}),
+    resolutionId: selection.resolutionId,
+    resolutionMode: selection.resolutionMode,
+    requestedWidth: selection.width,
+    requestedHeight: selection.height,
+  });
+
+  return Object.freeze({
+    ...projected,
+    message: `${selection.resolutionLabel} requires exactly ${selection.width}×${selection.height}, but the selected camera cannot satisfy the ${failedConstraint} constraint. Choose another preset or use Prefer closest.`,
+    context,
   });
 }
 
