@@ -227,11 +227,7 @@ export class CameraController {
   }
 
   async capture(options: CaptureBlobOptions): Promise<CaptureSnapshot> {
-    let result: CapturedBlob | null = null;
-    await this.run(async () => {
-      result = await this.captureService.toBlob(options);
-    });
-    if (!result) throw new Error("Capture completed without a result");
+    const result = await this.run(() => this.captureService.toBlob(options));
 
     this.captureUrl = replaceObjectUrl(this.captureUrl, result.blob, this.urlPort);
     const capture = Object.freeze({
@@ -283,11 +279,11 @@ export class CameraController {
     await this.camera.dispose();
   }
 
-  private async run(operation: () => Promise<void>): Promise<void> {
+  private async run<T>(operation: () => Promise<T>): Promise<T> {
     this.assertUsable();
     this.patch({ error: null });
     try {
-      await operation();
+      return await operation();
     } catch (error) {
       this.recordFailure(error);
       throw error;
