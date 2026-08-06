@@ -10,10 +10,28 @@ import type {
 } from "webcam-ts/devices";
 
 export type FacingSelection = "" | "user" | "environment";
+export type ResolutionOrientation = "portrait" | "landscape" | "square";
+
+export interface ResolutionPreset {
+  readonly id: string;
+  readonly label: string;
+  readonly width: number;
+  readonly height: number;
+  readonly orientation: ResolutionOrientation;
+}
+
+export interface RequestedResolutionSnapshot {
+  readonly id: string;
+  readonly label: string;
+  readonly width: number;
+  readonly height: number;
+}
 
 export interface CameraSelection {
   readonly deviceId: string;
   readonly facingMode: FacingSelection;
+  readonly resolutionId: string;
+  readonly resolutionLabel: string;
   readonly width: number;
   readonly height: number;
   readonly audio: boolean;
@@ -71,6 +89,7 @@ export interface PlaygroundSnapshot {
   readonly devices: readonly CameraDevice[];
   readonly availability: CommandAvailability;
   readonly controls: ControlSnapshot;
+  readonly requestedResolution: RequestedResolutionSnapshot | null;
   readonly capture: CaptureSnapshot | null;
   readonly error: PlaygroundError | null;
   readonly events: readonly PlaygroundEventEntry[];
