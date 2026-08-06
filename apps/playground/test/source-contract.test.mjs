@@ -50,7 +50,8 @@ test("playground uses the approved neutral shadcn-inspired token system", async 
   ]) {
     assert.match(css, new RegExp(token.replace("--", "\\-\\-")));
   }
-  assert.match(css, /@media\s*\(prefers-color-scheme:\s*dark\)/);
+  assert.doesNotMatch(css, /@media\s*\(prefers-color-scheme:\s*dark\)/);
+  assert.match(css, /color-scheme:\s*light/);
   assert.doesNotMatch(css, /backdrop-filter|radial-gradient|#64d8ff|#00a8e8/i);
 });
 
@@ -64,7 +65,6 @@ test("playground keeps required bindings and uses progressive diagnostics", asyn
     "preview-requested-resolution",
     "preview-actual-resolution",
     "status-badge",
-    "status-message",
     "device-select",
     "facing-select",
     "resolution-select",
@@ -94,6 +94,42 @@ test("mobile-first preview preserves portrait and square frames without cropping
   assert.match(css, /\.preview-shell video[\s\S]*object-fit:\s*contain/);
   assert.match(css, /padding-bottom:\s*max\([^;]*env\(safe-area-inset-bottom\)/);
   assert.match(css, /@media\s*\(min-width:\s*721px\)/);
+});
+
+test("page chrome does not cover scrolled camera content", async () => {
+  const css = await readPlaygroundFile("src/styles.css");
+  const header = css.match(/\.app-header\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+
+  assert.doesNotMatch(header, /position:\s*sticky/);
+});
+
+test("capture result stays out of the center shutter lane", async () => {
+  const css = await readPlaygroundFile("src/styles.css");
+  const pool = css.match(/\.capture-pool\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const metadata = css.match(/\.capture-metadata\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const resolutionOverlay =
+    css.match(/\.preview-resolution-overlay\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+
+  assert.match(pool, /width:\s*min\(35%,\s*16rem\)/);
+  assert.match(pool, /justify-items:\s*end/);
+  assert.match(metadata, /max-width:\s*100%/);
+  assert.match(metadata, /white-space:\s*normal/);
+  assert.doesNotMatch(resolutionOverlay, /bottom:/);
+  assert.match(resolutionOverlay, /top:\s*0\.5rem/);
+  assert.match(resolutionOverlay, /right:\s*0\.5rem/);
+});
+
+test("resolution overlay is a two-line white debug block pinned to the video top-right", async () => {
+  const css = await readPlaygroundFile("src/styles.css");
+  const overlay =
+    css.match(/\.preview-resolution-overlay\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const line = css.match(/\.resolution-line\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+
+  assert.doesNotMatch(overlay, /background:/);
+  assert.doesNotMatch(overlay, /border:/);
+  assert.match(line, /color:\s*#ffffff/);
+  assert.doesNotMatch(line, /background:/);
+  assert.doesNotMatch(line, /border:/);
 });
 
 test("lifecycle controls follow the preview and precede errors and settings", async () => {

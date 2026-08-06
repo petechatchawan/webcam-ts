@@ -9,10 +9,10 @@ const renderer = new UiRenderer(controller);
 
 let disposed = false;
 async function dispose(): Promise<void> {
-  if (disposed) return;
-  disposed = true;
-  renderer.dispose();
-  await controller.dispose();
+	if (disposed) return;
+	disposed = true;
+	renderer.dispose();
+	await controller.dispose();
 }
 
 window.addEventListener("pagehide", () => void dispose(), { once: true });

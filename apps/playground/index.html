@@ -3,8 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#020817" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" />
     <meta
       name="description"
       content="Mobile-first Webcam-TS v4 camera playground"
@@ -48,15 +47,8 @@
       </div>
 
       <div class="workspace-grid">
-        <section class="workspace-column" aria-labelledby="workspace-title">
+        <section class="workspace-column" aria-label="Camera preview">
           <article class="card preview-card">
-            <div class="card-header preview-card-header">
-              <div>
-                <h2 id="workspace-title" class="card-title">Live preview</h2>
-                <p class="card-description">The actual camera stream after constraints are satisfied.</p>
-              </div>
-              <span id="status-message" class="session-message" aria-live="polite">Ready</span>
-            </div>
             <div class="card-content preview-content">
               <div
                 id="preview-shell"
@@ -145,12 +137,12 @@
                 </div>
 
                 <div class="preview-resolution-overlay" aria-label="Camera resolution diagnostics">
-                  <span id="preview-requested-resolution" class="resolution-chip">
+                  <span id="preview-requested-resolution" class="resolution-line">
                     Requested Exact PORTRAIT-720P · 720×1280
                   </span>
                   <span
                     id="preview-actual-resolution"
-                    class="resolution-chip resolution-chip-actual"
+                    class="resolution-line"
                     data-available="false"
                   >Actual —</span>
                 </div>
