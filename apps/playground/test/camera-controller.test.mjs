@@ -128,11 +128,43 @@ function createFixture({ switchError } = {}) {
 const selection = {
   deviceId: "camera-1",
   facingMode: "",
+  resolutionId: "LANDSCAPE-720P",
+  resolutionLabel: "LANDSCAPE-720P",
   width: 1280,
   height: 720,
   audio: false,
   mirror: true,
 };
+
+test("start is blocked until camera permission is granted", async () => {
+  const fixture = createFixture();
+  await fixture.controller.initialize();
+
+  await assert.rejects(
+    () => fixture.controller.start(selection),
+    (error) => error?.code === "PERMISSION_REQUIRED",
+  );
+
+  assert.equal(fixture.controller.getSnapshot().camera.status, "idle");
+  assert.equal(fixture.controller.getSnapshot().error.code, "PERMISSION_REQUIRED");
+  assert.equal(fixture.controller.getSnapshot().requestedResolution, null);
+});
+
+test("successful start commits requested resolution next to actual track settings", async () => {
+  const fixture = createFixture();
+  await fixture.controller.initialize();
+  await fixture.controller.requestPermissions(false);
+  await fixture.controller.start(selection);
+
+  assert.deepEqual(fixture.controller.getSnapshot().requestedResolution, {
+    id: "LANDSCAPE-720P",
+    label: "LANDSCAPE-720P",
+    width: 1280,
+    height: 720,
+  });
+  assert.equal(fixture.controller.getSnapshot().camera.settings.width, 1280);
+  assert.equal(fixture.controller.getSnapshot().camera.settings.height, 720);
+});
 
 test("failed switch preserves active state and reports typed error", async () => {
   const error = Object.assign(new Error("Camera is busy"), {
@@ -142,18 +174,28 @@ test("failed switch preserves active state and reports typed error", async () =>
   });
   const fixture = createFixture({ switchError: error });
   await fixture.controller.initialize();
+  await fixture.controller.requestPermissions(false);
   await fixture.controller.start(selection);
 
-  await assert.rejects(() => fixture.controller.switch({ ...selection, deviceId: "camera-2" }));
+  await assert.rejects(() => fixture.controller.switch({
+    ...selection,
+    deviceId: "camera-2",
+    resolutionId: "PORTRAIT-720P",
+    resolutionLabel: "PORTRAIT-720P",
+    width: 720,
+    height: 1280,
+  }));
 
   assert.equal(fixture.controller.getSnapshot().camera.status, "active");
   assert.equal(fixture.controller.getSnapshot().error.code, "DEVICE_BUSY");
   assert.equal(fixture.controller.getSnapshot().error.operation, "switch");
+  assert.equal(fixture.controller.getSnapshot().requestedResolution.id, "LANDSCAPE-720P");
 });
 
 test("capture replacement and dispose revoke object URLs exactly once", async () => {
   const fixture = createFixture();
   await fixture.controller.initialize();
+  await fixture.controller.requestPermissions(false);
   await fixture.controller.start(selection);
   await fixture.controller.capture({ type: "image/jpeg", quality: 0.9 });
   await fixture.controller.capture({ type: "image/jpeg", quality: 0.8 });
