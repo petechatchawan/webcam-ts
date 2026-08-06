@@ -39,6 +39,7 @@ export class UiRenderer {
   private readonly deviceSelect = byId<HTMLSelectElement>("device-select");
   private readonly facingSelect = byId<HTMLSelectElement>("facing-select");
   private readonly resolutionSelect = byId<HTMLSelectElement>("resolution-select");
+  private readonly resolutionModeSelect = byId<HTMLSelectElement>("resolution-mode-select");
   private readonly audioToggle = byId<HTMLInputElement>("audio-toggle");
   private readonly mirrorToggle = byId<HTMLInputElement>("mirror-toggle");
   private readonly startButton = byId<HTMLButtonElement>("start-camera");
@@ -101,9 +102,11 @@ export class UiRenderer {
     this.stopButton.addEventListener("click", () => {
       void this.run("Stopping camera…", () => this.controller.stop());
     });
-    this.resolutionSelect.addEventListener("change", () => {
+    const renderSelectedResolution = () => {
       if (this.latestSnapshot) this.renderPreview(this.latestSnapshot);
-    });
+    };
+    this.resolutionSelect.addEventListener("change", renderSelectedResolution);
+    this.resolutionModeSelect.addEventListener("change", renderSelectedResolution);
     this.mirrorToggle.addEventListener("change", () => {
       this.controller.setMirror(this.mirrorToggle.checked);
     });
@@ -166,6 +169,7 @@ export class UiRenderer {
       facingMode: this.facingSelect.value as CameraSelection["facingMode"],
       resolutionId: resolution.id,
       resolutionLabel: resolution.label,
+      resolutionMode: this.selectedResolutionMode(),
       width: resolution.width,
       height: resolution.height,
       audio: this.audioToggle.checked,
@@ -179,6 +183,10 @@ export class UiRenderer {
     const fallback = findResolutionPreset("PORTRAIT-720P");
     if (!fallback) throw new Error("The default mobile resolution preset is unavailable.");
     return fallback;
+  }
+
+  private selectedResolutionMode(): CameraSelection["resolutionMode"] {
+    return this.resolutionModeSelect.value === "ideal" ? "ideal" : "exact";
   }
 
   private async run(message: string, operation: () => Promise<void>): Promise<void> {
@@ -264,13 +272,15 @@ export class UiRenderer {
     const selected = this.selectedResolution();
     const committed = snapshot.requestedResolution;
     const requested = committed ?? selected;
+    const requestedMode = committed?.mode ?? this.selectedResolutionMode();
     const actualWidth = numericSetting(snapshot.camera.settings?.width);
     const actualHeight = numericSetting(snapshot.camera.settings?.height);
     const hasActual = snapshot.camera.status === "active" && actualWidth > 0 && actualHeight > 0;
     const frameWidth = hasActual ? actualWidth : selected.width;
     const frameHeight = hasActual ? actualHeight : selected.height;
+    const modeLabel = requestedMode === "exact" ? "Exact" : "Prefer";
 
-    this.requestedResolution.textContent = `Requested ${requested.label} · ${requested.width}×${requested.height}`;
+    this.requestedResolution.textContent = `Requested ${modeLabel} ${requested.label} · ${requested.width}×${requested.height}`;
     this.actualResolution.textContent = hasActual
       ? `Actual ${actualWidth}×${actualHeight}`
       : "Actual —";
