@@ -68,6 +68,7 @@ test("playground keeps required bindings and uses progressive diagnostics", asyn
     "device-select",
     "facing-select",
     "resolution-select",
+    "resolution-mode-select",
     "mirror-toggle",
     "audio-toggle",
     "request-permission",
@@ -83,6 +84,8 @@ test("playground keeps required bindings and uses progressive diagnostics", asyn
   ]) {
     assert.match(html, new RegExp(`id=["']${id}["']`));
   }
+  assert.match(html, /<option value=["']exact["'] selected>Exact — fail if unavailable<\/option>/);
+  assert.match(html, /<option value=["']ideal["']>Prefer closest — allow fallback<\/option>/);
   assert.match(html, /<details[^>]*class=["'][^"']*diagnostics-disclosure/);
   assert.match(html, /<summary[^>]*>[\s\S]*Diagnostics/i);
 });
