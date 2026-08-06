@@ -1,536 +1,156 @@
-<div align="center">
-  <h1>Webcam-TS</h1>
-  <p>
-    <strong>A modern, type-safe TypeScript library for webcam interactions in the browser</strong>
-  </p>
-  <p>
-    <a href="https://www.npmjs.com/package/webcam-ts">
-      <img src="https://img.shields.io/npm/v/webcam-ts" alt="npm version" />
-    </a>
-    <a href="https://github.com/petechatchawan/webcam-ts/blob/main/LICENSE">
-      <img src="https://img.shields.io/npm/l/webcam-ts" alt="license" />
-    </a>
-  </p>
-</div>
+# webcam-ts
 
-## ✨ Features
+A framework-agnostic TypeScript library for deterministic webcam lifecycle management in modern browsers.
 
-- **TypeScript First** - Fully typed API with excellent IDE support
-- **Multi-Device Support** - Work with multiple cameras and resolutions
-- **Permission Management** - Granular control over camera and audio permissions
-- **Cross-Platform** - Works across desktop and mobile browsers
-- **Advanced Controls** - Torch, zoom, and focus mode support
-- **Reactive State** - Built-in state management with callbacks
-- **Modular Design** - Lightweight and tree-shakeable
+## Design
 
-## 🚀 Demo
+- Browser-focused with SSR-safe imports
+- One `Camera` instance owns one active session
+- Atomic `switch()` keeps the previous stream alive until the replacement is ready
+- Latest switch wins; stale streams are always stopped
+- `stop()` and `dispose()` preempt pending operations
+- Preview, capture, devices, permissions, and controls are separate services
+- No framework or runtime dependency
 
-Experience the live demo: [Webcam-TS Demo](https://webcam-ts-docs.vercel.app/)
-
-## 📦 Installation
+## Install
 
 ```bash
-# npm
-$ npm install webcam-ts
-
-# yarn
-$ yarn add webcam-ts
-
-# pnpm
-$ pnpm add webcam-ts
+npm install webcam-ts
 ```
 
-## 🚀 Getting Started
+## Start and switch cameras
 
-```typescript
-import { Webcam } from "webcam-ts";
+```ts
+import { Camera } from "webcam-ts";
 
-// Initialize
-const webcam = new Webcam();
+const camera = new Camera();
 
-// Get available devices
-const devices = await webcam.getDevices();
-console.log("Available cameras:", devices);
-
-// Configure the webcam
-const config = {
-	deviceInfo: devices[0],
-	preferredResolutions: { width: 1280, height: 720 },
-	videoElement: document.getElementById("video") as HTMLVideoElement,
-	enableMirror: true, // Mirror the video (and capture)
-
-	// Optional callbacks
-	onStateChange: (state) => console.log("State changed:", state.status),
-	onError: (error) => console.error("Error:", error.message),
-	onStreamStart: (stream) => console.log("Stream started"),
-	onStreamStop: () => console.log("Stream stopped"),
-};
-
-// Start the camera
-await webcam.start(config);
-
-// Take a photo
-const result = await webcam.captureImage();
-
-// Result contains blob, url, and base64
-const { blob, url, base64, width, height, mimeType, timestamp } = result;
-
-// Use the url for preview (remember to revoke when done)
-imageElement.src = url;
-
-// Or upload the blob
-const formData = new FormData();
-formData.append("image", blob);
-
-// Clean up the URL when done
-URL.revokeObjectURL(url);
-
-// Custom capture options
-const customCapture = await webcam.captureImage({
-	imageType: "image/png", // default: 'image/jpeg'
-	quality: 0.95, // 0-1, default: 0.92
-	scale: 0.5, // 0.1-2, default: 1.0
-	mirror: false, // Override mirror setting for this capture
+await camera.start({
+  facingMode: "user",
+  resolution: {
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
+  },
 });
 
-// Stop the camera when done
-webcam.stop();
+await camera.switch({
+  facingMode: "environment",
+});
+
+await camera.stop();
+await camera.dispose();
 ```
 
-## 📚 API Reference
+`start()` is valid only while idle. Use `switch()` to replace an active camera. A failed switch leaves the previous stream running.
 
-### 🔧 Core Methods
+## Preview
 
-| Method                         | Description                                         |
-| ------------------------------ | --------------------------------------------------- |
-| `new Webcam(config?)`          | Creates a new webcam instance                       |
-| `start(config?)`               | Starts the camera with the given configuration      |
-| `stop()`                       | Stops the camera and releases resources             |
-| `captureImage(options?)`       | Captures a photo with blob/base64 (for saving)      |
-| `captureImageAsBase64(opts?)`  | Backward-compatible alias of `captureImage()`       |
-| `captureImageData(options?)`   | Captures ImageData for real-time CV processing      |
-| `captureImageBitmap(options?)` | Captures ImageBitmap (for Web Workers/Tesseract.js) |
-| `getDevices()`                 | Lists available video devices                       |
-| `getCapabilities(deviceId)`    | Gets capabilities of a specific device              |
-| `checkPermissions()`           | Checks current camera/microphone permissions        |
-| `requestPermissions(opts?)`    | Requests camera/microphone permissions              |
-| `setTorch(enabled)`            | Toggles the camera's torch (if supported)           |
-| `setZoom(factor)`              | Sets the camera zoom level (if supported)           |
-| `setFocusMode(mode)`           | Sets focus mode (if supported)                      |
-| `dispose()`                    | Cleans up all resources                             |
+```ts
+import { VideoPreview } from "webcam-ts/preview";
 
-### 📸 Capture Options
+const preview = new VideoPreview(videoElement, {
+  mirror: true,
+});
 
-```typescript
-// For captureImageData() - Real-time CV processing
-interface CaptureImageDataOptions {
-	/** Scale factor (0.1-2) to resize the captured image (default: 1.0) */
-	scale?: number;
-	/** Mirror/flip image horizontally (default: false) */
-	mirror?: boolean;
-}
-
-// For captureImage() - Snapshot/Save/Upload
-interface CaptureOptions extends CaptureImageDataOptions {
-	/** Image type, e.g., 'image/jpeg' or 'image/png' (default: 'image/jpeg') */
-	imageType?: string;
-	/** Image quality from 0 to 1 (only applicable for image/jpeg) (default: 0.92) */
-	quality?: number;
-	/** Include base64 string in result (default: true) */
-	includeBase64?: boolean;
-}
-
-interface CaptureImageResult {
-	/** The captured image as a Blob (for upload/download) */
-	blob: Blob;
-	/** Object URL for preview (remember to revoke when done) */
-	url: string;
-	/** Base64 encoded image data (optional, set includeBase64: false to skip) */
-	base64?: string;
-	/** Width of the captured image in pixels */
-	width: number;
-	/** Height of the captured image in pixels */
-	height: number;
-	/** MIME type of the captured image */
-	mimeType: string;
-	/** Timestamp when the capture was taken */
-	timestamp: number;
-}
-
-interface CaptureImageDataResult {
-	/** Raw pixel data for CV processing (can be passed to canvas.putImageData() or CV libraries) */
-	imageData: ImageData;
-	/** Width of the captured image in pixels */
-	width: number;
-	/** Height of the captured image in pixels */
-	height: number;
-	/** Timestamp when the capture was taken */
-	/** Timestamp when the capture was taken */
-	timestamp: number;
-}
-
-// For captureImageBitmap() - Web Workers/OCR
-interface CaptureImageBitmapOptions {
-	/** Scale factor (0.1-2.0) (default: 1.0) */
-	scale?: number;
-	/** Mirror/flip image horizontally (default: false) */
-	mirror?: boolean;
-	/** Native crop region (applied at source) */
-	crop?: { x: number; y: number; width: number; height: number };
-}
-
-interface CaptureImageBitmapResult {
-	/** ImageBitmap object (⚠️ Must call .close() when done!) */
-	imageBitmap: ImageBitmap;
-	/** Image width in pixels */
-	width: number;
-	/** Image height in pixels */
-	height: number;
-	/** Timestamp when captured */
-	timestamp: number;
-}
+preview.bind(camera);
+preview.setMirror(false);
+preview.dispose();
 ```
 
-> **Performance Tip**: Use `captureImageData()` for real-time loops (60+ FPS) and `captureImage()` only for saving snapshots.
-> **Memory Warning**: When using `captureImageBitmap()`, you **MUST** manually call `.close()` on the returned bitmap to prevent memory leaks!
+`VideoPreview` borrows the active stream. Disposing a preview never stops camera tracks.
 
-```typescript
-// ✅ DO: Real-time CV processing (fast ~2-3ms)
-function loop() {
-	const result = webcam.captureImageData({ scale: 0.5 });
-	const faces = await faceDetector.detect(result.imageData);
-	requestAnimationFrame(loop);
-}
+## Capture
 
-// ✅ DO: Save snapshot (slower ~20-40ms, but includes blob/base64)
-async function savePhoto() {
-	const snapshot = await webcam.captureImage({ quality: 0.95 });
-	await uploadToServer(snapshot.blob);
-	URL.revokeObjectURL(snapshot.url);
-}
+```ts
+import { CameraCapture } from "webcam-ts/capture";
 
-// ✅ DO: High-performance OCR / Web Worker (fast ~0.5-1ms)
-async function performOCR() {
-	const result = await webcam.captureImageBitmap({ scale: 0.5 });
-	try {
-		await tesseract.recognize(result.imageBitmap);
-	} finally {
-		// ⚠️ CRITICAL: Always close the bitmap!
-		result.imageBitmap.close();
-	}
-}
+const capture = new CameraCapture(camera);
+const photo = await capture.toBlob({
+  type: "image/jpeg",
+  quality: 0.92,
+});
+
+await upload(photo.blob);
+capture.dispose();
 ```
 
-### ⚙️ Configuration Options
+Capture results do not create Object URLs or Base64 strings implicitly. The consumer controls those allocations and their cleanup.
 
-```typescript
-type PermissionMap = Record<"camera" | "microphone", PermissionState>;
+## Devices and permissions
 
-interface WebcamConfiguration {
-	deviceInfo?: MediaDeviceInfo; // Selected camera device
-	videoElement?: HTMLVideoElement; // Video element to display the stream
-	preferredResolutions?:
-		| {
-				// Preferred resolution(s)
-				width: number;
-				height: number;
-		  }
-		| { width: number; height: number }[];
-	enableAudio?: boolean; // Enable audio capture
-	enableMirror?: boolean; // Mirror the video (for user-facing cameras)
+```ts
+import {
+  CameraDeviceManager,
+  CameraPermissionService,
+} from "webcam-ts/devices";
 
-	// Callbacks
-	onStateChange?: (state: WebcamState) => void;
-	onError?: (error: Error) => void;
-	onStreamStart?: (stream: MediaStream) => void;
-	onStreamStop?: () => void;
-	onPermissionChange?: (permissions: PermissionMap) => void;
-	onDeviceChange?: (devices: MediaDeviceInfo[]) => void;
-}
+const devices = new CameraDeviceManager();
+const cameras = await devices.list();
+
+// Explicit probing: reuses the active track when it matches, otherwise
+// opens a temporary stream and always cleans it up.
+const capabilities = await devices.probe(cameras[0].deviceId, { camera });
+
+const permissions = new CameraPermissionService();
+const state = await permissions.request({ video: true });
 ```
 
-## 📝 Examples
+Device listing never opens a temporary stream. Capability probing is explicit and never invents unsupported resolution values. Permission querying reports `unsupported` or `unknown` explicitly when the browser cannot provide reliable information.
 
-### 1. State Management
+## Controls
 
-```typescript
-// Get current state
-const state = webcam.getState();
-console.log("Current status:", state.status);
+```ts
+import { CameraControls } from "webcam-ts/controls";
 
-// Listen for state changes
-const config = {
-	// ... other config
-	onStateChange: (state) => {
-		console.log("State changed to:", state.status);
-		if (state.error) {
-			console.error("Error:", state.error.message);
-		}
-	},
-};
-```
-
-### 2. Permission Handling
-
-```typescript
-// Check current permissions
-const currentPermissions = webcam.getState().permissions;
-console.log("Camera permission:", currentPermissions.camera);
-
-// Test what a specific camera can do
-const deviceId = devices[0].deviceId;
-const capabilities = await webcam.getCapabilities(deviceId);
-
-console.log("Device capabilities:", {
-	maxResolution: `${capabilities.maxWidth}x${capabilities.maxHeight}`,
-	hasZoom: capabilities.hasZoom,
-	hasTorch: capabilities.hasTorch,
-	supportedFocusModes: capabilities.supportedFocusModes,
+const controls = new CameraControls(camera);
+await controls.set({
+  zoom: 2,
+  torch: true,
+  focusMode: "continuous",
 });
 ```
 
-### 3. Configuration and Callbacks
+Controls validate active-track capabilities before applying constraints.
 
-```typescript
-const config = {
-	deviceInfo: devices[0],
-	preferredResolutions: [
-		{ width: 1920, height: 1080 },
-		{ width: 1280, height: 720 },
-	],
-	enableAudio: false,
-	enableMirror: true,
+## State and events
 
-	// Event callbacks
-	onStateChange: (state) => {
-		console.log("State:", state.status);
-	},
-	onError: (error) => {
-		console.error("Error:", error.message);
-		// This callback also receives device change detection errors
-	},
-	onStreamStart: (stream) => {
-		console.log("Stream started");
-	},
-	onStreamStop: () => {
-		console.log("Stream stopped");
-	},
-	onDeviceChange: (devices) => {
-		console.log("Devices changed:", devices.length);
-		// Called when cameras are plugged/unplugged
-	},
-};
-```
-
-### 4. Starting and Stopping the Camera
-
-```typescript
-try {
-	await webcam.start(config);
-	console.log("Camera started successfully");
-} catch (error) {
-	console.error("Failed to start camera:", error.message);
-}
-
-// Stop the camera when done
-webcam.stop();
-// Optional: Remove video element source
-if (videoElement) {
-	videoElement.srcObject = null;
-}
-```
-
-### 5. Error Handling
-
-```typescript
-import { WebcamError, WebcamErrorCode } from "webcam-ts";
-
-try {
-	await webcam.start(config);
-} catch (error) {
-	if (error instanceof WebcamError) {
-		switch (error.code) {
-			case WebcamErrorCode.PERMISSION_DENIED:
-				console.error("Camera permission denied");
-				break;
-			case WebcamErrorCode.DEVICE_NOT_FOUND:
-				console.error("No camera found");
-				break;
-			case WebcamErrorCode.DEVICE_BUSY:
-				console.error("Camera is already in use");
-				break;
-			case WebcamErrorCode.STREAM_ERROR:
-				console.error("Stream error:", error.message);
-				break;
-			default:
-				console.error("Camera error:", error.message);
-		}
-		// Access original error for debugging
-		console.debug("Original error:", error.originalError);
-	}
-}
-
-// Available error codes:
-// - PERMISSION_DENIED: User denied camera access
-// - DEVICE_NOT_FOUND: No camera device found
-// - DEVICE_BUSY: Camera is in use by another application
-// - OVERCONSTRAINED: Requested constraints cannot be satisfied
-// - CONSTRAINT_ERROR: Constraint application failed
-// - STREAM_FAILED: Stream initialization failed
-// - STREAM_ERROR: Stream operation error
-// - CAPTURE_FAILED: Image capture failed
-// - INVALID_CONFIG: Invalid configuration provided
-// - VIDEO_ELEMENT_NOT_SET: Video element not attached
-// - DEVICES_ERROR: Device enumeration failed
-// - UNKNOWN_ERROR: Unknown error occurred
-```
-
-### 6. Capturing Images
-
-```typescript
-// Basic capture
-try {
-	const result = await webcam.captureImage();
-
-	// Use the url for preview (already created)
-	imageElement.src = result.url;
-
-	// Or use blob for upload
-	const formData = new FormData();
-	formData.append("image", result.blob);
-
-	// Or use base64 for embedding
-	const img = document.createElement("img");
-	img.src = result.base64;
-
-	// Clean up when done
-	URL.revokeObjectURL(result.url);
-} catch (error) {
-	console.error("Capture failed:", error.message);
-}
-
-// With custom options
-const customImage = await webcam.captureImage({
-	imageType: "image/png",
-	quality: 0.95,
-	scale: 0.5, // Resize to 50%
-	mirror: true, // Mirror the capture
+```ts
+const unsubscribe = camera.subscribe((event) => {
+  if (event.type === "state-changed") {
+    console.log(event.state.status);
+  }
 });
+
+const state = camera.getState(); // immutable snapshot
+unsubscribe();
 ```
 
-### 7. Torch/Flash Control
+Consumer listener exceptions are isolated and cannot change camera operation results.
 
-```typescript
-// Check if torch is supported
-const capabilities = await webcam.getCapabilities(deviceId);
-if (capabilities.hasTorch) {
-	// Turn on torch
-	await webcam.setTorch(true);
+## SSR behavior
 
-	// Turn off torch
-	await webcam.setTorch(false);
-}
+```ts
+import { Camera } from "webcam-ts";
+
+const camera = new Camera(); // safe during SSR
+await camera.start();        // rejects with UNSUPPORTED_RUNTIME outside a browser
 ```
 
-### 8. Zoom Control
+The package does not access `window`, `document`, or `navigator` during module initialization.
 
-```typescript
-// Get zoom capabilities
-const capabilities = await webcam.getCapabilities(deviceId);
-if (capabilities.maxZoom && capabilities.maxZoom > 1) {
-	try {
-		// Set zoom level (must be >= 1.0, where 1.0 = no zoom)
-		await webcam.setZoom(2.0); // 2x zoom
+## Testing
 
-		// Invalid zoom will throw error
-		// await webcam.setZoom(0.5); // ❌ Throws INVALID_CONFIG error
-	} catch (error) {
-		if (error.code === WebcamErrorCode.INVALID_CONFIG) {
-			console.error("Invalid zoom level");
-		}
-	}
-}
+```ts
+import {
+  FakeMediaDevicesPort,
+  FakeMediaStream,
+} from "webcam-ts/testing";
+
+const mediaDevices = new FakeMediaDevicesPort();
+mediaDevices.enqueueStream(new FakeMediaStream() as unknown as MediaStream);
+const camera = new Camera({ mediaDevices });
 ```
 
-### 9. Focus Mode
+## License
 
-```typescript
-// Check supported focus modes
-const capabilities = await webcam.getCapabilities(deviceId);
-if (capabilities.supportedFocusModes?.includes("continuous")) {
-	// Set continuous focus
-	await webcam.setFocusMode("continuous");
-}
-
-// Manual focus
-await webcam.setFocusMode("manual");
-```
-
-### 10. Cleanup
-
-```typescript
-// When you're done with the webcam
-webcam.dispose();
-```
-
-### 11. Switching Cameras
-
-```typescript
-let currentDeviceIndex = 0;
-
-async function switchCamera() {
-	// Stop current camera
-	webcam.stop();
-
-	// Get updated device list
-	const devices = await webcam.getDevices();
-	if (devices.length === 0) {
-		console.error("No cameras available");
-		return;
-	}
-
-	// Switch to next device
-	currentDeviceIndex = (currentDeviceIndex + 1) % devices.length;
-
-	// Start with new device
-	const newConfig = {
-		...config,
-		deviceInfo: devices[currentDeviceIndex],
-	};
-
-	await webcam.start(newConfig);
-	console.log(`Switched to camera: ${devices[currentDeviceIndex].label || "Unknown"}`);
-}
-```
-
-## 🌐 Browser Support
-
-This library requires browser support for the [MediaDevices API](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia).
-
-| Browser            | Version |
-| ------------------ | ------- |
-| Chrome             | 60+     |
-| Firefox            | 55+     |
-| Edge               | 79+     |
-| Safari             | 11+     |
-| Chrome for Android | 60+     |
-| iOS Safari         | 11+     |
-
-For detailed compatibility information, see the [MDN compatibility table](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#browser_compatibility).
-
-## ℹ️ Built With
-
-This library is built on top of the following web standards and APIs:
-
-- [MediaDevices API](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices) - For device enumeration and media capture
-- [MediaStream API](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream) - For handling media streams
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTING.md) to get started.
-
-## 📄 License
-
-MIT © [petechatchawan](https://github.com/petechatchawan/webcam-ts)
-
----
+MIT

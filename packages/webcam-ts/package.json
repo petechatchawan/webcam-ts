@@ -1,59 +1,75 @@
 {
-	"name": "webcam-ts",
-	"version": "3.4.7",
-	"description": "Modern TypeScript library for webcam access in web applications",
-	"type": "module",
-	"main": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
-		}
-	},
-	"sideEffects": false,
-	"files": [
-		"dist/**/*",
-		"README.md"
-	],
-	"keywords": [
-		"webcam",
-		"camera",
-		"typescript",
-		"webrtc",
-		"mediastream",
-		"video",
-		"capture",
-		"permissions",
-		"device-detection",
-		"callback-api",
-		"modern",
-		"angular",
-		"torch",
-		"capabilities"
-	],
-	"author": "Pete Chatchawan",
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/petechatchawan/webcam-ts.git"
-	},
-	"homepage": "https://webcam-ts-docs.vercel.app/",
-	"bugs": {
-		"url": "https://github.com/petechatchawan/webcam-ts/issues"
-	},
-	"scripts": {
-		"clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
-		"build": "npm run clean && tsc",
-		"typecheck": "tsc --noEmit",
-		"lint": "npm run typecheck",
-		"test": "npm run build && node --test test/webcam.test.mjs",
-		"prepare": "npm run build",
-		"prepublishOnly": "npm run lint && npm run test"
-	},
-	"devDependencies": {
-		"@types/node": "^24.0.7",
-		"typescript": "^5.0.0"
-	}
+  "name": "webcam-ts",
+  "version": "4.0.0-alpha.1",
+  "description": "Framework-agnostic TypeScript camera session library for modern browsers",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./preview": {
+      "types": "./dist/preview/index.d.ts",
+      "import": "./dist/preview/index.js"
+    },
+    "./capture": {
+      "types": "./dist/capture/index.d.ts",
+      "import": "./dist/capture/index.js"
+    },
+    "./devices": {
+      "types": "./dist/devices/index.d.ts",
+      "import": "./dist/devices/index.js"
+    },
+    "./controls": {
+      "types": "./dist/controls/index.d.ts",
+      "import": "./dist/controls/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "prepack": "npm run typecheck && npm test"
+  },
+  "license": "MIT",
+  "author": "Pete Chatchawan",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/petechatchawan/webcam-ts.git"
+  },
+  "homepage": "https://github.com/petechatchawan/webcam-ts#readme",
+  "bugs": {
+    "url": "https://github.com/petechatchawan/webcam-ts/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "webcam",
+    "camera",
+    "typescript",
+    "getusermedia",
+    "mediastream",
+    "webrtc",
+    "capture",
+    "ssr"
+  ],
+  "devDependencies": {
+    "@types/node": "^24.0.7",
+    "typescript": "^5.0.0"
+  }
 }

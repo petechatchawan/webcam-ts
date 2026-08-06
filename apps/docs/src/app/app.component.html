@@ -1,1 +1,72 @@
-<router-outlet />
+<main class="shell">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Framework-agnostic TypeScript camera foundation</p>
+      <h1>{{ title }}</h1>
+      <p>
+        Atomic switching, single stream ownership, SSR-safe imports, isolated preview,
+        capture, device and permission services.
+      </p>
+    </div>
+    <div class="status" [attr.data-status]="state.status">
+      <span></span>
+      {{ state.status }}
+    </div>
+  </header>
+
+  <section class="workspace">
+    <article class="preview-card">
+      <div class="video-frame">
+        <video #video></video>
+        <div class="empty" *ngIf="state.status !== 'active' && state.status !== 'switching'">
+          Camera preview is idle
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" (click)="requestPermission()">Request permission</button>
+        <button type="button" (click)="start()" [disabled]="state.status !== 'idle'">Start</button>
+        <button type="button" (click)="switchCamera()" [disabled]="state.status !== 'active'">Switch</button>
+        <button type="button" (click)="capturePhoto()" [disabled]="state.status !== 'active'">Capture</button>
+        <button type="button" class="secondary" (click)="stop()" [disabled]="state.status === 'idle'">Stop</button>
+      </div>
+    </article>
+
+    <aside class="panel">
+      <label>
+        Camera device
+        <select [(ngModel)]="selectedDeviceId">
+          <option value="">Browser default</option>
+          <option *ngFor="let device of devices" [value]="device.deviceId">
+            {{ device.label || 'Camera device' }}
+          </option>
+        </select>
+      </label>
+
+      <button type="button" class="secondary full" (click)="refreshDevices()">Refresh devices</button>
+
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [ngModel]="mirror"
+          (ngModelChange)="setMirror($event)"
+        />
+        Mirror preview
+      </label>
+
+      <dl>
+        <div><dt>Permission</dt><dd>{{ permissionState }}</dd></div>
+        <div><dt>Device ID</dt><dd>{{ state.deviceId || '—' }}</dd></div>
+        <div><dt>Track</dt><dd>{{ state.trackLabel || '—' }}</dd></div>
+        <div><dt>Resolution</dt><dd>{{ state.settings?.width || 0 }} × {{ state.settings?.height || 0 }}</dd></div>
+      </dl>
+
+      <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+    </aside>
+  </section>
+
+  <section class="snapshot" *ngIf="photoUrl">
+    <h2>Captured photo</h2>
+    <img [src]="photoUrl" alt="Captured webcam frame" />
+  </section>
+</main>
