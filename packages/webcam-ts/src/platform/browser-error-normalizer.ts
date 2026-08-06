@@ -25,11 +25,11 @@ export function normalizeBrowserError(error: unknown, operation?: CameraOperatio
     AbortError: "OPERATION_ABORTED",
   };
   const code = name ? mapping[name] ?? "STREAM_OPEN_FAILED" : "UNKNOWN";
+  const rawConstraint =
+    error instanceof Error ? (error as BrowserConstraintFailure).constraint : undefined;
   const constraint =
-    error instanceof Error &&
-    typeof (error as BrowserConstraintFailure).constraint === "string" &&
-    (error as BrowserConstraintFailure).constraint.length > 0
-      ? (error as BrowserConstraintFailure).constraint
+    typeof rawConstraint === "string" && rawConstraint.length > 0
+      ? rawConstraint
       : undefined;
   const context = name
     ? Object.freeze({
