@@ -2,12 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#020817" media="(prefers-color-scheme: dark)" />
     <meta
       name="description"
-      content="Framework-agnostic Webcam-TS v4 camera playground"
+      content="Mobile-first Webcam-TS v4 camera playground"
     />
     <title>Webcam-TS v4 Playground</title>
   </head>
@@ -21,7 +21,7 @@
               <span class="brand-name">Webcam-TS</span>
               <span class="badge badge-outline">v4 alpha</span>
             </div>
-            <p class="brand-description">Framework-agnostic camera lifecycle playground</p>
+            <p class="brand-description">Mobile camera lifecycle playground</p>
           </div>
         </div>
         <a
@@ -33,7 +33,7 @@
               d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.87c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.57 9.57 0 0 1 12 6.82a9.6 9.6 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v2.76c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"
             />
           </svg>
-          View source
+          Source
         </a>
       </div>
     </header>
@@ -41,10 +41,8 @@
     <main class="container page-shell">
       <div class="page-heading">
         <div>
-          <h1>Camera playground</h1>
-          <p>
-            Test deterministic lifecycle, atomic switching, capture, and hardware controls.
-          </p>
+          <h1>Mobile camera test</h1>
+          <p>Allow access, choose a preset, then compare requested and actual stream resolution.</p>
         </div>
         <span id="status-badge" class="badge status-badge" data-status="idle">idle</span>
       </div>
@@ -55,19 +53,49 @@
             <div class="card-header preview-card-header">
               <div>
                 <h2 id="workspace-title" class="card-title">Live preview</h2>
-                <p class="card-description">The committed stream owned by the active camera session.</p>
+                <p class="card-description">The actual negotiated camera stream.</p>
               </div>
               <span id="status-message" class="session-message" aria-live="polite">Ready</span>
             </div>
             <div class="card-content preview-content">
-              <div class="preview-shell">
+              <div id="preview-shell" class="preview-shell" data-orientation="portrait">
                 <video id="camera-preview" aria-label="Live camera preview"></video>
-                <div class="preview-empty" aria-hidden="true">
+
+                <div id="preview-empty" class="preview-empty" aria-hidden="true">
                   <svg viewBox="0 0 24 24">
                     <path d="M14.5 5H9.7L8.3 7H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3.3l-1.2-2Z" />
                     <circle cx="12" cy="13" r="3.5" />
                   </svg>
-                  <span>Start a camera session to preview video</span>
+                  <span>Camera preview appears here</span>
+                </div>
+
+                <div id="permission-gate" class="permission-gate" role="region" aria-live="polite">
+                  <div class="permission-gate-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M14.5 5H9.7L8.3 7H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3.3l-1.2-2Z" />
+                      <circle cx="12" cy="13" r="3.5" />
+                    </svg>
+                  </div>
+                  <div class="permission-gate-copy">
+                    <strong id="permission-gate-title">Camera access required</strong>
+                    <p id="permission-gate-message">
+                      Allow access before starting a session. The browser will ask for camera permission.
+                    </p>
+                  </div>
+                  <button id="permission-gate-action" class="button button-primary button-full">
+                    Allow camera access
+                  </button>
+                </div>
+
+                <div class="preview-resolution-overlay" aria-label="Camera resolution diagnostics">
+                  <span id="preview-requested-resolution" class="resolution-chip">
+                    Requested PORTRAIT-720P · 720×1280
+                  </span>
+                  <span
+                    id="preview-actual-resolution"
+                    class="resolution-chip resolution-chip-actual"
+                    data-available="false"
+                  >Actual —</span>
                 </div>
               </div>
             </div>
@@ -77,11 +105,18 @@
             <div class="card-header">
               <div>
                 <h2 class="card-title">Session configuration</h2>
-                <p class="card-description">Choose a camera request before starting or switching.</p>
+                <p class="card-description">Presets are requested as ideal constraints; actual values may differ.</p>
               </div>
             </div>
             <div class="card-content">
               <div class="settings-grid">
+                <label class="field resolution-field">
+                  <span class="field-label">Resolution preset</span>
+                  <select id="resolution-select" aria-describedby="resolution-help"></select>
+                  <small id="resolution-help" class="field-help">
+                    Portrait is selected by default for mobile testing.
+                  </small>
+                </label>
                 <label class="field">
                   <span class="field-label">Camera device</span>
                   <select id="device-select">
@@ -94,15 +129,6 @@
                     <option value="">Automatic</option>
                     <option value="user">Front / user</option>
                     <option value="environment">Rear / environment</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span class="field-label">Resolution</span>
-                  <select id="resolution-select">
-                    <option value="">Browser default</option>
-                    <option value="640x480">640 × 480</option>
-                    <option value="1280x720" selected>1280 × 720</option>
-                    <option value="1920x1080">1920 × 1080</option>
                   </select>
                 </label>
               </div>
@@ -131,14 +157,16 @@
               <div class="action-section">
                 <div class="utility-actions">
                   <button id="request-permission" class="button button-outline">
-                    Request permission
+                    Allow camera access
                   </button>
                   <button id="refresh-devices" class="button button-ghost">
                     Refresh cameras
                   </button>
                 </div>
                 <div class="lifecycle-actions">
-                  <button id="start-camera" class="button button-primary">Start camera</button>
+                  <button id="start-camera" class="button button-primary" disabled>
+                    Start camera
+                  </button>
                   <button id="switch-camera" class="button button-secondary" disabled>
                     Switch
                   </button>
@@ -224,10 +252,10 @@
           <section class="card sidebar-note" aria-labelledby="ownership-title">
             <div class="card-header">
               <div>
-                <h2 id="ownership-title" class="card-title">Single-owner session</h2>
+                <h2 id="ownership-title" class="card-title">Requested vs actual</h2>
                 <p class="card-description">
-                  Preview, capture, and controls borrow the active track. Only the camera session
-                  owns and stops it.
+                  The selected preset is an ideal request. Use the video overlay to verify the
+                  dimensions the browser and camera actually negotiated.
                 </p>
               </div>
             </div>
@@ -288,7 +316,7 @@
         <summary>
           <span class="summary-copy">
             <strong>Diagnostics</strong>
-            <span class="summary-description">State, capabilities, and typed events</span>
+            <span class="summary-description">State, requested/actual resolution, capabilities, and typed events</span>
           </span>
           <span class="summary-chevron" aria-hidden="true">⌄</span>
         </summary>
