@@ -34,8 +34,6 @@ export class UiRenderer {
   private readonly permissionBadge = byId<HTMLElement>("permission-badge");
   private readonly permissionCamera = byId<HTMLElement>("permission-camera");
   private readonly permissionMicrophone = byId<HTMLElement>("permission-microphone");
-  private readonly permissionButton = byId<HTMLButtonElement>("request-permission");
-  private readonly refreshDevicesButton = byId<HTMLButtonElement>("refresh-devices");
   private readonly deviceSelect = byId<HTMLSelectElement>("device-select");
   private readonly facingSelect = byId<HTMLSelectElement>("facing-select");
   private readonly resolutionSelect = byId<HTMLSelectElement>("resolution-select");
@@ -49,6 +47,7 @@ export class UiRenderer {
   private readonly captureQuality = byId<HTMLInputElement>("capture-quality");
   private readonly captureQualityValue = byId<HTMLOutputElement>("capture-quality-value");
   private readonly captureButton = byId<HTMLButtonElement>("capture-photo");
+  private readonly capturePool = byId<HTMLElement>("capture-pool");
   private readonly captureImage = byId<HTMLImageElement>("capture-image");
   private readonly captureEmpty = byId<HTMLElement>("capture-empty");
   private readonly captureMetadata = byId<HTMLElement>("capture-metadata");
@@ -88,11 +87,7 @@ export class UiRenderer {
         this.controller.requestPermissions(this.audioToggle.checked),
       );
     };
-    this.permissionButton.addEventListener("click", requestPermission);
     this.permissionGateAction.addEventListener("click", requestPermission);
-    this.refreshDevicesButton.addEventListener("click", () => {
-      void this.run("Refreshing cameras…", () => this.controller.refreshDevices());
-    });
     this.startButton.addEventListener("click", () => {
       void this.run("Starting camera…", () => this.controller.start(this.readSelection()));
     });
@@ -222,8 +217,6 @@ export class UiRenderer {
     this.permissionMicrophone.textContent = snapshot.permissions.microphone;
     this.permissionBadge.textContent = snapshot.permissions.camera;
     this.permissionBadge.dataset.permission = snapshot.permissions.camera;
-    this.permissionButton.disabled = permissionGranted || snapshot.availability.busy;
-    this.permissionButton.textContent = permissionGranted ? "Camera access allowed" : "Allow camera access";
 
     this.renderPermissionGate(snapshot);
     this.renderPreview(snapshot);
@@ -339,8 +332,11 @@ export class UiRenderer {
 
   private renderCapture(snapshot: PlaygroundSnapshot): void {
     const capture = snapshot.capture;
+    const showPool = Boolean(capture) || snapshot.camera.status === "active";
+    this.capturePool.hidden = !showPool;
     this.captureImage.hidden = !capture;
     this.captureEmpty.hidden = Boolean(capture);
+    this.captureMetadata.hidden = !capture;
     if (!capture) {
       this.captureImage.removeAttribute("src");
       this.captureMetadata.textContent = "No captured frame yet.";

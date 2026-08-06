@@ -105,6 +105,30 @@ const unknownPermissions: CameraPermissionMap = Object.freeze({
   microphone: "unknown",
 });
 
+const PERMISSION_GRANT_KEY = "webcam-ts.permission-granted";
+
+function readCameraGrant(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(PERMISSION_GRANT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeCameraGrant(): void {
+  try {
+    globalThis.localStorage?.setItem(PERMISSION_GRANT_KEY, "1");
+  } catch {
+    // Storage is best-effort; the prompt can reappear if it is unavailable.
+  }
+}
+
+function rememberGrantedCamera(query: CameraPermissionMap): CameraPermissionMap {
+  return readCameraGrant() && query.camera !== "denied"
+    ? Object.freeze({ ...query, camera: "granted" })
+    : query;
+}
+
 const emptyControls: ControlSnapshot = Object.freeze({
   torchSupported: false,
   zoom: null,
@@ -142,7 +166,9 @@ export class CameraController {
     const cameraState = this.camera.getState();
     this.snapshot = Object.freeze({
       camera: cameraState,
-      permissions: unknownPermissions,
+      permissions: readCameraGrant()
+        ? Object.freeze({ camera: "granted", microphone: "unknown" })
+        : unknownPermissions,
       devices: Object.freeze([]),
       availability: deriveCommandAvailability(cameraState.status),
       controls: emptyControls,
@@ -170,7 +196,7 @@ export class CameraController {
     ]);
 
     if (permissions.status === "fulfilled") {
-      this.patch({ permissions: permissions.value });
+      this.patch({ permissions: rememberGrantedCamera(permissions.value) });
     } else {
       this.recordFailure(permissions.reason);
     }
@@ -226,6 +252,7 @@ export class CameraController {
   async requestPermissions(audio: boolean): Promise<void> {
     await this.run(async () => {
       const permissions = await this.permissionService.request({ video: true, audio });
+      if (permissions.camera === "granted") writeCameraGrant();
       this.patch({ permissions });
       await this.refreshDevices();
     });
@@ -316,7 +343,7 @@ export class CameraController {
 
   private assertCameraPermission(operation: "start" | "switch"): void {
     this.assertUsable();
-    if (hasCameraPermission(this.snapshot.permissions.camera)) return;
+    if (hasCameraPermission(this.snapshot.permissions.camera) || readCameraGrant()) return;
 
     const error = Object.assign(
       new Error("Allow camera access before starting or switching a camera session."),

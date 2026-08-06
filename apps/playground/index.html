@@ -42,7 +42,7 @@
       <div class="page-heading">
         <div>
           <h1>Mobile camera test</h1>
-          <p>Allow access, choose a preset and resolution behavior, then open the camera.</p>
+          <p>Pick a preset and resolution behavior, then open the camera.</p>
         </div>
         <span id="status-badge" class="badge status-badge" data-status="idle">idle</span>
       </div>
@@ -92,6 +92,58 @@
                   </button>
                 </div>
 
+                <div class="capture-options" aria-label="Capture options">
+                  <label class="capture-opt">
+                    <span class="capture-opt-label">Format</span>
+                    <select id="capture-type">
+                      <option value="image/jpeg">JPEG</option>
+                      <option value="image/png">PNG</option>
+                    </select>
+                  </label>
+                  <label class="capture-opt capture-opt-quality">
+                    <span class="capture-opt-label">Quality</span>
+                    <span class="capture-quality-line">
+                      <input
+                        id="capture-quality"
+                        type="range"
+                        min="0.1"
+                        max="1"
+                        step="0.01"
+                        value="0.92"
+                      />
+                      <output id="capture-quality-value">0.92</output>
+                    </span>
+                  </label>
+                </div>
+
+                <button
+                  id="capture-photo"
+                  class="capture-shutter"
+                  aria-label="Capture frame"
+                  disabled
+                ></button>
+
+                <div id="capture-pool" class="capture-pool" hidden>
+                  <span
+                    id="capture-empty"
+                    class="capture-thumb capture-thumb-empty"
+                    hidden
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="16" rx="2" />
+                      <circle cx="8.5" cy="9" r="1.5" />
+                      <path d="m5 17 4.5-4.5 3 3 2-2L19 17" />
+                    </svg>
+                  </span>
+                  <img
+                    id="capture-image"
+                    class="capture-thumb"
+                    alt="Latest captured camera frame"
+                    hidden
+                  />
+                  <span id="capture-metadata" class="capture-metadata" hidden></span>
+                </div>
+
                 <div class="preview-resolution-overlay" aria-label="Camera resolution diagnostics">
                   <span id="preview-requested-resolution" class="resolution-chip">
                     Requested Exact PORTRAIT-720P · 720×1280
@@ -126,14 +178,6 @@
                 disabled
               >
                 Stop
-              </button>
-            </div>
-            <div class="utility-actions">
-              <button id="request-permission" class="button button-outline">
-                Allow camera access
-              </button>
-              <button id="refresh-devices" class="button button-ghost">
-                Refresh cameras
               </button>
             </div>
           </section>
@@ -269,69 +313,8 @@
               </button>
             </div>
           </section>
-
-          <section class="card sidebar-note" aria-labelledby="ownership-title">
-            <div class="card-header">
-              <div>
-                <h2 id="ownership-title" class="card-title">Resolution behavior</h2>
-                <p class="card-description">
-                  Exact requires the selected dimensions and reports why they cannot be satisfied.
-                  Prefer closest keeps the previous best-effort browser behavior.
-                </p>
-              </div>
-            </div>
-          </section>
         </aside>
       </div>
-
-      <section class="card capture-card" aria-labelledby="capture-title">
-        <div class="card-header card-header-row">
-          <div>
-            <h2 id="capture-title" class="card-title">Still capture</h2>
-            <p class="card-description">Encode the latest video frame without taking stream ownership.</p>
-          </div>
-          <button id="capture-photo" class="button button-primary" disabled>
-            Capture frame
-          </button>
-        </div>
-        <div class="card-content capture-layout">
-          <div class="capture-controls">
-            <label class="field">
-              <span class="field-label">Format</span>
-              <select id="capture-type">
-                <option value="image/jpeg">JPEG</option>
-                <option value="image/png">PNG</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-heading">
-                <span class="field-label">JPEG quality</span>
-                <output id="capture-quality-value">0.92</output>
-              </span>
-              <input
-                id="capture-quality"
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.01"
-                value="0.92"
-              />
-            </label>
-            <p id="capture-metadata" class="metadata">No captured frame yet.</p>
-          </div>
-          <div class="capture-result">
-            <div id="capture-empty" class="empty-state">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="16" rx="2" />
-                <circle cx="8.5" cy="9" r="1.5" />
-                <path d="m5 17 4.5-4.5 3 3 2-2L19 17" />
-              </svg>
-              <span>No captured frame yet</span>
-            </div>
-            <img id="capture-image" alt="Latest captured camera frame" hidden />
-          </div>
-        </div>
-      </section>
 
       <details class="diagnostics-disclosure">
         <summary>
