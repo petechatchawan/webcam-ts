@@ -1,12 +1,70 @@
 import type { CameraRequest } from "webcam-ts";
+import type { CameraPermissionMap } from "webcam-ts/devices";
 import type {
   CameraFailureLike,
   CameraSelection,
   CameraStatus,
   CommandAvailability,
   PlaygroundError,
+  RequestedResolutionSnapshot,
+  ResolutionOrientation,
+  ResolutionPreset,
   UrlPort,
 } from "./models.js";
+
+function createResolution(
+  id: string,
+  width: number,
+  height: number,
+  orientation: ResolutionOrientation,
+): ResolutionPreset {
+  return Object.freeze({ id, label: id, width, height, orientation });
+}
+
+const RESOLUTION_PRESETS: readonly ResolutionPreset[] = Object.freeze([
+  createResolution("PORTRAIT-360P", 360, 640, "portrait"),
+  createResolution("PORTRAIT-480P", 480, 854, "portrait"),
+  createResolution("PORTRAIT-720P", 720, 1280, "portrait"),
+  createResolution("PORTRAIT-1080P", 1080, 1920, "portrait"),
+  createResolution("PORTRAIT-2K", 1440, 2560, "portrait"),
+  createResolution("PORTRAIT-4K", 2160, 3840, "portrait"),
+  createResolution("LANDSCAPE-360P", 640, 360, "landscape"),
+  createResolution("LANDSCAPE-480P", 854, 480, "landscape"),
+  createResolution("LANDSCAPE-720P", 1280, 720, "landscape"),
+  createResolution("LANDSCAPE-1080P", 1920, 1080, "landscape"),
+  createResolution("LANDSCAPE-2K", 2560, 1440, "landscape"),
+  createResolution("LANDSCAPE-4K", 3840, 2160, "landscape"),
+  createResolution("SQUARE-360", 360, 360, "square"),
+  createResolution("SQUARE-480", 480, 480, "square"),
+  createResolution("SQUARE-720", 720, 720, "square"),
+  createResolution("SQUARE-1080", 1080, 1080, "square"),
+  createResolution("SQUARE-1920", 1920, 1920, "square"),
+  createResolution("SQUARE-2K", 2048, 2048, "square"),
+  createResolution("SQUARE-4K", 4096, 4096, "square"),
+]);
+
+export function getResolutionPresets(): readonly ResolutionPreset[] {
+  return RESOLUTION_PRESETS;
+}
+
+export function findResolutionPreset(id: string): ResolutionPreset | null {
+  return RESOLUTION_PRESETS.find((preset) => preset.id === id) ?? null;
+}
+
+export function hasCameraPermission(state: CameraPermissionMap["camera"]): boolean {
+  return state === "granted";
+}
+
+export function projectRequestedResolution(
+  selection: CameraSelection,
+): RequestedResolutionSnapshot {
+  return Object.freeze({
+    id: selection.resolutionId,
+    label: selection.resolutionLabel,
+    width: selection.width,
+    height: selection.height,
+  });
+}
 
 export function buildCameraRequest(selection: CameraSelection): CameraRequest {
   const request: {
