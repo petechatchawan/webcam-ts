@@ -4,6 +4,10 @@ import {
   type CameraOperation,
 } from "../domain/camera-error.js";
 
+interface BrowserConstraintFailure extends Error {
+  readonly constraint?: unknown;
+}
+
 export function normalizeBrowserError(error: unknown, operation?: CameraOperation): CameraError {
   if (error instanceof CameraError) return error;
 
@@ -21,12 +25,24 @@ export function normalizeBrowserError(error: unknown, operation?: CameraOperatio
     AbortError: "OPERATION_ABORTED",
   };
   const code = name ? mapping[name] ?? "STREAM_OPEN_FAILED" : "UNKNOWN";
+  const constraint =
+    error instanceof Error &&
+    typeof (error as BrowserConstraintFailure).constraint === "string" &&
+    (error as BrowserConstraintFailure).constraint.length > 0
+      ? (error as BrowserConstraintFailure).constraint
+      : undefined;
+  const context = name
+    ? Object.freeze({
+        browserErrorName: name,
+        ...(constraint ? { constraint } : {}),
+      })
+    : undefined;
 
   return new CameraError(error instanceof Error ? error.message : "Camera operation failed", {
     code,
     operation,
     recoverable: !["UNSUPPORTED_RUNTIME", "UNSUPPORTED_BROWSER"].includes(code),
     cause: error,
-    ...(name ? { context: { browserErrorName: name } } : {}),
+    ...(context ? { context } : {}),
   });
 }
