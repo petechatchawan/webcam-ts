@@ -58,7 +58,12 @@
               <span id="status-message" class="session-message" aria-live="polite">Ready</span>
             </div>
             <div class="card-content preview-content">
-              <div id="preview-shell" class="preview-shell" data-orientation="portrait">
+              <div
+                id="preview-shell"
+                class="preview-shell"
+                data-orientation="portrait"
+                data-active="false"
+              >
                 <video id="camera-preview" aria-label="Live camera preview"></video>
 
                 <div id="preview-empty" class="preview-empty" aria-hidden="true">
@@ -100,6 +105,53 @@
               </div>
             </div>
           </article>
+
+          <section class="card camera-action-panel" aria-label="Camera session controls">
+            <div class="camera-action-copy">
+              <div>
+                <strong>Camera session</strong>
+                <span>Start, switch, or stop without leaving the preview.</span>
+              </div>
+            </div>
+            <div class="lifecycle-actions">
+              <button id="start-camera" class="button button-primary" disabled>
+                Start camera
+              </button>
+              <button id="switch-camera" class="button button-secondary" disabled>
+                Switch
+              </button>
+              <button
+                id="stop-camera"
+                class="button button-destructive-outline"
+                disabled
+              >
+                Stop
+              </button>
+            </div>
+            <div class="utility-actions">
+              <button id="request-permission" class="button button-outline">
+                Allow camera access
+              </button>
+              <button id="refresh-devices" class="button button-ghost">
+                Refresh cameras
+              </button>
+            </div>
+          </section>
+
+          <div id="error-panel" class="alert alert-destructive" hidden role="alert">
+            <div class="alert-icon" aria-hidden="true">!</div>
+            <div class="alert-content">
+              <strong id="error-code">UNKNOWN</strong>
+              <p id="error-message"></p>
+            </div>
+            <button
+              id="dismiss-error"
+              class="button button-ghost button-icon"
+              aria-label="Dismiss error"
+            >
+              ×
+            </button>
+          </div>
 
           <article class="card settings-card">
             <div class="card-header">
@@ -163,49 +215,8 @@
                   </span>
                 </label>
               </div>
-
-              <div class="action-section">
-                <div class="utility-actions">
-                  <button id="request-permission" class="button button-outline">
-                    Allow camera access
-                  </button>
-                  <button id="refresh-devices" class="button button-ghost">
-                    Refresh cameras
-                  </button>
-                </div>
-                <div class="lifecycle-actions">
-                  <button id="start-camera" class="button button-primary" disabled>
-                    Start camera
-                  </button>
-                  <button id="switch-camera" class="button button-secondary" disabled>
-                    Switch
-                  </button>
-                  <button
-                    id="stop-camera"
-                    class="button button-destructive-outline"
-                    disabled
-                  >
-                    Stop
-                  </button>
-                </div>
-              </div>
             </div>
           </article>
-
-          <div id="error-panel" class="alert alert-destructive" hidden role="alert">
-            <div class="alert-icon" aria-hidden="true">!</div>
-            <div class="alert-content">
-              <strong id="error-code">UNKNOWN</strong>
-              <p id="error-message"></p>
-            </div>
-            <button
-              id="dismiss-error"
-              class="button button-ghost button-icon"
-              aria-label="Dismiss error"
-            >
-              ×
-            </button>
-          </div>
         </section>
 
         <aside class="sidebar-column">
