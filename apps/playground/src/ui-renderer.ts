@@ -1,14 +1,18 @@
-import type { CameraControlUpdate } from "webcam-ts/controls";
 import type { CaptureBlobOptions } from "webcam-ts/capture";
 import { byId, formatBytes, readResolution } from "./dom.js";
 import type { CameraController } from "./camera-controller.js";
 import type { CameraSelection, PlaygroundSnapshot } from "./models.js";
 
+interface MutableControlUpdate {
+  torch?: boolean;
+  zoom?: number;
+  focusMode?: string;
+}
+
 export class UiRenderer {
   private readonly unsubscribe: () => void;
   private lastDevicesKey = "";
 
-  private readonly video = byId<HTMLVideoElement>("camera-preview");
   private readonly permissionBadge = byId<HTMLElement>("permission-badge");
   private readonly permissionCamera = byId<HTMLElement>("permission-camera");
   private readonly permissionMicrophone = byId<HTMLElement>("permission-microphone");
@@ -101,7 +105,7 @@ export class UiRenderer {
     });
     this.applyControlsButton.addEventListener("click", () => {
       const snapshot = this.controller.getSnapshot();
-      const update: CameraControlUpdate = {};
+      const update: MutableControlUpdate = {};
       if (snapshot.controls.torchSupported) update.torch = this.torchToggle.checked;
       if (snapshot.controls.zoom) update.zoom = Number(this.zoomInput.value);
       if (snapshot.controls.focusModes.length && this.focusSelect.value) {
