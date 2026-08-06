@@ -42,7 +42,7 @@
       <div class="page-heading">
         <div>
           <h1>Mobile camera test</h1>
-          <p>Allow access, choose a preset, then compare requested and actual stream resolution.</p>
+          <p>Allow access, choose a preset and resolution behavior, then open the camera.</p>
         </div>
         <span id="status-badge" class="badge status-badge" data-status="idle">idle</span>
       </div>
@@ -53,7 +53,7 @@
             <div class="card-header preview-card-header">
               <div>
                 <h2 id="workspace-title" class="card-title">Live preview</h2>
-                <p class="card-description">The actual negotiated camera stream.</p>
+                <p class="card-description">The actual camera stream after constraints are satisfied.</p>
               </div>
               <span id="status-message" class="session-message" aria-live="polite">Ready</span>
             </div>
@@ -89,7 +89,7 @@
 
                 <div class="preview-resolution-overlay" aria-label="Camera resolution diagnostics">
                   <span id="preview-requested-resolution" class="resolution-chip">
-                    Requested PORTRAIT-720P · 720×1280
+                    Requested Exact PORTRAIT-720P · 720×1280
                   </span>
                   <span
                     id="preview-actual-resolution"
@@ -105,7 +105,7 @@
             <div class="card-header">
               <div>
                 <h2 class="card-title">Session configuration</h2>
-                <p class="card-description">Presets are requested as ideal constraints; actual values may differ.</p>
+                <p class="card-description">Exact is the default and fails instead of silently using another resolution.</p>
               </div>
             </div>
             <div class="card-content">
@@ -115,6 +115,16 @@
                   <select id="resolution-select" aria-describedby="resolution-help"></select>
                   <small id="resolution-help" class="field-help">
                     Portrait is selected by default for mobile testing.
+                  </small>
+                </label>
+                <label class="field">
+                  <span class="field-label">Resolution behavior</span>
+                  <select id="resolution-mode-select" aria-describedby="resolution-mode-help">
+                    <option value="exact" selected>Exact — fail if unavailable</option>
+                    <option value="ideal">Prefer closest — allow fallback</option>
+                  </select>
+                  <small id="resolution-mode-help" class="field-help">
+                    Exact rejects unsupported width or height with a typed error.
                   </small>
                 </label>
                 <label class="field">
@@ -252,10 +262,10 @@
           <section class="card sidebar-note" aria-labelledby="ownership-title">
             <div class="card-header">
               <div>
-                <h2 id="ownership-title" class="card-title">Requested vs actual</h2>
+                <h2 id="ownership-title" class="card-title">Resolution behavior</h2>
                 <p class="card-description">
-                  The selected preset is an ideal request. Use the video overlay to verify the
-                  dimensions the browser and camera actually negotiated.
+                  Exact requires the selected dimensions and reports why they cannot be satisfied.
+                  Prefer closest keeps the previous best-effort browser behavior.
                 </p>
               </div>
             </div>
