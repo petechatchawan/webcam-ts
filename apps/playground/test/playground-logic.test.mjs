@@ -6,8 +6,21 @@ const {
   appendEventLog,
   buildCameraRequest,
   deriveCommandAvailability,
+  projectResolutionSelectionError,
   replaceObjectUrl,
 } = logic;
+
+const exactSelection = {
+  deviceId: "camera-2",
+  facingMode: "",
+  resolutionId: "SQUARE-1920",
+  resolutionLabel: "SQUARE-1920",
+  resolutionMode: "exact",
+  width: 1920,
+  height: 1920,
+  audio: false,
+  mirror: false,
+};
 
 test("active status enables switch and stop but not start", () => {
   assert.deepEqual(deriveCommandAvailability("active"), {
@@ -18,27 +31,57 @@ test("active status enables switch and stop but not start", () => {
   });
 });
 
-test("request uses exact device and ideal resolution", () => {
+test("request uses exact device and exact resolution by default", () => {
+  assert.deepEqual(buildCameraRequest(exactSelection), {
+    deviceId: "camera-2",
+    resolution: {
+      width: { exact: 1920 },
+      height: { exact: 1920 },
+    },
+    audio: false,
+  });
+});
+
+test("request allows an explicit ideal resolution fallback mode", () => {
   assert.deepEqual(
-    buildCameraRequest({
-      deviceId: "camera-2",
-      facingMode: "",
-      resolutionId: "LANDSCAPE-720P",
-      resolutionLabel: "LANDSCAPE-720P",
-      width: 1280,
-      height: 720,
-      audio: false,
-      mirror: false,
-    }),
+    buildCameraRequest({ ...exactSelection, resolutionMode: "ideal" }),
     {
       deviceId: "camera-2",
       resolution: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
+        width: { ideal: 1920 },
+        height: { ideal: 1920 },
       },
       audio: false,
     },
   );
+});
+
+test("exact resolution failure explains the requested preset and failed constraint", () => {
+  const browserError = Object.assign(new Error("Constraints could not be satisfied"), {
+    code: "CONSTRAINT_UNSATISFIED",
+    operation: "start",
+    recoverable: true,
+    context: Object.freeze({
+      browserErrorName: "OverconstrainedError",
+      constraint: "width",
+    }),
+  });
+
+  const error = projectResolutionSelectionError(browserError, exactSelection);
+  assert.equal(error.code, "CONSTRAINT_UNSATISFIED");
+  assert.equal(error.operation, "start");
+  assert.equal(
+    error.message,
+    "SQUARE-1920 requires exactly 1920×1920, but the selected camera cannot satisfy the width constraint. Choose another preset or use Prefer closest.",
+  );
+  assert.deepEqual(error.context, {
+    browserErrorName: "OverconstrainedError",
+    constraint: "width",
+    resolutionId: "SQUARE-1920",
+    resolutionMode: "exact",
+    requestedWidth: 1920,
+    requestedHeight: 1920,
+  });
 });
 
 test("mobile resolution catalog exposes all approved portrait landscape and square presets", () => {
