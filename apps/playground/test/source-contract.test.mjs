@@ -58,6 +58,11 @@ test("playground keeps required bindings and uses progressive diagnostics", asyn
   const html = await readPlaygroundFile("index.html");
   for (const id of [
     "camera-preview",
+    "preview-shell",
+    "permission-gate",
+    "permission-gate-action",
+    "preview-requested-resolution",
+    "preview-actual-resolution",
     "status-badge",
     "status-message",
     "device-select",
@@ -80,4 +85,12 @@ test("playground keeps required bindings and uses progressive diagnostics", asyn
   }
   assert.match(html, /<details[^>]*class=["'][^"']*diagnostics-disclosure/);
   assert.match(html, /<summary[^>]*>[\s\S]*Diagnostics/i);
+});
+
+test("mobile-first preview preserves portrait and square frames without cropping", async () => {
+  const css = await readPlaygroundFile("src/styles.css");
+  assert.match(css, /\.preview-shell[\s\S]*aspect-ratio:\s*var\(--preview-aspect-ratio/);
+  assert.match(css, /\.preview-shell video[\s\S]*object-fit:\s*contain/);
+  assert.match(css, /padding-bottom:\s*max\([^;]*env\(safe-area-inset-bottom\)/);
+  assert.match(css, /@media\s*\(min-width:\s*721px\)/);
 });
