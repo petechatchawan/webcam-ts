@@ -97,3 +97,35 @@ test("mobile-first preview preserves portrait and square frames without cropping
   assert.match(css, /padding-bottom:\s*max\([^;]*env\(safe-area-inset-bottom\)/);
   assert.match(css, /@media\s*\(min-width:\s*721px\)/);
 });
+
+test("lifecycle controls follow the preview and precede errors and settings", async () => {
+  const html = await readPlaygroundFile("index.html");
+  const preview = html.indexOf('id="preview-shell"');
+  const actionPanel = html.indexOf('class="card camera-action-panel"');
+  const errorPanel = html.indexOf('id="error-panel"');
+  const settings = html.indexOf('class="card settings-card"');
+
+  assert.ok(preview >= 0, "preview-shell must exist");
+  assert.ok(actionPanel > preview, "camera-action-panel must follow the preview");
+  assert.ok(errorPanel > actionPanel, "typed errors must follow the lifecycle controls");
+  assert.ok(settings > errorPanel, "settings must follow preview actions and errors");
+
+  const actionMarkup = html.slice(actionPanel, errorPanel);
+  assert.match(actionMarkup, /id=["']start-camera["']/);
+  assert.match(actionMarkup, /id=["']switch-camera["']/);
+  assert.match(actionMarkup, /id=["']stop-camera["']/);
+  assert.doesNotMatch(html.slice(settings), /id=["'](?:start|switch|stop)-camera["']/);
+});
+
+test("inactive preview is compact and lifecycle controls become a mobile sticky dock", async () => {
+  const css = await readPlaygroundFile("src/styles.css");
+  const renderer = await readPlaygroundFile("src/ui-renderer.ts");
+
+  assert.match(css, /\.preview-shell\[data-active=["']false["']\][\s\S]*height:\s*clamp\(/);
+  assert.match(css, /\.camera-action-panel[\s\S]*border/);
+  assert.match(
+    css,
+    /@media\s*\(max-width:\s*720px\)[\s\S]*\.lifecycle-actions[\s\S]*position:\s*sticky/,
+  );
+  assert.match(renderer, /this\.previewShell\.dataset\.active\s*=\s*String\(hasActual\)/);
+});
