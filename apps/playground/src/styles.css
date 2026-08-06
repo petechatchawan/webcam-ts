@@ -20,8 +20,8 @@
   --input: 214.3 31.8% 91.4%;
   --ring: 222.2 84% 4.9%;
   --radius: 0.625rem;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-md: 0 8px 24px -16px rgb(15 23 42 / 0.3);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 10px 28px -18px rgb(15 23 42 / 0.38);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -42,8 +42,8 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.28);
-    --shadow-md: 0 12px 30px -18px rgb(0 0 0 / 0.8);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.28);
+    --shadow-md: 0 12px 30px -18px rgb(0 0 0 / 0.85);
   }
 }
 
@@ -63,10 +63,10 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   line-height: 1.5;
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
 button,
@@ -109,8 +109,8 @@ svg {
 
 .app-header {
   position: sticky;
-  top: 0;
   z-index: 30;
+  top: 0;
   border-bottom: 1px solid hsl(var(--border));
   background: hsl(var(--background) / 0.97);
 }
@@ -174,7 +174,7 @@ svg {
 .page-shell {
   display: grid;
   gap: 0.75rem;
-  padding-block: 1rem max(2rem, env(safe-area-inset-bottom));
+  padding-block: 0.875rem max(2rem, env(safe-area-inset-bottom));
 }
 
 .page-heading {
@@ -272,15 +272,21 @@ svg {
   overflow: hidden;
   aspect-ratio: var(--preview-aspect-ratio);
   background: #020617;
-  transition: aspect-ratio 180ms ease;
+  transition: aspect-ratio 180ms ease, height 180ms ease;
 }
 
-.preview-shell[data-orientation="portrait"] {
+.preview-shell[data-active="false"] {
+  height: clamp(15rem, 58vw, 20rem);
+  max-height: 20rem;
+  aspect-ratio: auto;
+}
+
+.preview-shell[data-active="true"][data-orientation="portrait"] {
   width: min(100%, 30rem);
   border-inline: 1px solid hsl(var(--border));
 }
 
-.preview-shell[data-orientation="square"] {
+.preview-shell[data-active="true"][data-orientation="square"] {
   width: min(100%, 42rem);
 }
 
@@ -322,8 +328,8 @@ svg {
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: 0.875rem;
-  padding: 1.25rem;
+  gap: 0.75rem;
+  padding: 1rem;
   background: hsl(var(--background) / 0.97);
   color: hsl(var(--foreground));
   text-align: center;
@@ -331,8 +337,8 @@ svg {
 
 .permission-gate-icon {
   display: grid;
-  width: 3rem;
-  height: 3rem;
+  width: 2.75rem;
+  height: 2.75rem;
   place-items: center;
   border: 1px solid hsl(var(--border));
   border-radius: 999px;
@@ -340,17 +346,17 @@ svg {
 }
 
 .permission-gate-copy {
-  max-width: 20rem;
+  max-width: 22rem;
 }
 
 .permission-gate-copy strong {
-  font-size: 1rem;
+  font-size: 0.9375rem;
 }
 
 .permission-gate-copy p {
-  margin: 0.35rem 0 0;
+  margin: 0.3rem 0 0;
   color: hsl(var(--muted-foreground));
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
 }
 
 .permission-gate .button {
@@ -374,7 +380,7 @@ svg {
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 0.16);
   border-radius: 999px;
-  background: rgb(2 6 23 / 0.82);
+  background: rgb(2 6 23 / 0.84);
   color: #e2e8f0;
   padding: 0.25rem 0.5rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -388,6 +394,50 @@ svg {
 .resolution-chip-actual[data-available="true"] {
   border-color: rgb(74 222 128 / 0.55);
   color: #bbf7d0;
+}
+
+.camera-action-panel {
+  display: grid;
+  gap: 0.625rem;
+  overflow: visible;
+  border: 1px solid hsl(var(--border));
+  padding: 0.75rem;
+}
+
+.camera-action-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.camera-action-copy div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.camera-action-copy strong {
+  font-size: 0.8125rem;
+}
+
+.camera-action-copy span {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.6875rem;
+}
+
+.utility-actions,
+.lifecycle-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.utility-actions,
+.lifecycle-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lifecycle-actions .button-primary {
+  grid-column: 1 / -1;
 }
 
 .badge {
@@ -555,37 +605,6 @@ summary:focus-visible {
 
 .switch-copy strong {
   font-size: 0.8125rem;
-}
-
-.action-section,
-.utility-actions,
-.lifecycle-actions {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.action-section {
-  margin-top: 0.875rem;
-}
-
-.utility-actions,
-.lifecycle-actions {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-}
-
-.lifecycle-actions {
-  position: sticky;
-  z-index: 15;
-  bottom: max(0.5rem, env(safe-area-inset-bottom));
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius);
-  background: hsl(var(--background) / 0.97);
-  padding: 0.5rem;
-  box-shadow: var(--shadow-md);
-}
-
-.lifecycle-actions .button-primary {
-  grid-column: 1 / -1;
 }
 
 .button {
@@ -886,6 +905,27 @@ code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+@media (max-width: 720px) {
+  body {
+    padding-bottom: max(5rem, calc(1rem + env(safe-area-inset-bottom)));
+  }
+
+  .camera-action-copy {
+    padding-inline: 0.125rem;
+  }
+
+  .lifecycle-actions {
+    position: sticky;
+    z-index: 20;
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background: hsl(var(--background) / 0.98);
+    padding: 0.5rem;
+    box-shadow: var(--shadow-md);
+  }
+}
+
 @media (min-width: 721px) {
   .container {
     width: min(calc(100% - 2rem), 80rem);
@@ -901,7 +941,7 @@ code {
 
   .page-shell {
     gap: 1rem;
-    padding-block: 1.5rem 3rem;
+    padding-block: 1.25rem 3rem;
   }
 
   .page-heading p {
@@ -922,26 +962,26 @@ code {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .resolution-field {
-    order: 0;
-  }
-
   .toggle-grid,
   .capture-layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .utility-actions {
+  .camera-action-panel {
+    grid-template-columns: minmax(12rem, 0.65fr) minmax(0, 1.35fr);
+    align-items: center;
+    padding: 0.875rem;
+  }
+
+  .camera-action-panel .utility-actions {
+    grid-column: 2;
     grid-template-columns: repeat(2, max-content);
+    justify-content: end;
   }
 
   .lifecycle-actions {
     position: static;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    border: 0;
-    background: transparent;
-    padding: 0;
-    box-shadow: none;
   }
 
   .lifecycle-actions .button-primary {
@@ -989,7 +1029,7 @@ code {
     top: 5rem;
   }
 
-  .preview-shell[data-orientation="landscape"] {
+  .preview-shell[data-active="true"][data-orientation="landscape"] {
     width: 100%;
   }
 
