@@ -11,6 +11,7 @@ import type {
 
 export type FacingSelection = "" | "user" | "environment";
 export type ResolutionOrientation = "portrait" | "landscape" | "square";
+export type ResolutionConstraintMode = "exact" | "ideal";
 
 export interface ResolutionPreset {
   readonly id: string;
@@ -23,6 +24,7 @@ export interface ResolutionPreset {
 export interface RequestedResolutionSnapshot {
   readonly id: string;
   readonly label: string;
+  readonly mode: ResolutionConstraintMode;
   readonly width: number;
   readonly height: number;
 }
@@ -32,6 +34,7 @@ export interface CameraSelection {
   readonly facingMode: FacingSelection;
   readonly resolutionId: string;
   readonly resolutionLabel: string;
+  readonly resolutionMode: ResolutionConstraintMode;
   readonly width: number;
   readonly height: number;
   readonly audio: boolean;
