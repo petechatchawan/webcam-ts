@@ -44,7 +44,7 @@ jobs:
         run: pnpm --dir packages/webcam-ts test
 
       - name: Verify package tarball
-        run: pnpm --dir packages/webcam-ts pack --dry-run
+        run: cd packages/webcam-ts && npm pack --dry-run
 
       - name: Build Angular playground
         run: pnpm --filter docs build
