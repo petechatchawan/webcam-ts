@@ -28,6 +28,7 @@ import {
   hasCameraPermission,
   projectCameraError,
   projectRequestedResolution,
+  projectResolutionSelectionError,
   replaceObjectUrl,
 } from "./playground-logic.js";
 import type {
@@ -200,7 +201,9 @@ export class CameraController {
   async start(selection: CameraSelection): Promise<void> {
     this.assertCameraPermission("start");
     this.preview.setMirror(selection.mirror);
-    await this.run(() => this.camera.start(buildCameraRequest(selection)));
+    await this.runResolutionOperation(selection, () =>
+      this.camera.start(buildCameraRequest(selection)),
+    );
     this.patch({ requestedResolution: projectRequestedResolution(selection) });
     await this.refreshAfterStreamChange();
   }
@@ -208,7 +211,9 @@ export class CameraController {
   async switch(selection: CameraSelection): Promise<void> {
     this.assertCameraPermission("switch");
     this.preview.setMirror(selection.mirror);
-    await this.run(() => this.camera.switch(buildCameraRequest(selection)));
+    await this.runResolutionOperation(selection, () =>
+      this.camera.switch(buildCameraRequest(selection)),
+    );
     this.patch({ requestedResolution: projectRequestedResolution(selection) });
     await this.refreshAfterStreamChange();
   }
@@ -293,6 +298,18 @@ export class CameraController {
       return await operation();
     } catch (error) {
       this.recordFailure(error);
+      throw error;
+    }
+  }
+
+  private async runResolutionOperation<T>(
+    selection: CameraSelection,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await this.run(operation);
+    } catch (error) {
+      this.patch({ error: projectResolutionSelectionError(error, selection) });
       throw error;
     }
   }
