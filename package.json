@@ -1,20 +1,23 @@
 {
-	"name": "with-angular",
-	"private": true,
-	"scripts": {
-		"build": "turbo run build",
-		"lint": "turbo run lint",
-		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
-		"start:docs": "turbo run start --filter=docs"
-	},
-	"engines": {
-		"node": ">=18"
-	},
-	"packageManager": "pnpm@8.14.0",
-	"devDependencies": {
-		"@repo/eslint-config": "workspace:*",
-		"eslint": "^8.57.0",
-		"prettier": "^2.8.8",
-		"turbo": "^2.5.4"
-	}
+  "name": "webcam-ts-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "test": "pnpm --dir packages/webcam-ts test && pnpm --dir apps/playground test",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "dev:playground": "turbo run dev --filter=playground",
+    "start:playground": "pnpm --dir apps/playground dev",
+    "verify:playground": "node scripts/verify-playground-clean-room.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@8.14.0",
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "eslint": "^8.57.0",
+    "prettier": "^2.8.8",
+    "turbo": "^2.5.4"
+  }
 }

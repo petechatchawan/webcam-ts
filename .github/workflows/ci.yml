@@ -17,7 +17,7 @@ jobs:
   verify:
     name: Verify v4 package and playground
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -34,8 +34,11 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      - name: Install dependencies for RED gate
+      - name: Install dependencies and refresh lockfile
         run: pnpm install --no-frozen-lockfile
+
+      - name: Verify playground clean room
+        run: node scripts/verify-playground-clean-room.mjs
 
       - name: Typecheck package
         run: pnpm --dir packages/webcam-ts typecheck
@@ -46,5 +49,20 @@ jobs:
       - name: Verify package tarball
         run: cd packages/webcam-ts && npm pack --dry-run
 
-      - name: Verify playground contracts
+      - name: Typecheck playground
+        run: pnpm --dir apps/playground typecheck
+
+      - name: Test playground
         run: pnpm --dir apps/playground test
+
+      - name: Build GitHub Pages artifact
+        run: pnpm --dir apps/playground build
+        env:
+          GITHUB_ACTIONS: "true"
+
+      - name: Upload generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-pnpm-lock
+          path: pnpm-lock.yaml
+          if-no-files-found: error
