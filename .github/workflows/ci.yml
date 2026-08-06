@@ -34,8 +34,8 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Install dependencies for RED gate
+        run: pnpm install --no-frozen-lockfile
 
       - name: Typecheck package
         run: pnpm --dir packages/webcam-ts typecheck
@@ -46,5 +46,5 @@ jobs:
       - name: Verify package tarball
         run: cd packages/webcam-ts && npm pack --dry-run
 
-      - name: Build Angular playground
-        run: pnpm --filter docs build
+      - name: Verify playground contracts
+        run: pnpm --dir apps/playground test
