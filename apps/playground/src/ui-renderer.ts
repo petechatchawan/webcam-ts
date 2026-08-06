@@ -1,7 +1,16 @@
 import type { CaptureBlobOptions } from "webcam-ts/capture";
-import { byId, formatBytes, readResolution } from "./dom.js";
+import { byId, formatBytes } from "./dom.js";
 import type { CameraController } from "./camera-controller.js";
-import type { CameraSelection, PlaygroundSnapshot } from "./models.js";
+import {
+  findResolutionPreset,
+  getResolutionPresets,
+  hasCameraPermission,
+} from "./playground-logic.js";
+import type {
+  CameraSelection,
+  PlaygroundSnapshot,
+  ResolutionPreset,
+} from "./models.js";
 
 interface MutableControlUpdate {
   torch?: boolean;
@@ -12,7 +21,16 @@ interface MutableControlUpdate {
 export class UiRenderer {
   private readonly unsubscribe: () => void;
   private lastDevicesKey = "";
+  private latestSnapshot: PlaygroundSnapshot | null = null;
 
+  private readonly previewShell = byId<HTMLElement>("preview-shell");
+  private readonly previewEmpty = byId<HTMLElement>("preview-empty");
+  private readonly permissionGate = byId<HTMLElement>("permission-gate");
+  private readonly permissionGateTitle = byId<HTMLElement>("permission-gate-title");
+  private readonly permissionGateMessage = byId<HTMLElement>("permission-gate-message");
+  private readonly permissionGateAction = byId<HTMLButtonElement>("permission-gate-action");
+  private readonly requestedResolution = byId<HTMLElement>("preview-requested-resolution");
+  private readonly actualResolution = byId<HTMLElement>("preview-actual-resolution");
   private readonly permissionBadge = byId<HTMLElement>("permission-badge");
   private readonly permissionCamera = byId<HTMLElement>("permission-camera");
   private readonly permissionMicrophone = byId<HTMLElement>("permission-microphone");
@@ -54,6 +72,7 @@ export class UiRenderer {
   private readonly clearEventsButton = byId<HTMLButtonElement>("clear-events");
 
   constructor(private readonly controller: CameraController) {
+    this.populateResolutionOptions();
     this.bindEvents();
     this.unsubscribe = controller.subscribe((snapshot) => this.render(snapshot));
   }
@@ -63,11 +82,13 @@ export class UiRenderer {
   }
 
   private bindEvents(): void {
-    this.permissionButton.addEventListener("click", () => {
-      void this.run("Requesting permission…", () =>
+    const requestPermission = () => {
+      void this.run("Requesting camera access…", () =>
         this.controller.requestPermissions(this.audioToggle.checked),
       );
-    });
+    };
+    this.permissionButton.addEventListener("click", requestPermission);
+    this.permissionGateAction.addEventListener("click", requestPermission);
     this.refreshDevicesButton.addEventListener("click", () => {
       void this.run("Refreshing cameras…", () => this.controller.refreshDevices());
     });
@@ -79,6 +100,9 @@ export class UiRenderer {
     });
     this.stopButton.addEventListener("click", () => {
       void this.run("Stopping camera…", () => this.controller.stop());
+    });
+    this.resolutionSelect.addEventListener("change", () => {
+      if (this.latestSnapshot) this.renderPreview(this.latestSnapshot);
     });
     this.mirrorToggle.addEventListener("change", () => {
       this.controller.setMirror(this.mirrorToggle.checked);
@@ -117,16 +141,44 @@ export class UiRenderer {
     this.clearEventsButton.addEventListener("click", () => this.controller.clearEvents());
   }
 
+  private populateResolutionOptions(): void {
+    const groups = new Map<string, HTMLOptGroupElement>();
+    for (const orientation of ["portrait", "landscape", "square"] as const) {
+      const group = document.createElement("optgroup");
+      group.label = `${orientation[0]?.toUpperCase()}${orientation.slice(1)}`;
+      groups.set(orientation, group);
+    }
+
+    for (const preset of getResolutionPresets()) {
+      groups.get(preset.orientation)?.append(
+        new Option(`${preset.label} · ${preset.width} × ${preset.height}`, preset.id),
+      );
+    }
+
+    this.resolutionSelect.replaceChildren(...groups.values());
+    this.resolutionSelect.value = "PORTRAIT-720P";
+  }
+
   private readSelection(): CameraSelection {
-    const resolution = readResolution(this.resolutionSelect.value);
+    const resolution = this.selectedResolution();
     return {
       deviceId: this.deviceSelect.value,
       facingMode: this.facingSelect.value as CameraSelection["facingMode"],
+      resolutionId: resolution.id,
+      resolutionLabel: resolution.label,
       width: resolution.width,
       height: resolution.height,
       audio: this.audioToggle.checked,
       mirror: this.mirrorToggle.checked,
     };
+  }
+
+  private selectedResolution(): ResolutionPreset {
+    const selected = findResolutionPreset(this.resolutionSelect.value);
+    if (selected) return selected;
+    const fallback = findResolutionPreset("PORTRAIT-720P");
+    if (!fallback) throw new Error("The default mobile resolution preset is unavailable.");
+    return fallback;
   }
 
   private async run(message: string, operation: () => Promise<void>): Promise<void> {
@@ -139,16 +191,21 @@ export class UiRenderer {
   }
 
   private render(snapshot: PlaygroundSnapshot): void {
+    this.latestSnapshot = snapshot;
+    const permissionGranted = hasCameraPermission(snapshot.permissions.camera);
+
     this.statusBadge.textContent = snapshot.camera.status;
     this.statusBadge.dataset.status = snapshot.camera.status;
     this.statusMessage.textContent = snapshot.availability.busy
       ? `${snapshot.camera.status}…`
       : snapshot.camera.status === "active"
         ? snapshot.camera.trackLabel ?? "Camera active"
-        : "Ready";
+        : permissionGranted
+          ? "Ready"
+          : "Allow camera access to continue";
 
-    this.startButton.disabled = !snapshot.availability.canStart;
-    this.switchButton.disabled = !snapshot.availability.canSwitch;
+    this.startButton.disabled = !permissionGranted || !snapshot.availability.canStart;
+    this.switchButton.disabled = !permissionGranted || !snapshot.availability.canSwitch;
     this.stopButton.disabled = !snapshot.availability.canStop;
     this.captureButton.disabled = snapshot.camera.status !== "active";
     this.applyControlsButton.disabled = snapshot.camera.status !== "active";
@@ -157,7 +214,11 @@ export class UiRenderer {
     this.permissionMicrophone.textContent = snapshot.permissions.microphone;
     this.permissionBadge.textContent = snapshot.permissions.camera;
     this.permissionBadge.dataset.permission = snapshot.permissions.camera;
+    this.permissionButton.disabled = permissionGranted || snapshot.availability.busy;
+    this.permissionButton.textContent = permissionGranted ? "Camera access allowed" : "Allow camera access";
 
+    this.renderPermissionGate(snapshot);
+    this.renderPreview(snapshot);
     this.renderDevices(snapshot);
     this.renderControls(snapshot);
     this.renderCapture(snapshot);
@@ -168,11 +229,56 @@ export class UiRenderer {
     this.devicesOutput.textContent = JSON.stringify(
       {
         devices: snapshot.devices,
+        requestedResolution: snapshot.requestedResolution,
+        actualResolution: {
+          width: snapshot.camera.settings?.width ?? null,
+          height: snapshot.camera.settings?.height ?? null,
+        },
         controls: snapshot.controls,
       },
       null,
       2,
     );
+  }
+
+  private renderPermissionGate(snapshot: PlaygroundSnapshot): void {
+    const granted = hasCameraPermission(snapshot.permissions.camera);
+    this.permissionGate.hidden = granted;
+    this.permissionGateAction.disabled = snapshot.availability.busy;
+
+    if (snapshot.permissions.camera === "denied") {
+      this.permissionGateTitle.textContent = "Camera access is blocked";
+      this.permissionGateMessage.textContent =
+        "Allow camera access in this site's browser settings, then try again.";
+      this.permissionGateAction.textContent = "Try camera access again";
+      return;
+    }
+
+    this.permissionGateTitle.textContent = "Camera access required";
+    this.permissionGateMessage.textContent =
+      "Allow access before starting a session. The browser will ask for camera permission.";
+    this.permissionGateAction.textContent = "Allow camera access";
+  }
+
+  private renderPreview(snapshot: PlaygroundSnapshot): void {
+    const selected = this.selectedResolution();
+    const committed = snapshot.requestedResolution;
+    const requested = committed ?? selected;
+    const actualWidth = numericSetting(snapshot.camera.settings?.width);
+    const actualHeight = numericSetting(snapshot.camera.settings?.height);
+    const hasActual = snapshot.camera.status === "active" && actualWidth > 0 && actualHeight > 0;
+    const frameWidth = hasActual ? actualWidth : selected.width;
+    const frameHeight = hasActual ? actualHeight : selected.height;
+
+    this.requestedResolution.textContent = `Requested ${requested.label} · ${requested.width}×${requested.height}`;
+    this.actualResolution.textContent = hasActual
+      ? `Actual ${actualWidth}×${actualHeight}`
+      : "Actual —";
+    this.actualResolution.dataset.available = String(hasActual);
+    this.previewShell.style.setProperty("--preview-aspect-ratio", `${frameWidth} / ${frameHeight}`);
+    this.previewShell.dataset.orientation =
+      frameWidth === frameHeight ? "square" : frameWidth < frameHeight ? "portrait" : "landscape";
+    this.previewEmpty.hidden = snapshot.camera.status === "active";
   }
 
   private renderDevices(snapshot: PlaygroundSnapshot): void {
@@ -255,4 +361,8 @@ export class UiRenderer {
       });
     this.eventList.replaceChildren(...items);
   }
+}
+
+function numericSetting(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 0;
 }
