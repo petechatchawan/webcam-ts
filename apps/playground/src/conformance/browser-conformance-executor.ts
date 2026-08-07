@@ -81,6 +81,7 @@ function freezeOptions(devices: readonly CameraDevice[]): readonly ConformanceDe
 				id: device.deviceId,
 				label: device.label?.trim() || `Camera ${index + 1}`,
 			}),
+		),
 	);
 }
 
@@ -160,7 +161,9 @@ export class BrowserConformanceExecutor
 		switch (definition.id) {
 			case "camera-start":
 			case "external-reconnect-explicit-restart":
-				if (!this.primaryDeviceId) return blocked("Select a primary camera before running this scenario.");
+				if (!this.primaryDeviceId) {
+					return blocked("Select a primary camera before running this scenario.");
+				}
 				return status === "idle"
 					? { status: "ready" }
 					: blocked("Camera must be idle before starting a new session.");
@@ -254,7 +257,11 @@ export class BrowserConformanceExecutor
 				],
 			};
 		} catch (error) {
-			return this.failedExecution("camera-permission-granted", "Camera permission request failed.", error);
+			return this.failedExecution(
+				"camera-permission-granted",
+				"Camera permission request failed.",
+				error,
+			);
 		}
 	}
 
@@ -279,7 +286,11 @@ export class BrowserConformanceExecutor
 				],
 			};
 		} catch (error) {
-			return this.failedExecution("device-enumeration-completed", "Camera device enumeration failed.", error);
+			return this.failedExecution(
+				"device-enumeration-completed",
+				"Camera device enumeration failed.",
+				error,
+			);
 		}
 	}
 
@@ -296,9 +307,14 @@ export class BrowserConformanceExecutor
 	}
 
 	private async executeSwitch(): Promise<ConformanceScenarioExecution> {
-		if (!this.primaryDeviceId || !this.alternateDeviceId) return this.missingSelection("alternate");
+		if (!this.primaryDeviceId || !this.alternateDeviceId) {
+			return this.missingSelection("alternate");
+		}
 		if (this.activeRole !== "primary" && this.activeRole !== "alternate") {
-			return this.failedAssertionExecution("camera-switch-active", "Start the primary camera before switching.");
+			return this.failedAssertionExecution(
+				"camera-switch-active",
+				"Start the primary camera before switching.",
+			);
 		}
 
 		const from = this.activeRole;
@@ -324,9 +340,14 @@ export class BrowserConformanceExecutor
 	}
 
 	private async executeRapidSwitch(): Promise<ConformanceScenarioExecution> {
-		if (!this.primaryDeviceId || !this.alternateDeviceId) return this.missingSelection("alternate");
+		if (!this.primaryDeviceId || !this.alternateDeviceId) {
+			return this.missingSelection("alternate");
+		}
 		if (this.activeRole !== "primary") {
-			return this.failedAssertionExecution("rapid-switch-final-primary", "Rapid switch starts from the primary camera.");
+			return this.failedAssertionExecution(
+				"rapid-switch-final-primary",
+				"Rapid switch starts from the primary camera.",
+			);
 		}
 		try {
 			await this.camera.switch(requestFor(this.alternateDeviceId));
@@ -347,7 +368,11 @@ export class BrowserConformanceExecutor
 				],
 			};
 		} catch (error) {
-			return this.failedExecution("rapid-switch-final-primary", "Rapid candidate-first switching failed.", error);
+			return this.failedExecution(
+				"rapid-switch-final-primary",
+				"Rapid candidate-first switching failed.",
+				error,
+			);
 		}
 	}
 
@@ -365,7 +390,9 @@ export class BrowserConformanceExecutor
 		};
 	}
 
-	private executeSessionLoss(scenario: "track-ended" | "external-disconnect"): ConformanceScenarioExecution {
+	private executeSessionLoss(
+		scenario: "track-ended" | "external-disconnect",
+	): ConformanceScenarioExecution {
 		const state = this.camera.getState();
 		const lost = this.sessionEndedObserved && state.status !== "active";
 		return {
@@ -394,7 +421,11 @@ export class BrowserConformanceExecutor
 				"Reconnect recovery must occur only when the explicit restart scenario is run.",
 			);
 		} catch (error) {
-			return this.failedExecution("explicit-restart-active", "Explicit camera restart failed.", error);
+			return this.failedExecution(
+				"explicit-restart-active",
+				"Explicit camera restart failed.",
+				error,
+			);
 		}
 	}
 
@@ -409,7 +440,9 @@ export class BrowserConformanceExecutor
 				...extraObservations,
 				{ key: "activeRole", value: this.activeRole },
 			]),
-			assertions: [assertion(assertionId, state.status === "active", message, "active", state.status)],
+			assertions: [
+				assertion(assertionId, state.status === "active", message, "active", state.status),
+			],
 		};
 	}
 
@@ -442,7 +475,10 @@ export class BrowserConformanceExecutor
 		};
 	}
 
-	private failedAssertionExecution(assertionId: string, message: string): ConformanceScenarioExecution {
+	private failedAssertionExecution(
+		assertionId: string,
+		message: string,
+	): ConformanceScenarioExecution {
 		return {
 			observations: [],
 			assertions: [assertion(assertionId, false, message)],
