@@ -54,6 +54,7 @@ jobs:
         run: pnpm --dir apps/playground build
         env:
           GITHUB_ACTIONS: "true"
+          VITE_GIT_SHA: ${{ github.sha }}
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4
