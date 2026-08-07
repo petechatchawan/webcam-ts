@@ -8,12 +8,25 @@ Webcam-TS is a framework-agnostic TypeScript camera library built around determi
 
 The playground is implemented with Vite and Vanilla TypeScript. It consumes only the declared public package entrypoints and demonstrates permissions, device discovery, atomic switching, preview, capture, hardware controls, immutable state, typed events, and typed errors.
 
+## Real Browser & Device Conformance
+
+**https://petechatchawan.github.io/webcam-ts/?conformance=1**
+
+Conformance mode is a separate evidence runner for the v4 stabilization milestone. It records assertion-based scenario outcomes and privacy-safe browser/device evidence without exporting raw camera device IDs, group IDs, labels, or captured frames. Scenarios that are not implemented yet remain explicitly blocked rather than reporting a false pass.
+
+Physical testing follows:
+
+- `docs/superpowers/conformance/webcam-ts-v4-manual-runbook.md`
+- `docs/superpowers/conformance/webcam-ts-v4-tier1-matrix.md`
+
+Automated browser evidence does not replace required iOS Safari, Android Chrome, integrated-camera, or external-USB physical verification.
+
 ## Repository
 
 ```text
 packages/webcam-ts   public npm package
 apps/playground      framework-free browser playground
-docs/superpowers     architecture specifications and implementation plans
+docs/superpowers     architecture specifications, implementation plans, and conformance evidence contracts
 ```
 
 ## Development
