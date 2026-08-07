@@ -10,6 +10,16 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
+async function observeSettlementAfterTurn(promise) {
+  const outcome = { settled: false, status: null, value: undefined, reason: undefined };
+  promise.then(
+    (value) => Object.assign(outcome, { settled: true, status: "fulfilled", value }),
+    (reason) => Object.assign(outcome, { settled: true, status: "rejected", reason }),
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+  return { ...outcome };
+}
+
 function createTrack({ deviceId = "camera", label = "Camera", readyState = "live" } = {}) {
   return {
     stopCalls: 0,
@@ -68,6 +78,203 @@ test("stop during start prevents stale commit and stops the resolved candidate",
   assert.equal(track.stopCalls, 1);
   assert.equal(camera.getActiveStream(), null);
   assert.equal(camera.getState().status, "idle");
+});
+
+test("stop promptly preempts pending start without settling media acquisition", async () => {
+  const pending = deferred();
+  const lateTrack = createTrack();
+  const lateStream = createStream(lateTrack);
+  const camera = new Camera({ mediaDevices: createPort(() => pending.promise) });
+
+  const startPromise = camera.start();
+  const observedSettlement = observeSettlementAfterTurn(startPromise);
+  await camera.stop();
+  const beforeMediaSettles = await observedSettlement;
+
+  pending.resolve(lateStream);
+  await startPromise.catch(() => undefined);
+
+  assert.equal(beforeMediaSettles.settled, true);
+  assert.equal(beforeMediaSettles.status, "rejected");
+  assert.equal(beforeMediaSettles.reason instanceof CameraError, true);
+  assert.equal(beforeMediaSettles.reason?.code, "OPERATION_ABORTED");
+  assert.equal(camera.getState().status, "idle");
+});
+
+test("dispose promptly preempts pending switch without settling media acquisition", async () => {
+  const activeTrack = createTrack({ deviceId: "camera-a" });
+  const activeStream = createStream(activeTrack);
+  const pending = deferred();
+  const lateTrack = createTrack({ deviceId: "camera-b" });
+  const lateStream = createStream(lateTrack);
+  let calls = 0;
+  const camera = new Camera({
+    mediaDevices: createPort(() => (++calls === 1 ? Promise.resolve(activeStream) : pending.promise)),
+  });
+
+  await camera.start();
+  const switchPromise = camera.switch({ deviceId: "camera-b" });
+  const observedSettlement = observeSettlementAfterTurn(switchPromise);
+  await camera.dispose();
+  const beforeMediaSettles = await observedSettlement;
+
+  pending.resolve(lateStream);
+  await switchPromise.catch(() => undefined);
+
+  assert.equal(beforeMediaSettles.settled, true);
+  assert.equal(beforeMediaSettles.status, "rejected");
+  assert.equal(beforeMediaSettles.reason?.code, "DISPOSED");
+  assert.equal(camera.getState().status, "disposed");
+  assert.equal(activeTrack.stopCalls, 1);
+});
+
+test("late media resolution after preemption is stopped once and never committed", async () => {
+  const pending = deferred();
+  const lateTrack = createTrack({ deviceId: "late-camera" });
+  const lateStream = createStream(lateTrack);
+  const camera = new Camera({ mediaDevices: createPort(() => pending.promise) });
+  const events = [];
+  camera.subscribe((event) => events.push(event));
+
+  const startPromise = camera.start();
+  const observedSettlement = observeSettlementAfterTurn(startPromise);
+  await camera.stop();
+  const beforeMediaSettles = await observedSettlement;
+
+  pending.resolve(lateStream);
+  await startPromise.catch(() => undefined);
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(beforeMediaSettles.settled, true);
+  assert.equal(beforeMediaSettles.reason?.code, "OPERATION_ABORTED");
+  assert.equal(lateTrack.stopCalls, 1);
+  assert.equal(camera.getActiveStream(), null);
+  assert.equal(
+    events.some((event) => event.type === "stream-changed" && event.stream === lateStream),
+    false,
+  );
+  assert.equal(
+    events.some((event) => event.type === "operation-completed" && event.operation === "start"),
+    false,
+  );
+});
+
+test("late media rejection after preemption is consumed without unhandled rejection", async () => {
+  const pending = deferred();
+  const camera = new Camera({ mediaDevices: createPort(() => pending.promise) });
+  const unhandled = [];
+  const onUnhandled = (reason) => unhandled.push(reason);
+  process.on("unhandledRejection", onUnhandled);
+
+  try {
+    const startPromise = camera.start();
+    const observedSettlement = observeSettlementAfterTurn(startPromise);
+    await camera.stop();
+    const beforeMediaSettles = await observedSettlement;
+
+    pending.reject(new Error("late media failure"));
+    await startPromise.catch(() => undefined);
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.equal(beforeMediaSettles.settled, true);
+    assert.equal(beforeMediaSettles.reason?.code, "OPERATION_ABORTED");
+    assert.deepEqual(unhandled, []);
+  } finally {
+    process.off("unhandledRejection", onUnhandled);
+  }
+});
+
+test("AbortSignal promptly rejects pending start and cleans a late stream", async () => {
+  const pending = deferred();
+  const controller = new AbortController();
+  const lateTrack = createTrack({ deviceId: "late-aborted-camera" });
+  const lateStream = createStream(lateTrack);
+  const camera = new Camera({ mediaDevices: createPort(() => pending.promise) });
+
+  const startPromise = camera.start({ signal: controller.signal });
+  const observedSettlement = observeSettlementAfterTurn(startPromise);
+  controller.abort();
+  const beforeMediaSettles = await observedSettlement;
+
+  pending.resolve(lateStream);
+  await startPromise.catch(() => undefined);
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(beforeMediaSettles.settled, true);
+  assert.equal(beforeMediaSettles.status, "rejected");
+  assert.equal(beforeMediaSettles.reason instanceof CameraError, true);
+  assert.equal(beforeMediaSettles.reason?.code, "OPERATION_ABORTED");
+  assert.equal(camera.getState().status, "idle");
+  assert.equal(camera.getActiveStream(), null);
+  assert.equal(lateTrack.stopCalls, 1);
+});
+
+test("AbortSignal during pending switch preserves active stream and cleans late candidate", async () => {
+  const activeTrack = createTrack({ deviceId: "camera-a" });
+  const activeStream = createStream(activeTrack);
+  const pending = deferred();
+  const controller = new AbortController();
+  const lateTrack = createTrack({ deviceId: "camera-b" });
+  const lateStream = createStream(lateTrack);
+  let calls = 0;
+  const camera = new Camera({
+    mediaDevices: createPort(() => (++calls === 1 ? Promise.resolve(activeStream) : pending.promise)),
+  });
+
+  await camera.start({ deviceId: "camera-a" });
+  const switchPromise = camera.switch({ deviceId: "camera-b", signal: controller.signal });
+  const observedSettlement = observeSettlementAfterTurn(switchPromise);
+  controller.abort();
+  const beforeMediaSettles = await observedSettlement;
+
+  pending.resolve(lateStream);
+  await switchPromise.catch(() => undefined);
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(beforeMediaSettles.settled, true);
+  assert.equal(beforeMediaSettles.reason?.code, "OPERATION_ABORTED");
+  assert.equal(camera.getState().status, "active");
+  assert.equal(camera.getActiveStream(), activeStream);
+  assert.equal(activeTrack.stopCalls, 0);
+  assert.equal(lateTrack.stopCalls, 1);
+});
+
+test("AbortSignal failure emits no completed success and keeps failure ordering", async () => {
+  const pending = deferred();
+  const controller = new AbortController();
+  const lateTrack = createTrack();
+  const lateStream = createStream(lateTrack);
+  const camera = new Camera({ mediaDevices: createPort(() => pending.promise) });
+  const events = [];
+  camera.subscribe((event) => events.push(event));
+
+  const startPromise = camera.start({ signal: controller.signal });
+  const observedSettlement = observeSettlementAfterTurn(startPromise);
+  controller.abort();
+  const beforeMediaSettles = await observedSettlement;
+
+  pending.resolve(lateStream);
+  await startPromise.catch(() => undefined);
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const startedIndex = events.findIndex(
+    (event) => event.type === "operation-started" && event.operation === "start",
+  );
+  const failedIndex = events.findIndex(
+    (event) => event.type === "operation-failed" && event.operation === "start",
+  );
+
+  assert.equal(beforeMediaSettles.settled, true);
+  assert.equal(beforeMediaSettles.reason?.code, "OPERATION_ABORTED");
+  assert.equal(startedIndex >= 0, true);
+  assert.equal(failedIndex > startedIndex, true);
+  assert.equal(
+    events.some((event) => event.type === "operation-completed" && event.operation === "start"),
+    false,
+  );
+  assert.equal(camera.getState().status, "idle");
+  assert.equal(lateTrack.stopCalls, 1);
 });
 
 test("failed switch preserves the previous active stream", async () => {
