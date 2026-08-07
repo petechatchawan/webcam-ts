@@ -81,7 +81,6 @@ function freezeOptions(devices: readonly CameraDevice[]): readonly ConformanceDe
 				id: device.deviceId,
 				label: device.label?.trim() || `Camera ${index + 1}`,
 			}),
-		),
 	);
 }
 
@@ -97,6 +96,10 @@ function assertion(
 
 function requestFor(deviceId: string): CameraRequest {
 	return Object.freeze({ deviceId });
+}
+
+function blocked(reason: string): PrerequisiteCheckResult {
+	return { status: "blocked", reason };
 }
 
 export class BrowserConformanceExecutor
@@ -146,15 +149,32 @@ export class BrowserConformanceExecutor
 
 	checkPrerequisite(definition: ConformanceScenarioDefinition): PrerequisiteCheckResult {
 		this.assertUsable();
-		if (definition.id === "runtime-secure-context") {
-			return (globalThis.isSecureContext ?? false)
-				? { status: "ready" }
-				: { status: "blocked", reason: "Conformance mode requires a secure browser context." };
+		if (!(globalThis.isSecureContext ?? false)) {
+			return blocked("Conformance mode requires a secure browser context.");
 		}
 		if (!SUPPORTED_SCENARIOS.has(definition.id)) {
-			return { status: "blocked", reason: "Scenario execution belongs to a later stabilization PR." };
+			return blocked("Scenario execution belongs to a later stabilization PR.");
 		}
-		return { status: "ready" };
+
+		const status = this.camera.getState().status;
+		switch (definition.id) {
+			case "camera-start":
+			case "external-reconnect-explicit-restart":
+				if (!this.primaryDeviceId) return blocked("Select a primary camera before running this scenario.");
+				return status === "idle"
+					? { status: "ready" }
+					: blocked("Camera must be idle before starting a new session.");
+			case "camera-switch":
+			case "rapid-switch":
+				if (!this.primaryDeviceId || !this.alternateDeviceId) {
+					return blocked("Select both primary and alternate cameras before switching.");
+				}
+				return status === "active"
+					? { status: "ready" }
+					: blocked("Start the primary camera before switching.");
+			default:
+				return { status: "ready" };
+		}
 	}
 
 	async execute(definition: ConformanceScenarioDefinition): Promise<ConformanceScenarioExecution> {
