@@ -3,6 +3,7 @@ import { buildMediaStreamConstraints, type CameraRequest } from "../domain/camer
 import type { CameraStatus } from "../domain/camera-state.js";
 import type { MediaDevicesPort } from "../platform/media-devices-port.js";
 import { normalizeBrowserError } from "../platform/browser-error-normalizer.js";
+import { verifyExactResolutionPostcondition } from "./exact-resolution-postcondition.js";
 import { assertCommandAllowed } from "./lifecycle-machine.js";
 import { OperationController, type OperationLease } from "./operation-controller.js";
 import { stopStream } from "./stream-cleanup.js";
@@ -68,6 +69,7 @@ export class CameraSession {
       this.assertRequestCurrent(request, lease);
       const track = this.validateCandidate(candidate, "start");
       this.assertRequestCurrent(request, lease);
+      verifyExactResolutionPostcondition(request, track.getSettings(), "start");
 
       this.candidates.delete(candidate);
       this.activeStream = candidate;
@@ -102,6 +104,7 @@ export class CameraSession {
       this.assertRequestCurrent(request, lease);
       const track = this.validateCandidate(candidate, "switch");
       this.assertRequestCurrent(request, lease);
+      verifyExactResolutionPostcondition(request, track.getSettings(), "switch");
 
       const previousStream = this.activeStream;
       this.candidates.delete(candidate);
