@@ -197,3 +197,19 @@ test("conformance preview stays light-theme lean and never crops physical eviden
   assert.match(css, /\.conformance-preview-shell\s+video[\s\S]*object-fit:\s*contain/);
   assert.doesNotMatch(css, /prefers-color-scheme:\s*dark|backdrop-filter|radial-gradient/i);
 });
+
+test("conformance bootstrap wires one real browser executor without reusing normal controller state", async () => {
+  const main = await readPlaygroundFile("src/main.ts");
+  const conformanceBootstrap = main.slice(main.indexOf("export function bootstrapConformance"));
+
+  assert.match(main, /BrowserConformanceExecutor/);
+  assert.match(main, /new Camera\(\)/);
+  assert.match(main, /new VideoPreview\(video/);
+  assert.match(conformanceBootstrap, /conformance-preview/);
+  assert.match(conformanceBootstrap, /new BrowserConformanceExecutor\(/);
+  assert.match(conformanceBootstrap, /executor,/);
+  assert.match(conformanceBootstrap, /new ConformanceRenderer\(controller,\s*executor,\s*conformanceRoot\)/);
+  assert.match(conformanceBootstrap, /prerequisiteChecker:\s*\(definition\)\s*=>\s*executor\.checkPrerequisite\(definition\)/);
+  assert.doesNotMatch(main, /Scenario execution is added in a later stabilization PR\./);
+  assert.doesNotMatch(conformanceBootstrap, /createBrowserCameraController/);
+});
