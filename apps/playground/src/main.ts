@@ -1,14 +1,15 @@
 import "./styles.css";
 import "./conformance/conformance.css";
-import { byId } from "./dom.js";
+import { Camera } from "webcam-ts";
+import { CameraDeviceManager, CameraPermissionService } from "webcam-ts/devices";
+import { VideoPreview } from "webcam-ts/preview";
 import { createBrowserCameraController } from "./camera-controller.js";
-import { UiRenderer } from "./ui-renderer.js";
-import {
-	ConformanceController,
-	type ConformanceScenarioExecutor,
-} from "./conformance/conformance-controller.js";
+import { BrowserConformanceExecutor } from "./conformance/browser-conformance-executor.js";
+import { ConformanceController } from "./conformance/conformance-controller.js";
 import { collectConformanceEnvironment } from "./conformance/environment.js";
 import { ConformanceRenderer } from "./conformance/conformance-renderer.js";
+import { byId } from "./dom.js";
+import { UiRenderer } from "./ui-renderer.js";
 
 const PACKAGE_VERSION = "4.0.0-alpha.1";
 const GIT_SHA = import.meta.env.VITE_GIT_SHA ?? "local";
@@ -50,32 +51,22 @@ export function bootstrapConformance(): void {
 	normalRoot.hidden = true;
 	conformanceRoot.hidden = false;
 
-	const executor: ConformanceScenarioExecutor = {
-		async execute(definition) {
-			if (definition.id !== "runtime-secure-context") {
-				return {
-					observations: [],
-					assertions: [],
-					statusOverride: "blocked",
-				};
-			}
+	const video = byId<HTMLVideoElement>("conformance-preview");
+	const camera = new Camera();
+	const preview = new VideoPreview(video, {
+		autoplay: true,
+		muted: true,
+		playsInline: true,
+		mirror: false,
+	});
+	preview.bind(camera);
 
-			const secureContext = globalThis.isSecureContext ?? false;
-			return {
-				observations: [{ key: "secureContext", value: secureContext }],
-				assertions: [
-					{
-						id: "secure-context",
-						passed: secureContext,
-						expected: true,
-						actual: secureContext,
-						message: "Conformance mode requires a secure browser context.",
-					},
-				],
-			};
-		},
-	};
-
+	const executor = new BrowserConformanceExecutor({
+		camera,
+		preview,
+		devices: new CameraDeviceManager(),
+		permissions: new CameraPermissionService(),
+	});
 	const controller = new ConformanceController({
 		executor,
 		environmentFactory: (hardwareClass) =>
@@ -86,17 +77,11 @@ export function bootstrapConformance(): void {
 				gitSha: GIT_SHA,
 				hardwareClass,
 			}),
-		prerequisiteChecker: (definition) =>
-			definition.id === "runtime-secure-context"
-				? { status: "ready" }
-				: {
-						status: "blocked",
-						reason: "Scenario execution is added in a later stabilization PR.",
-					},
+		prerequisiteChecker: (definition) => executor.checkPrerequisite(definition),
 		packageVersion: PACKAGE_VERSION,
 		gitSha: GIT_SHA,
 	});
-	const renderer = new ConformanceRenderer(controller, conformanceRoot);
+	const renderer = new ConformanceRenderer(controller, executor, conformanceRoot);
 	renderer.bind();
 
 	registerPageDisposal(() => controller.dispose());
