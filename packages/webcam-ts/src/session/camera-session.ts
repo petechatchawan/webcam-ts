@@ -171,13 +171,14 @@ export class CameraSession {
     lease: OperationLease,
   ): Promise<MediaStream> {
     const openPromise = Promise.resolve().then(() => this.mediaDevices.open(constraints));
-    const outcome = await Promise.race<MediaOpenOutcome>([
-      openPromise.then<MediaOpenOutcome>(
-        (stream) => ({ kind: "opened", stream }),
-        (error) => ({ kind: "failed", error }),
-      ),
-      lease.whenInvalidated().then<MediaOpenOutcome>((error) => ({ kind: "invalidated", error })),
-    ]);
+    const openOutcome: Promise<MediaOpenOutcome> = openPromise.then(
+      (stream): MediaOpenOutcome => ({ kind: "opened", stream }),
+      (error): MediaOpenOutcome => ({ kind: "failed", error }),
+    );
+    const invalidationOutcome: Promise<MediaOpenOutcome> = lease.whenInvalidated().then(
+      (error): MediaOpenOutcome => ({ kind: "invalidated", error }),
+    );
+    const outcome = await Promise.race([openOutcome, invalidationOutcome]);
 
     if (outcome.kind === "opened") return outcome.stream;
     if (outcome.kind === "failed") throw outcome.error;
