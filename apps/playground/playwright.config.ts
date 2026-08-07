@@ -18,6 +18,10 @@ export default defineConfig({
 		url: "http://127.0.0.1:4173/browser-test/fixture.html",
 		reuseExistingServer: !process.env.CI,
 		timeout: 30_000,
+		env: {
+			...process.env,
+			GITHUB_ACTIONS: "false",
+		},
 	},
 	projects: [
 		{
