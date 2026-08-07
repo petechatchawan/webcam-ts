@@ -1,0 +1,123 @@
+.conformance-shell {
+	width: min(calc(100% - 1rem), 64rem);
+	margin-inline: auto;
+	display: grid;
+	gap: 0.875rem;
+	padding-block: 1rem max(2rem, env(safe-area-inset-bottom));
+}
+
+.conformance-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.25rem 0;
+}
+
+.conformance-header h1 {
+	margin: 0.6rem 0 0;
+	font-size: clamp(1.35rem, 5vw, 2rem);
+	line-height: 1.15;
+	letter-spacing: -0.025em;
+}
+
+.conformance-header p {
+	max-width: 44rem;
+	margin: 0.45rem 0 0;
+	color: hsl(var(--muted-foreground));
+	font-size: 0.8125rem;
+}
+
+.conformance-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 0.875rem;
+}
+
+.conformance-form {
+	display: grid;
+	gap: 0.875rem;
+}
+
+.conformance-actions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.625rem;
+}
+
+.conformance-result {
+	min-height: 7rem;
+	border: 1px solid hsl(var(--border));
+	border-radius: calc(var(--radius) - 0.125rem);
+	background: hsl(var(--muted) / 0.45);
+	padding: 0.875rem;
+	font-size: 0.8125rem;
+	line-height: 1.55;
+	overflow-wrap: anywhere;
+}
+
+.conformance-result[data-status="pass"] {
+	border-color: hsl(142 55% 42% / 0.35);
+	background: hsl(142 71% 45% / 0.08);
+}
+
+.conformance-result[data-status="fail"] {
+	border-color: hsl(var(--destructive) / 0.4);
+	background: hsl(var(--destructive) / 0.07);
+}
+
+.conformance-result[data-status="blocked"],
+.conformance-result[data-status="skipped"] {
+	border-color: hsl(38 70% 45% / 0.35);
+	background: hsl(38 92% 50% / 0.08);
+}
+
+#conformance-status[data-status="pass"] {
+	background: hsl(142 71% 45% / 0.12);
+	color: hsl(142 65% 32%);
+}
+
+#conformance-status[data-status="fail"] {
+	background: hsl(var(--destructive) / 0.12);
+	color: hsl(var(--destructive));
+}
+
+#conformance-status[data-status="blocked"],
+#conformance-status[data-status="skipped"],
+#conformance-status[data-status="running"] {
+	background: hsl(38 92% 50% / 0.13);
+	color: hsl(32 81% 31%);
+}
+
+.conformance-confirmation {
+	overflow: visible;
+}
+
+.conformance-privacy-note {
+	margin: 0;
+	color: hsl(var(--muted-foreground));
+	font-size: 0.75rem;
+	text-align: center;
+}
+
+@media (max-width: 720px) {
+	.conformance-header {
+		display: grid;
+	}
+
+	.conformance-header .button {
+		width: 100%;
+	}
+
+	.conformance-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.conformance-actions {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.conformance-actions .button {
+		min-height: 2.875rem;
+	}
+}
