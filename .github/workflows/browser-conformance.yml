@@ -44,7 +44,7 @@ jobs:
         run: pnpm --dir packages/webcam-ts build
 
       - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+        run: pnpm --dir apps/playground exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run browser conformance
         run: pnpm --dir apps/playground test:browser:${{ matrix.browser }}
