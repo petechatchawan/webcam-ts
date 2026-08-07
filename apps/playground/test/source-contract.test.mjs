@@ -163,3 +163,37 @@ test("inactive preview is compact and lifecycle controls become a mobile sticky 
   );
   assert.match(renderer, /this\.previewShell\.dataset\.active\s*=\s*String\(hasActual\)/);
 });
+
+test("physical conformance mode has one lean preview and two runtime-only camera roles", async () => {
+  const html = await readPlaygroundFile("index.html");
+  for (const id of [
+    "conformance-preview",
+    "conformance-primary-device",
+    "conformance-alternate-device",
+  ]) {
+    assert.equal((html.match(new RegExp(`id=["']${id}["']`, "g")) ?? []).length, 1);
+  }
+
+  const conformanceMarkup = html.slice(html.indexOf('id="conformance-root"'));
+  assert.doesNotMatch(conformanceMarkup, /id=["'](?:start|switch|stop)-camera["']/);
+});
+
+test("conformance renderer binds runtime camera roles without reusing the normal camera controller", async () => {
+  const renderer = await readPlaygroundFile("src/conformance/conformance-renderer.ts");
+
+  assert.match(renderer, /ConformanceDeviceRuntime/);
+  assert.match(renderer, /conformance-primary-device/);
+  assert.match(renderer, /conformance-alternate-device/);
+  assert.match(renderer, /refreshDeviceOptions\(/);
+  assert.match(renderer, /setPrimaryDeviceId\(/);
+  assert.match(renderer, /setAlternateDeviceId\(/);
+  assert.doesNotMatch(renderer, /CameraController|createBrowserCameraController/);
+});
+
+test("conformance preview stays light-theme lean and never crops physical evidence", async () => {
+  const css = await readPlaygroundFile("src/conformance/conformance.css");
+
+  assert.match(css, /\.conformance-preview-shell[\s\S]*var\(--border\)/);
+  assert.match(css, /\.conformance-preview-shell\s+video[\s\S]*object-fit:\s*contain/);
+  assert.doesNotMatch(css, /prefers-color-scheme:\s*dark|backdrop-filter|radial-gradient/i);
+});
