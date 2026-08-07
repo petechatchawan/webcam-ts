@@ -190,7 +190,9 @@ window.webcamTsBrowserFixture = Object.freeze({
 		const states: string[] = [];
 		const operations: string[] = [];
 		camera.subscribe((event: CameraEvent) => {
-			if (event.type === "state-changed") states.push(event.state.status);
+			if (event.type === "state-changed" && states.at(-1) !== event.state.status) {
+				states.push(event.state.status);
+			}
 			if (event.type === "operation-started" || event.type === "operation-completed") {
 				operations.push(`${event.type}:${event.operation}`);
 			}
@@ -240,8 +242,13 @@ window.webcamTsBrowserFixture = Object.freeze({
 		const videoPort = installSyntheticVideoPort(video);
 		const track = new FakeMediaStreamTrack("Preview fixture", { width: 720, height: 1280 });
 		const { camera, stream } = createFakeCamera(track);
-		const preview = new VideoPreview(camera, video);
-		await preview.bind({ autoplay: true, muted: true, playsInline: true, mirror: true });
+		const preview = new VideoPreview(video, {
+			autoplay: true,
+			muted: true,
+			playsInline: true,
+			mirror: true,
+		});
+		preview.bind(camera);
 		await camera.start();
 		await Promise.resolve();
 		const boundDuringActive = videoPort.readStream() === (stream as unknown as MediaStream);
@@ -259,8 +266,8 @@ window.webcamTsBrowserFixture = Object.freeze({
 		installSyntheticVideoPort(ownershipVideo);
 		const ownershipTrack = new FakeMediaStreamTrack("Preview ownership fixture");
 		const ownershipCameraFixture = createFakeCamera(ownershipTrack);
-		const ownershipPreview = new VideoPreview(ownershipCameraFixture.camera, ownershipVideo);
-		await ownershipPreview.bind({ autoplay: false });
+		const ownershipPreview = new VideoPreview(ownershipVideo, { autoplay: false });
+		ownershipPreview.bind(ownershipCameraFixture.camera);
 		await ownershipCameraFixture.camera.start();
 		ownershipPreview.dispose();
 		const trackStopCallsAfterPreviewDispose = ownershipTrack.stopCalls;
