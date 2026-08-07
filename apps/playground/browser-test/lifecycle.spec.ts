@@ -1,8 +1,8 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-async function openFixture(page: Parameters<typeof test>[0] extends never ? never : any) {
+async function openFixture(page: Page): Promise<void> {
 	await page.goto("/browser-test/fixture.html");
-	await expect(page.locator("#fixture-status")).toHaveValue("ready");
+	await expect(page.locator("#fixture-status")).toHaveText("ready");
 }
 
 test("start and stop preserve deterministic public state and event ordering", async ({ page }) => {
