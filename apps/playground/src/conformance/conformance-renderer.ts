@@ -1,5 +1,6 @@
-import { exportEvidenceJson } from "./evidence-exporter.js";
+import type { ConformanceDeviceRuntime } from "./browser-conformance-executor.js";
 import type { ConformanceController } from "./conformance-controller.js";
+import { exportEvidenceJson } from "./evidence-exporter.js";
 import { CONFORMANCE_SCENARIOS } from "./scenarios.js";
 import type { HardwareClass } from "./types.js";
 
@@ -12,6 +13,8 @@ function requireElement<T extends HTMLElement>(root: ParentNode, id: string): T 
 export class ConformanceRenderer {
 	private readonly hardwareClass: HTMLSelectElement;
 	private readonly scenarioSelect: HTMLSelectElement;
+	private readonly primaryDevice: HTMLSelectElement;
+	private readonly alternateDevice: HTMLSelectElement;
 	private readonly runButton: HTMLButtonElement;
 	private readonly status: HTMLElement;
 	private readonly confirmation: HTMLElement;
@@ -24,10 +27,13 @@ export class ConformanceRenderer {
 
 	constructor(
 		private readonly controller: ConformanceController,
+		private readonly deviceRuntime: ConformanceDeviceRuntime,
 		root: ParentNode,
 	) {
 		this.hardwareClass = requireElement(root, "conformance-hardware-class");
 		this.scenarioSelect = requireElement(root, "conformance-scenario-select");
+		this.primaryDevice = requireElement(root, "conformance-primary-device");
+		this.alternateDevice = requireElement(root, "conformance-alternate-device");
 		this.runButton = requireElement(root, "conformance-run");
 		this.status = requireElement(root, "conformance-status");
 		this.confirmation = requireElement(root, "conformance-confirmation");
@@ -47,6 +53,12 @@ export class ConformanceRenderer {
 		this.hardwareClass.addEventListener("change", () => {
 			this.controller.setHardwareClass(this.hardwareClass.value as HardwareClass);
 		});
+		this.primaryDevice.addEventListener("change", () => {
+			this.deviceRuntime.setPrimaryDeviceId(this.primaryDevice.value);
+		});
+		this.alternateDevice.addEventListener("change", () => {
+			this.deviceRuntime.setAlternateDeviceId(this.alternateDevice.value);
+		});
 		this.runButton.addEventListener("click", () => {
 			void this.runSelectedScenario();
 		});
@@ -59,6 +71,7 @@ export class ConformanceRenderer {
 			this.render();
 		});
 		this.exportButton.addEventListener("click", () => this.exportEvidence());
+		void this.refreshDeviceOptions();
 		this.render();
 	}
 
@@ -73,6 +86,28 @@ export class ConformanceRenderer {
 		);
 	}
 
+	private async refreshDeviceOptions(): Promise<void> {
+		const previousPrimary = this.primaryDevice.value;
+		const previousAlternate = this.alternateDevice.value;
+		const options = await this.deviceRuntime.refreshDeviceOptions();
+		const values = new Set(options.map((option) => option.id));
+		const makeOptions = () => [
+			new Option("Select camera", ""),
+			...options.map((option) => new Option(option.label, option.id)),
+		];
+		this.primaryDevice.replaceChildren(...makeOptions());
+		this.alternateDevice.replaceChildren(...makeOptions());
+
+		this.primaryDevice.value = values.has(previousPrimary)
+			? previousPrimary
+			: (options[0]?.id ?? "");
+		this.alternateDevice.value = values.has(previousAlternate)
+			? previousAlternate
+			: (options.find((option) => option.id !== this.primaryDevice.value)?.id ?? "");
+		this.deviceRuntime.setPrimaryDeviceId(this.primaryDevice.value);
+		this.deviceRuntime.setAlternateDeviceId(this.alternateDevice.value);
+	}
+
 	private async runSelectedScenario(): Promise<void> {
 		this.runButton.disabled = true;
 		this.status.textContent = "running";
@@ -80,6 +115,7 @@ export class ConformanceRenderer {
 		try {
 			await this.controller.run(this.scenarioSelect.value);
 		} finally {
+			await this.refreshDeviceOptions().catch(() => undefined);
 			this.runButton.disabled = false;
 			this.render();
 		}
