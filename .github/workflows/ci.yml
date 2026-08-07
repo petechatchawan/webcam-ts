@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify v4 package and playground
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.14.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify playground clean room
+        run: node scripts/verify-playground-clean-room.mjs
+
+      - name: Typecheck package
+        run: pnpm --dir packages/webcam-ts typecheck
+
+      - name: Test package and packed exports
+        run: pnpm --dir packages/webcam-ts test
+
+      - name: Verify package tarball
+        run: cd packages/webcam-ts && npm pack --dry-run
+
+      - name: Typecheck playground
+        run: pnpm --dir apps/playground typecheck
+
+      - name: Test playground
+        run: pnpm --dir apps/playground test
+
+      - name: Build GitHub Pages artifact
+        run: pnpm --dir apps/playground build
+        env:
+          GITHUB_ACTIONS: "true"

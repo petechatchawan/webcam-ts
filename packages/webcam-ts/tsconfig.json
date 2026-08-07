@@ -1,15 +1,19 @@
 {
-	"extends": "../../tsconfig.json",
-	"compilerOptions": {
-		"outDir": "dist",
-		"declaration": true,
-		"declarationMap": true,
-		"sourceMap": true,
-		"module": "ESNext",
-		"target": "ES2019",
-		"moduleResolution": "Node",
-		"esModuleInterop": true,
-		"strict": true
-	},
-	"include": ["src/**/*"]
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["src/**/*.ts"]
 }
