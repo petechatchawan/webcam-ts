@@ -18,7 +18,7 @@ const EXPECTED_ENTRYPOINTS = [
 
 test("declared public package entrypoints load in the browser engine", async ({ page }) => {
 	await page.goto("/browser-test/fixture.html");
-	await expect(page.locator("#fixture-status")).toHaveValue("ready");
+	await expect(page.locator("#fixture-status")).toHaveText("ready");
 
 	const fixture = await page.evaluate(() => window.webcamTsBrowserFixture);
 	expect(fixture?.loadedEntrypoints).toEqual(EXPECTED_ENTRYPOINTS);
@@ -30,8 +30,6 @@ test("declared public package entrypoints load in the browser engine", async ({ 
 		CameraControls: "CameraControls",
 	});
 
-	// These imports deliberately execute in the Playwright bundle as a second
-	// public-package resolution check. No package source/deep import is allowed.
 	expect(Camera.name).toBe("Camera");
 	expect(VideoPreview.name).toBe("VideoPreview");
 	expect(CameraCapture.name).toBe("CameraCapture");
@@ -42,7 +40,7 @@ test("declared public package entrypoints load in the browser engine", async ({ 
 
 test("public Camera lifecycle executes deterministically inside the browser", async ({ page }) => {
 	await page.goto("/browser-test/fixture.html");
-	await expect(page.locator("#fixture-status")).toHaveValue("ready");
+	await expect(page.locator("#fixture-status")).toHaveText("ready");
 
 	const result = await page.evaluate(() => window.webcamTsBrowserFixture?.runCameraSmoke());
 	expect(result).toBeDefined();
