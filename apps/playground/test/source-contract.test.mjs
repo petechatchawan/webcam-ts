@@ -213,3 +213,14 @@ test("conformance bootstrap wires one real browser executor without reusing norm
   assert.doesNotMatch(main, /Scenario execution is added in a later stabilization PR\./);
   assert.doesNotMatch(conformanceBootstrap, /createBrowserCameraController/);
 });
+
+test("conformance device refresh is failure-safe and limited to discovery scenarios", async () => {
+  const renderer = await readPlaygroundFile("src/conformance/conformance-renderer.ts");
+
+  assert.match(renderer, /DEVICE_REFRESH_SCENARIOS/);
+  assert.match(renderer, /"permission-request"/);
+  assert.match(renderer, /"device-enumeration-before-permission"/);
+  assert.match(renderer, /"device-enumeration-after-permission"/);
+  assert.match(renderer, /void this\.refreshDeviceOptions\(\)\.catch\(\(\) => undefined\)/);
+  assert.match(renderer, /DEVICE_REFRESH_SCENARIOS\.has\(scenarioId\)/);
+});
