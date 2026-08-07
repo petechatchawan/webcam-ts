@@ -1,0 +1,86 @@
+name: Browser Conformance
+
+on:
+  pull_request:
+    paths:
+      - "packages/webcam-ts/**"
+      - "apps/playground/**"
+      - "scripts/verify-browser-conformance-artifact.mjs"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/browser-conformance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    name: ${{ matrix.browser }} conformance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.14.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Webcam-TS package
+        run: pnpm --dir packages/webcam-ts build
+
+      - name: Install Playwright browser
+        run: pnpm --dir apps/playground exec playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run browser conformance
+        env:
+          BROWSER_EVIDENCE_PATH: browser-evidence-${{ matrix.browser }}.json
+        run: pnpm --dir apps/playground test:browser:${{ matrix.browser }}
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-conformance-${{ matrix.browser }}
+          path: apps/playground/browser-evidence-${{ matrix.browser }}.json
+          if-no-files-found: error
+          retention-days: 14
+
+  aggregate:
+    name: Aggregate browser evidence
+    needs: browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download browser evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: browser-conformance-*
+          path: browser-evidence
+          merge-multiple: true
+
+      - name: Verify Chromium Firefox and WebKit evidence
+        run: |
+          test -f browser-evidence/browser-evidence-chromium.json
+          test -f browser-evidence/browser-evidence-firefox.json
+          test -f browser-evidence/browser-evidence-webkit.json
+          node scripts/verify-browser-conformance-artifact.mjs browser-evidence
