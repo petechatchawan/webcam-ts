@@ -57,8 +57,39 @@ interface PendingConfirmation {
 	readonly completedAt: string;
 }
 
+const RAW_DEVICE_IDENTITY_OBSERVATION_KEYS = new Set([
+	"deviceid",
+	"groupid",
+	"label",
+	"devicelabel",
+]);
+
 function freezeState(state: ConformanceControllerState): ConformanceControllerState {
 	return Object.freeze({ ...state });
+}
+
+function normalizedObservationKey(key: string): string {
+	return key.replace(/[^a-z0-9]/gi, "").toLowerCase();
+}
+
+function stripRawDeviceIdentity(
+	definition: ConformanceScenarioDefinition,
+	execution: ConformanceScenarioExecution,
+): ConformanceScenarioExecution {
+	if (!definition.deviceEvidence) return execution;
+
+	return Object.freeze({
+		...execution,
+		observations: Object.freeze(
+			execution.observations.filter(
+				(observation) =>
+					!RAW_DEVICE_IDENTITY_OBSERVATION_KEYS.has(
+						normalizedObservationKey(observation.key),
+					),
+			),
+		),
+		assertions: Object.freeze([...execution.assertions]),
+	});
 }
 
 export class ConformanceController {
@@ -110,7 +141,11 @@ export class ConformanceController {
 		const definition = getConformanceScenario(scenarioId);
 		const environment = this.environmentFactory(this.hardwareClass);
 		const startedAt = this.now().toISOString();
-		const prerequisite = this.prerequisiteChecker(definition);
+		const evidencePrerequisite = this.checkEvidencePrerequisite(definition);
+		const prerequisite =
+			evidencePrerequisite.status === "ready"
+				? this.prerequisiteChecker(definition)
+				: evidencePrerequisite;
 
 		if (prerequisite.status !== "ready") {
 			const result = createScenarioResult({
@@ -131,7 +166,10 @@ export class ConformanceController {
 		this.state = freezeState({ status: "running", scenarioId: definition.id });
 		let execution: ConformanceScenarioExecution;
 		try {
-			execution = await this.executor.execute(definition);
+			execution = stripRawDeviceIdentity(
+				definition,
+				await this.executor.execute(definition),
+			);
 		} catch (error) {
 			const result = createScenarioResult({
 				scenarioId: definition.id,
@@ -247,6 +285,22 @@ export class ConformanceController {
 			this.executorDisposed = true;
 			await this.executor.dispose?.();
 		}
+	}
+
+	private checkEvidencePrerequisite(
+		definition: ConformanceScenarioDefinition,
+	): PrerequisiteCheckResult {
+		const requiredScenario = definition.deviceEvidence?.requiresPassedScenario;
+		if (!requiredScenario) return { status: "ready" };
+		const satisfied = this.results.some(
+			(result) => result.scenarioId === requiredScenario && result.status === "pass",
+		);
+		return satisfied
+			? { status: "ready" }
+			: {
+					status: "blocked",
+					reason: `Scenario requires passing ${requiredScenario} evidence first.`,
+				};
 	}
 
 	private appendResult(result: ConformanceScenarioResult): void {

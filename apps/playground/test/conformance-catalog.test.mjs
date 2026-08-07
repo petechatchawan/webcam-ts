@@ -10,7 +10,8 @@ import {
 const REQUIRED_SCENARIO_IDS = [
 	"runtime-secure-context",
 	"permission-request",
-	"device-enumeration",
+	"device-enumeration-before-permission",
+	"device-enumeration-after-permission",
 	"camera-start",
 	"exact-resolution-supported",
 	"exact-resolution-unsupported",
@@ -20,7 +21,9 @@ const REQUIRED_SCENARIO_IDS = [
 	"stop-pending-start",
 	"dispose-pending-switch",
 	"track-ended",
-	"external-disconnect-reconnect",
+	"devicechange-advisory",
+	"external-disconnect",
+	"external-reconnect-explicit-restart",
 	"preview-integrity",
 	"capture-jpeg",
 	"capture-png",
@@ -80,9 +83,34 @@ test("scenario catalog exposes every approved scenario exactly once", () => {
 	}
 });
 
+test("device evidence scenarios encode permission phases advisory semantics and explicit restart", () => {
+	const beforePermission = getConformanceScenario("device-enumeration-before-permission");
+	assert.deepEqual(beforePermission.prerequisites, ["secure-context"]);
+	assert.equal(beforePermission.deviceEvidence?.kind, "enumeration-before-permission");
+
+	const afterPermission = getConformanceScenario("device-enumeration-after-permission");
+	assert.deepEqual(afterPermission.prerequisites, ["camera-permission"]);
+	assert.equal(afterPermission.deviceEvidence?.kind, "enumeration-after-permission");
+
+	const devicechange = getConformanceScenario("devicechange-advisory");
+	assert.equal(devicechange.deviceEvidence?.kind, "devicechange-advisory");
+	assert.equal(devicechange.deviceEvidence?.advisoryOnly, true);
+
+	const disconnect = getConformanceScenario("external-disconnect");
+	assert.equal(disconnect.deviceEvidence?.kind, "external-disconnect");
+	assert.equal(disconnect.physicalConfirmation?.required, true);
+
+	const reconnect = getConformanceScenario("external-reconnect-explicit-restart");
+	assert.equal(reconnect.deviceEvidence?.kind, "explicit-restart-after-reconnect");
+	assert.equal(reconnect.deviceEvidence?.restartPolicy, "explicit-only");
+	assert.equal(reconnect.deviceEvidence?.requiresPassedScenario, "external-disconnect");
+	assert.equal(reconnect.physicalConfirmation?.required, true);
+});
+
 test("physical scenarios declare confirmation metadata and optional controls declare capability semantics", () => {
+	assert.equal(getConformanceScenario("external-disconnect").physicalConfirmation?.required, true);
 	assert.equal(
-		getConformanceScenario("external-disconnect-reconnect").physicalConfirmation?.required,
+		getConformanceScenario("external-reconnect-explicit-restart").physicalConfirmation?.required,
 		true,
 	);
 	assert.equal(getConformanceScenario("camera-switch").physicalConfirmation?.required, true);

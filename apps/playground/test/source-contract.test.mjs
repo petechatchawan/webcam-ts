@@ -163,3 +163,64 @@ test("inactive preview is compact and lifecycle controls become a mobile sticky 
   );
   assert.match(renderer, /this\.previewShell\.dataset\.active\s*=\s*String\(hasActual\)/);
 });
+
+test("physical conformance mode has one lean preview and two runtime-only camera roles", async () => {
+  const html = await readPlaygroundFile("index.html");
+  for (const id of [
+    "conformance-preview",
+    "conformance-primary-device",
+    "conformance-alternate-device",
+  ]) {
+    assert.equal((html.match(new RegExp(`id=["']${id}["']`, "g")) ?? []).length, 1);
+  }
+
+  const conformanceMarkup = html.slice(html.indexOf('id="conformance-root"'));
+  assert.doesNotMatch(conformanceMarkup, /id=["'](?:start|switch|stop)-camera["']/);
+});
+
+test("conformance renderer binds runtime camera roles without reusing the normal camera controller", async () => {
+  const renderer = await readPlaygroundFile("src/conformance/conformance-renderer.ts");
+
+  assert.match(renderer, /ConformanceDeviceRuntime/);
+  assert.match(renderer, /conformance-primary-device/);
+  assert.match(renderer, /conformance-alternate-device/);
+  assert.match(renderer, /refreshDeviceOptions\(/);
+  assert.match(renderer, /setPrimaryDeviceId\(/);
+  assert.match(renderer, /setAlternateDeviceId\(/);
+  assert.doesNotMatch(renderer, /CameraController|createBrowserCameraController/);
+});
+
+test("conformance preview stays light-theme lean and never crops physical evidence", async () => {
+  const css = await readPlaygroundFile("src/conformance/conformance.css");
+
+  assert.match(css, /\.conformance-preview-shell[\s\S]*var\(--border\)/);
+  assert.match(css, /\.conformance-preview-shell\s+video[\s\S]*object-fit:\s*contain/);
+  assert.doesNotMatch(css, /prefers-color-scheme:\s*dark|backdrop-filter|radial-gradient/i);
+});
+
+test("conformance bootstrap wires one real browser executor without reusing normal controller state", async () => {
+  const main = await readPlaygroundFile("src/main.ts");
+  const conformanceBootstrap = main.slice(main.indexOf("export function bootstrapConformance"));
+
+  assert.match(main, /BrowserConformanceExecutor/);
+  assert.match(main, /new Camera\(\)/);
+  assert.match(main, /new VideoPreview\(video/);
+  assert.match(conformanceBootstrap, /conformance-preview/);
+  assert.match(conformanceBootstrap, /new BrowserConformanceExecutor\(/);
+  assert.match(conformanceBootstrap, /executor,/);
+  assert.match(conformanceBootstrap, /new ConformanceRenderer\(controller,\s*executor,\s*conformanceRoot\)/);
+  assert.match(conformanceBootstrap, /prerequisiteChecker:\s*\(definition\)\s*=>\s*executor\.checkPrerequisite\(definition\)/);
+  assert.doesNotMatch(main, /Scenario execution is added in a later stabilization PR\./);
+  assert.doesNotMatch(conformanceBootstrap, /createBrowserCameraController/);
+});
+
+test("conformance device refresh is failure-safe and limited to discovery scenarios", async () => {
+  const renderer = await readPlaygroundFile("src/conformance/conformance-renderer.ts");
+
+  assert.match(renderer, /DEVICE_REFRESH_SCENARIOS/);
+  assert.match(renderer, /"permission-request"/);
+  assert.match(renderer, /"device-enumeration-before-permission"/);
+  assert.match(renderer, /"device-enumeration-after-permission"/);
+  assert.match(renderer, /void this\.refreshDeviceOptions\(\)\.catch\(\(\) => undefined\)/);
+  assert.match(renderer, /DEVICE_REFRESH_SCENARIOS\.has\(scenarioId\)/);
+});
