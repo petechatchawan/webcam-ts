@@ -77,8 +77,10 @@ test("conformance renderer owns conformance bindings without extending the norma
 	assert.doesNotMatch(normalRenderer, /conformance-(?:scenario|run|confirmation|export)/);
 });
 
-test("conformance layout keeps the existing light mobile-first design language", async () => {
-	const css = await readPlaygroundFile("src/styles.css");
+test("conformance layout keeps the existing light mobile-first design language in an isolated stylesheet", async () => {
+	const main = await readPlaygroundFile("src/main.ts");
+	const css = await readPlaygroundFile("src/conformance/conformance.css");
+	assert.match(main, /conformance\/conformance\.css/);
 	assert.match(css, /\.conformance-shell/);
 	assert.match(css, /\.conformance-actions/);
 	assert.match(css, /\.conformance-result/);
