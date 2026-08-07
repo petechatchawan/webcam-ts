@@ -25,7 +25,8 @@ export interface CameraSessionObserver {
 type MediaOpenOutcome =
   | Readonly<{ kind: "opened"; stream: MediaStream }>
   | Readonly<{ kind: "failed"; error: unknown }>
-  | Readonly<{ kind: "invalidated"; error: CameraError }>;
+  | Readonly<{ kind: "invalidated"; error: CameraError }>
+  | Readonly<{ kind: "aborted"; error: CameraError }>;
 
 export class CameraSession {
   private status: CameraStatus = "idle";
@@ -62,7 +63,7 @@ export class CameraSession {
     let candidate: MediaStream | null = null;
     try {
       const constraints = buildMediaStreamConstraints(request);
-      candidate = await this.openMedia(constraints, lease);
+      candidate = await this.openMedia(constraints, lease, request.signal);
       this.candidates.add(candidate);
       this.assertRequestCurrent(request, lease);
       const track = this.validateCandidate(candidate, "start");
@@ -96,7 +97,7 @@ export class CameraSession {
     let candidate: MediaStream | null = null;
     try {
       const constraints = buildMediaStreamConstraints(request);
-      candidate = await this.openMedia(constraints, lease);
+      candidate = await this.openMedia(constraints, lease, request.signal);
       this.candidates.add(candidate);
       this.assertRequestCurrent(request, lease);
       const track = this.validateCandidate(candidate, "switch");
@@ -169,6 +170,7 @@ export class CameraSession {
   private async openMedia(
     constraints: MediaStreamConstraints,
     lease: OperationLease,
+    signal?: AbortSignal,
   ): Promise<MediaStream> {
     const openPromise = Promise.resolve().then(() => this.mediaDevices.open(constraints));
     const openOutcome: Promise<MediaOpenOutcome> = openPromise.then(
@@ -178,7 +180,28 @@ export class CameraSession {
     const invalidationOutcome: Promise<MediaOpenOutcome> = lease.whenInvalidated().then(
       (error): MediaOpenOutcome => ({ kind: "invalidated", error }),
     );
-    const outcome = await Promise.race([openOutcome, invalidationOutcome]);
+
+    let removeAbortListener: (() => void) | null = null;
+    let abortOutcome: Promise<MediaOpenOutcome> | null = null;
+    if (signal) {
+      abortOutcome = new Promise<MediaOpenOutcome>((resolve) => {
+        const settleAborted = () => {
+          resolve({ kind: "aborted", error: this.createAbortError(lease) });
+        };
+        if (signal.aborted) {
+          settleAborted();
+          return;
+        }
+        const onAbort = () => settleAborted();
+        signal.addEventListener("abort", onAbort, { once: true });
+        removeAbortListener = () => signal.removeEventListener("abort", onAbort);
+      });
+    }
+
+    const outcomes: Promise<MediaOpenOutcome>[] = [openOutcome, invalidationOutcome];
+    if (abortOutcome) outcomes.push(abortOutcome);
+    const outcome = await Promise.race(outcomes);
+    removeAbortListener?.();
 
     if (outcome.kind === "opened") return outcome.stream;
     if (outcome.kind === "failed") throw outcome.error;
@@ -188,6 +211,15 @@ export class CameraSession {
       () => undefined,
     );
     throw outcome.error;
+  }
+
+  private createAbortError(lease: OperationLease): CameraError {
+    return new CameraError(`${lease.operation} operation was aborted`, {
+      code: "OPERATION_ABORTED",
+      operation: lease.operation,
+      recoverable: true,
+      context: { operationId: lease.id },
+    });
   }
 
   private attachActiveTrackEndedListener(track: MediaStreamTrack): void {
@@ -231,14 +263,7 @@ export class CameraSession {
   }
 
   private assertRequestCurrent(request: CameraRequest, lease: OperationLease): void {
-    if (request.signal?.aborted) {
-      throw new CameraError(`${lease.operation} operation was aborted`, {
-        code: "OPERATION_ABORTED",
-        operation: lease.operation,
-        recoverable: true,
-        context: { operationId: lease.id },
-      });
-    }
+    if (request.signal?.aborted) throw this.createAbortError(lease);
     lease.throwIfInvalid();
   }
 
