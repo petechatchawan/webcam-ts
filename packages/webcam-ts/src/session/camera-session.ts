@@ -22,6 +22,11 @@ export interface CameraSessionObserver {
   onSessionEnded(error: CameraError): void;
 }
 
+type MediaOpenOutcome =
+  | Readonly<{ kind: "opened"; stream: MediaStream }>
+  | Readonly<{ kind: "failed"; error: unknown }>
+  | Readonly<{ kind: "invalidated"; error: CameraError }>;
+
 export class CameraSession {
   private status: CameraStatus = "idle";
   private activeStream: MediaStream | null = null;
@@ -57,7 +62,7 @@ export class CameraSession {
     let candidate: MediaStream | null = null;
     try {
       const constraints = buildMediaStreamConstraints(request);
-      candidate = await this.mediaDevices.open(constraints);
+      candidate = await this.openMedia(constraints, lease);
       this.candidates.add(candidate);
       this.assertRequestCurrent(request, lease);
       const track = this.validateCandidate(candidate, "start");
@@ -91,7 +96,7 @@ export class CameraSession {
     let candidate: MediaStream | null = null;
     try {
       const constraints = buildMediaStreamConstraints(request);
-      candidate = await this.mediaDevices.open(constraints);
+      candidate = await this.openMedia(constraints, lease);
       this.candidates.add(candidate);
       this.assertRequestCurrent(request, lease);
       const track = this.validateCandidate(candidate, "switch");
@@ -161,6 +166,28 @@ export class CameraSession {
     this.observer.onOperationCompleted("dispose", operationId);
   }
 
+  private async openMedia(
+    constraints: MediaStreamConstraints,
+    lease: OperationLease,
+  ): Promise<MediaStream> {
+    const openPromise = Promise.resolve().then(() => this.mediaDevices.open(constraints));
+    const outcome = await Promise.race<MediaOpenOutcome>([
+      openPromise.then<MediaOpenOutcome>(
+        (stream) => ({ kind: "opened", stream }),
+        (error) => ({ kind: "failed", error }),
+      ),
+      lease.whenInvalidated().then<MediaOpenOutcome>((error) => ({ kind: "invalidated", error })),
+    ]);
+
+    if (outcome.kind === "opened") return outcome.stream;
+    if (outcome.kind === "failed") throw outcome.error;
+
+    void openPromise.then(
+      (stream) => stopStream(stream),
+      () => undefined,
+    );
+    throw outcome.error;
+  }
 
   private attachActiveTrackEndedListener(track: MediaStreamTrack): void {
     const listener = () => this.handleActiveTrackEnded(track);
