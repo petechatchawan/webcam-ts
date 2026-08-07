@@ -181,7 +181,7 @@ export class CameraSession {
       (error): MediaOpenOutcome => ({ kind: "invalidated", error }),
     );
 
-    let removeAbortListener: (() => void) | null = null;
+    let removeAbortListener: () => void = () => undefined;
     let abortOutcome: Promise<MediaOpenOutcome> | null = null;
     if (signal) {
       abortOutcome = new Promise<MediaOpenOutcome>((resolve) => {
@@ -201,7 +201,7 @@ export class CameraSession {
     const outcomes: Promise<MediaOpenOutcome>[] = [openOutcome, invalidationOutcome];
     if (abortOutcome) outcomes.push(abortOutcome);
     const outcome = await Promise.race(outcomes);
-    removeAbortListener?.();
+    removeAbortListener();
 
     if (outcome.kind === "opened") return outcome.stream;
     if (outcome.kind === "failed") throw outcome.error;
