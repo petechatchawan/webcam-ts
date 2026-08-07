@@ -5,9 +5,14 @@ import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 
 const playgroundRoot = fileURLToPath(new URL("../", import.meta.url));
+const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 async function readPlaygroundFile(path) {
 	return readFile(join(playgroundRoot, path), "utf8");
+}
+
+async function readRepositoryFile(path) {
+	return readFile(join(repositoryRoot, path), "utf8");
 }
 
 test("playground package declares Playwright browser conformance scripts", async () => {
@@ -40,4 +45,15 @@ test("browser fixture imports only declared public Webcam-TS entrypoints", async
 	}
 	assert.doesNotMatch(source, /packages\/webcam-ts\/src/);
 	assert.doesNotMatch(source, /webcam-ts\/dist/);
+});
+
+test("browser CI retains per-engine evidence and verifies all required artifacts", async () => {
+	const workflow = await readRepositoryFile(".github/workflows/browser-conformance.yml");
+	assert.match(workflow, /BROWSER_EVIDENCE_PATH/);
+	assert.match(workflow, /actions\/upload-artifact@v4/);
+	assert.match(workflow, /browser-conformance-\$\{\{ matrix\.browser \}\}/);
+	assert.match(workflow, /name:\s*aggregate/i);
+	assert.match(workflow, /actions\/download-artifact@v4/);
+	assert.match(workflow, /verify-browser-conformance-artifact\.mjs/);
+	assert.match(workflow, /chromium[\s\S]*firefox[\s\S]*webkit/);
 });
