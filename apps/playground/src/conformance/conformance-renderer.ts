@@ -4,6 +4,12 @@ import { exportEvidenceJson } from "./evidence-exporter.js";
 import { CONFORMANCE_SCENARIOS } from "./scenarios.js";
 import type { HardwareClass } from "./types.js";
 
+const DEVICE_REFRESH_SCENARIOS = new Set([
+	"permission-request",
+	"device-enumeration-before-permission",
+	"device-enumeration-after-permission",
+]);
+
 function requireElement<T extends HTMLElement>(root: ParentNode, id: string): T {
 	const element = root.querySelector<T>(`#${id}`);
 	if (!element) throw new Error(`Missing conformance element #${id}`);
@@ -71,7 +77,7 @@ export class ConformanceRenderer {
 			this.render();
 		});
 		this.exportButton.addEventListener("click", () => this.exportEvidence());
-		void this.refreshDeviceOptions();
+		void this.refreshDeviceOptions().catch(() => undefined);
 		this.render();
 	}
 
@@ -109,13 +115,16 @@ export class ConformanceRenderer {
 	}
 
 	private async runSelectedScenario(): Promise<void> {
+		const scenarioId = this.scenarioSelect.value;
 		this.runButton.disabled = true;
 		this.status.textContent = "running";
 		this.status.dataset.status = "running";
 		try {
-			await this.controller.run(this.scenarioSelect.value);
+			await this.controller.run(scenarioId);
 		} finally {
-			await this.refreshDeviceOptions().catch(() => undefined);
+			if (DEVICE_REFRESH_SCENARIOS.has(scenarioId)) {
+				await this.refreshDeviceOptions().catch(() => undefined);
+			}
 			this.runButton.disabled = false;
 			this.render();
 		}
