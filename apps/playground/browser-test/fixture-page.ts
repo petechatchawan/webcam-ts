@@ -49,13 +49,13 @@ window.webcamTsBrowserFixture = Object.freeze({
 		CameraControls: CameraControls.name,
 	}),
 	async runCameraSmoke() {
-		const track = new FakeMediaStreamTrack({
-			label: "Synthetic browser fixture",
-			settings: { width: 1280, height: 720, frameRate: 30 },
-		});
-		const stream = new FakeMediaStream([track]);
+		const track = new FakeMediaStreamTrack(
+			"Synthetic browser fixture",
+			{ width: 1280, height: 720, frameRate: 30 },
+		);
+		const stream = new FakeMediaStream(track);
 		const mediaDevices = new FakeMediaDevicesPort();
-		mediaDevices.enqueueStream(stream);
+		mediaDevices.enqueueStream(stream as unknown as MediaStream);
 		const camera = new Camera({
 			mediaDevices,
 			now: () => 1000,
