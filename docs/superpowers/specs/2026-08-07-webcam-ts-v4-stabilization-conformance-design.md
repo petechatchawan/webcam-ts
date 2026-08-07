@@ -31,6 +31,7 @@ The milestone ends with a release candidate only after all Tier-1 conformance ga
 - Automated browser tests where synthetic media is technically reliable.
 - Manual physical conformance where hardware/browser behavior cannot be represented faithfully by synthetic media.
 - Evidence export suitable for repository handoff and issue diagnosis.
+- Node/SSR import and package conformance on supported Node runtimes.
 - Release-candidate and stable-release gates.
 
 ### Out of scope
@@ -49,16 +50,32 @@ All Tier-1 categories are release blockers for stable `4.0.0`.
 
 | Platform | Required physical coverage | Release-blocking scenarios |
 |---|---|---|
-| macOS Chromium | Integrated camera and external USB camera when available | permission, enumerate, start, exact/ideal resolution, switch, stop, track ended/disconnect, capture, controls |
+| macOS Chromium | Integrated camera and external USB camera | permission, enumerate, start, exact/ideal resolution, switch, stop, track ended/disconnect, capture, controls |
 | macOS Firefox | Integrated camera | permission, enumerate, start, exact/ideal resolution, stop, capture, error normalization |
 | macOS Safari | Integrated camera | permission, enumerate, start, exact/ideal resolution, switch where multiple cameras are available, stop, capture |
 | iOS Safari | Front and rear cameras | permission, start, front/rear switch, exact/ideal resolution, stop, capture, interruption/recovery |
 | Android Chrome | Front and rear cameras | permission, start, front/rear switch, exact/ideal resolution, stop, capture, torch/zoom where supported |
 | External USB webcam | At least one desktop Chromium run | enumerate, select, exact/ideal resolution, disconnect/reconnect, track ended, recovery |
 
+The external USB webcam run is mandatory for stable release. If the release environment does not have suitable hardware, the release remains blocked rather than silently downgrading this gate.
+
 The conformance report records exact browser, OS, and device versions used for each run. The public support statement is based on evidence in the matrix rather than claiming untested browser versions.
 
-## 4. Stabilization principles
+## 4. Node / SSR support policy
+
+The current alpha package declares `node >=18`, but Node 18 and Node 20 are end-of-life by this stabilization milestone. Stable v4 must not claim support for EOL runtimes that are not part of the release gate.
+
+For `4.0.0-rc.1` and stable `4.0.0`:
+
+- package engine floor becomes `node >=22`;
+- CI verifies Node 22 and Node 24;
+- SSR import and public package construction must succeed on both;
+- browser-only operations must fail lazily with typed unsupported-runtime errors rather than top-level `ReferenceError`;
+- no stable support claim is made for Node 18 or Node 20.
+
+This is acceptable within the v4 major release and removes an unverifiable compatibility promise before stable publication.
+
+## 5. Stabilization principles
 
 1. **Evidence before workaround.** Browser-specific behavior must be reproduced and recorded before production code changes.
 2. **Public contract over browser accident.** A browser quirk must not silently redefine a Webcam-TS contract.
@@ -69,7 +86,7 @@ The conformance report records exact browser, OS, and device versions used for e
 7. **Capability-driven controls.** Torch, zoom, focus, and similar controls are asserted only when exposed by the active track capabilities.
 8. **Privacy-safe evidence.** Reports must not export raw `deviceId`, `groupId`, or camera labels by default.
 
-## 5. Conformance architecture
+## 6. Conformance architecture
 
 The milestone adds a conformance layer around the existing public package rather than introducing a second camera implementation.
 
@@ -97,7 +114,7 @@ Webcam-TS public package
 
 Conformance mode must consume only declared public package exports unless a test is explicitly validating a package-internal unit through the package test suite.
 
-## 6. Conformance scenario model
+## 7. Conformance scenario model
 
 Each scenario is deterministic at the orchestration level even though physical media negotiation is platform-dependent.
 
@@ -139,7 +156,7 @@ A scenario must never report `pass` only because no exception occurred. Pass/fai
 - torch
 - focus
 
-## 7. Evidence contract
+## 8. Evidence contract
 
 Evidence must be useful for debugging while safe to attach to GitHub issues and pull requests.
 
@@ -179,7 +196,7 @@ Allowed:
 
 The exporter must sanitize unknown error causes instead of serializing arbitrary browser objects recursively.
 
-## 8. Automated browser conformance
+## 9. Automated browser conformance
 
 Automated browser tests use synthetic media only where the assertions are meaningful and deterministic.
 
@@ -203,7 +220,7 @@ Automated coverage focuses on:
 
 Automated WebKit is not treated as proof that physical iOS Safari behavior is equivalent. Physical iOS remains a separate Tier-1 gate.
 
-## 9. Physical conformance workflow
+## 10. Physical conformance workflow
 
 Physical scenarios run from the canonical GitHub Pages playground over HTTPS.
 
@@ -228,7 +245,7 @@ Examples of user-confirmed facts:
 
 The harness must avoid asking the tester to interpret technical state already available through APIs.
 
-## 10. Lifecycle stabilization requirements
+## 11. Lifecycle stabilization requirements
 
 ### Pending `getUserMedia()` and preemption
 
@@ -254,7 +271,7 @@ When the active video track ends unexpectedly:
 - a later explicit `start()` may recover.
 - no automatic reopening loop is introduced in this milestone.
 
-## 11. Camera switching stabilization
+## 12. Camera switching stabilization
 
 The current preferred behavior remains candidate-first atomic switching because it preserves the active stream on candidate failure.
 
@@ -282,7 +299,7 @@ If required, its public semantics must distinguish between:
 
 Any relaxation of the current failed-switch-preserves-stream invariant requires an architecture decision update before stable release.
 
-## 12. Resolution stabilization
+## 13. Resolution stabilization
 
 ### Exact mode
 
@@ -311,7 +328,7 @@ If a browser omits an authoritative setting, the report must record the postcond
 
 The existing 19 portrait, landscape, and square presets remain test inputs. A physical camera is not required to support every preset. Correct rejection of unsupported exact presets is a pass condition.
 
-## 13. Permission stabilization
+## 14. Permission stabilization
 
 Permissions API results remain advisory. `getUserMedia()` remains the request authority.
 
@@ -327,7 +344,7 @@ Required cases:
 
 The public error taxonomy must avoid claiming a distinction the browser does not expose reliably. Browser-specific DOMException names are normalized once at the platform boundary.
 
-## 14. Device and disconnect stabilization
+## 15. Device and disconnect stabilization
 
 Required behavior:
 
@@ -337,7 +354,7 @@ Required behavior:
 - `devicechange` is treated as advisory; active track `ended` remains authoritative for session loss.
 - reconnect does not auto-resume the previous device in this milestone; recovery is explicit through `start()` or `switch()`.
 
-## 15. Capture stabilization
+## 16. Capture stabilization
 
 Both capture backends are release-relevant:
 
@@ -355,7 +372,7 @@ Required assertions:
 
 No captured image bytes are included in default conformance evidence.
 
-## 16. Controls stabilization
+## 17. Controls stabilization
 
 Torch, zoom, and focus are capability-driven.
 
@@ -368,7 +385,7 @@ A platform passes when:
 
 A device lacking torch, zoom, or focus is not a conformance failure.
 
-## 17. Error taxonomy conformance
+## 18. Error taxonomy conformance
 
 The current error taxonomy remains the baseline. The milestone verifies real browser mappings for at least:
 
@@ -386,7 +403,7 @@ The current error taxonomy remains the baseline. The milestone verifies real bro
 
 New public error codes require an explicit specification amendment; browser-specific names should normally remain sanitized context rather than become public codes.
 
-## 18. PR decomposition
+## 19. PR decomposition
 
 ### PR 1 — Conformance Harness & Evidence Contract
 
@@ -433,12 +450,13 @@ New public error codes require an explicit specification amendment; browser-spec
 - known limitations
 - verified README/API examples
 - release notes
+- package engine floor transition to Node `>=22`
 - package/version transition to `4.0.0-rc.1`
 - packed-package and GitHub Pages exact-SHA verification
 
 Stable `4.0.0` is a promotion step after RC physical verification; it is not merged merely because PR 6 is green in synthetic CI.
 
-## 19. Release gates
+## 20. Release gates
 
 ### Automated gate
 
@@ -448,14 +466,15 @@ Stable `4.0.0` is a promotion step after RC physical verification; it is not mer
 - Chromium conformance PASS
 - Firefox conformance PASS
 - WebKit conformance PASS
-- Node/SSR verification on supported Node matrix PASS
+- Node 22 SSR/package verification PASS
+- Node 24 SSR/package verification PASS
 - zero known owned-track leaks
 - deterministic evidence generation PASS
 
 ### Physical Tier-1 gate
 
 - macOS Chromium integrated camera PASS
-- macOS Chromium external USB camera PASS where hardware is available for the release run
+- macOS Chromium external USB camera PASS
 - macOS Firefox integrated camera PASS
 - macOS Safari integrated camera PASS
 - iOS Safari front/rear PASS
@@ -476,7 +495,7 @@ Stable `4.0.0` is a promotion step after RC physical verification; it is not mer
 - README examples verified against packed package
 - GitHub Pages deployment SHA matches release candidate/stable source SHA
 
-## 20. Defect severity
+## 21. Defect severity
 
 ### P0 — blocks all release work
 
@@ -505,7 +524,7 @@ Examples:
 - nonessential diagnostic field unavailable on one browser
 - optional capability behavior differs while returning the correct unsupported result
 
-## 21. Version progression
+## 22. Version progression
 
 Expected progression:
 
@@ -521,7 +540,7 @@ Expected progression:
 
 Additional alpha or RC increments are allowed only when evidence requires another externally testable iteration.
 
-## 22. Completion definition
+## 23. Completion definition
 
 This milestone is complete when Webcam-TS has a reproducible conformance harness, browser automation, privacy-safe evidence, a completed Tier-1 physical matrix, no open P0/P1 defects, explicit known limitations, and an RC that can be promoted to `4.0.0` without changing the public API or core lifecycle semantics.
 
