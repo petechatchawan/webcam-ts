@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
-    <meta
-      name="description"
-      content="Mobile-first Webcam-TS v4 camera playground"
-    />
+    <meta name="description" content="Mobile-first Webcam-TS v4 camera playground" />
     <title>Webcam-TS v4 Playground</title>
   </head>
   <body>
@@ -24,14 +21,9 @@
               <p class="brand-description">Mobile camera lifecycle playground</p>
             </div>
           </div>
-          <a
-            class="button button-outline button-sm"
-            href="https://github.com/petechatchawan/webcam-ts"
-          >
+          <a class="button button-outline button-sm" href="https://github.com/petechatchawan/webcam-ts">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.87c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.57 9.57 0 0 1 12 6.82a9.6 9.6 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v2.76c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"
-              />
+              <path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.87c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.57 9.57 0 0 1 12 6.82a9.6 9.6 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v2.76c0 .27.18.58.69.48A10 10 0 0 0 12 2Z" />
             </svg>
             Source
           </a>
@@ -44,19 +36,13 @@
             <h1>Mobile camera test</h1>
             <p>Pick a preset and resolution behavior, then open the camera.</p>
           </div>
-          <span id="status-badge" class="badge status-badge" data-status="idle">idle</span>
         </div>
 
         <div class="workspace-grid">
           <section class="workspace-column" aria-label="Camera preview">
             <article class="card preview-card">
               <div class="card-content preview-content">
-                <div
-                  id="preview-shell"
-                  class="preview-shell"
-                  data-orientation="portrait"
-                  data-active="false"
-                >
+                <div id="preview-shell" class="preview-shell" data-orientation="portrait" data-active="false">
                   <video id="camera-preview" aria-label="Live camera preview"></video>
 
                   <div id="preview-empty" class="preview-empty" aria-hidden="true">
@@ -76,13 +62,23 @@
                     </div>
                     <div class="permission-gate-copy">
                       <strong id="permission-gate-title">Camera access required</strong>
-                      <p id="permission-gate-message">
-                        Allow access before starting a session. The browser will ask for camera permission.
-                      </p>
+                      <p id="permission-gate-message">Allow access before starting a session. The browser will ask for camera permission.</p>
                     </div>
-                    <button id="permission-gate-action" class="button button-primary button-full">
-                      Allow camera access
-                    </button>
+                    <button id="permission-gate-action" class="button button-primary button-full">Allow camera access</button>
+                  </div>
+
+                  <span id="status-badge" class="badge status-badge preview-status-overlay" data-status="idle">idle</span>
+
+                  <label class="preview-mirror-control" aria-label="Mirror preview">
+                    <input id="mirror-toggle" type="checkbox" checked />
+                    <span class="switch-track" aria-hidden="true"><span></span></span>
+                    <span>Mirror</span>
+                  </label>
+
+                  <div class="preview-session-controls" aria-label="Camera session controls">
+                    <button id="start-camera" class="button button-primary" disabled>Start</button>
+                    <button id="switch-camera" class="button button-secondary" disabled>Switch</button>
+                    <button id="stop-camera" class="button button-destructive-outline" disabled>Stop</button>
                   </div>
 
                   <div class="capture-options" aria-label="Capture options">
@@ -96,84 +92,33 @@
                     <label class="capture-opt capture-opt-quality">
                       <span class="capture-opt-label">Quality</span>
                       <span class="capture-quality-line">
-                        <input
-                          id="capture-quality"
-                          type="range"
-                          min="0.1"
-                          max="1"
-                          step="0.01"
-                          value="0.92"
-                        />
+                        <input id="capture-quality" type="range" min="0.1" max="1" step="0.01" value="0.92" />
                         <output id="capture-quality-value">0.92</output>
                       </span>
                     </label>
                   </div>
 
-                  <button
-                    id="capture-photo"
-                    class="capture-shutter"
-                    aria-label="Capture frame"
-                    disabled
-                  ></button>
+                  <button id="capture-photo" class="capture-shutter" aria-label="Capture frame" disabled></button>
 
                   <div id="capture-pool" class="capture-pool" hidden>
-                    <span
-                      id="capture-empty"
-                      class="capture-thumb capture-thumb-empty"
-                      hidden
-                    >
+                    <span id="capture-empty" class="capture-thumb capture-thumb-empty" hidden>
                       <svg viewBox="0 0 24 24" aria-hidden="true">
                         <rect x="3" y="4" width="18" height="16" rx="2" />
                         <circle cx="8.5" cy="9" r="1.5" />
                         <path d="m5 17 4.5-4.5 3 3 2-2L19 17" />
                       </svg>
                     </span>
-                    <img
-                      id="capture-image"
-                      class="capture-thumb"
-                      alt="Latest captured camera frame"
-                      hidden
-                    />
+                    <img id="capture-image" class="capture-thumb" alt="Latest captured camera frame" hidden />
                     <span id="capture-metadata" class="capture-metadata" hidden></span>
                   </div>
 
                   <div class="preview-resolution-overlay" aria-label="Camera resolution diagnostics">
-                    <span id="preview-requested-resolution" class="resolution-line">
-                      Requested Exact PORTRAIT-720P · 720×1280
-                    </span>
-                    <span
-                      id="preview-actual-resolution"
-                      class="resolution-line"
-                      data-available="false"
-                    >Actual —</span>
+                    <span id="preview-requested-resolution" class="resolution-line">Requested Exact PORTRAIT-720P · 720×1280</span>
+                    <span id="preview-actual-resolution" class="resolution-line" data-available="false">Actual —</span>
                   </div>
                 </div>
               </div>
             </article>
-
-            <section class="card camera-action-panel" aria-label="Camera session controls">
-              <div class="camera-action-copy">
-                <div>
-                  <strong>Camera session</strong>
-                  <span>Start, switch, or stop without leaving the preview.</span>
-                </div>
-              </div>
-              <div class="lifecycle-actions">
-                <button id="start-camera" class="button button-primary" disabled>
-                  Start camera
-                </button>
-                <button id="switch-camera" class="button button-secondary" disabled>
-                  Switch
-                </button>
-                <button
-                  id="stop-camera"
-                  class="button button-destructive-outline"
-                  disabled
-                >
-                  Stop
-                </button>
-              </div>
-            </section>
 
             <div id="error-panel" class="alert alert-destructive" hidden role="alert">
               <div class="alert-icon" aria-hidden="true">!</div>
@@ -181,13 +126,7 @@
                 <strong id="error-code">UNKNOWN</strong>
                 <p id="error-message"></p>
               </div>
-              <button
-                id="dismiss-error"
-                class="button button-ghost button-icon"
-                aria-label="Dismiss error"
-              >
-                ×
-              </button>
+              <button id="dismiss-error" class="button button-ghost button-icon" aria-label="Dismiss error">×</button>
             </div>
 
             <article class="card settings-card">
@@ -202,9 +141,7 @@
                   <label class="field resolution-field">
                     <span class="field-label">Resolution preset</span>
                     <select id="resolution-select" aria-describedby="resolution-help"></select>
-                    <small id="resolution-help" class="field-help">
-                      Portrait is selected by default for mobile testing.
-                    </small>
+                    <small id="resolution-help" class="field-help">Portrait is selected by default for mobile testing.</small>
                   </label>
                   <label class="field">
                     <span class="field-label">Resolution behavior</span>
@@ -212,37 +149,17 @@
                       <option value="exact" selected>Exact — fail if unavailable</option>
                       <option value="ideal">Prefer closest — allow fallback</option>
                     </select>
-                    <small id="resolution-mode-help" class="field-help">
-                      Exact rejects unsupported width or height with a typed error.
-                    </small>
+                    <small id="resolution-mode-help" class="field-help">Exact rejects unsupported width or height with a typed error.</small>
                   </label>
                   <label class="field">
                     <span class="field-label">Camera device</span>
-                    <select id="device-select">
-                      <option value="">Automatic selection</option>
-                    </select>
-                  </label>
-                  <label class="field">
-                    <span class="field-label">Facing mode</span>
-                    <select id="facing-select">
-                      <option value="">Automatic</option>
-                      <option value="user">Front / user</option>
-                      <option value="environment">Rear / environment</option>
-                    </select>
+                    <select id="device-select"><option value="">Automatic selection</option></select>
                   </label>
                 </div>
 
                 <div class="separator"></div>
 
                 <div class="toggle-grid">
-                  <label class="switch-control">
-                    <input id="mirror-toggle" type="checkbox" checked />
-                    <span class="switch-track" aria-hidden="true"><span></span></span>
-                    <span class="switch-copy">
-                      <strong>Mirror preview</strong>
-                      <small>Apply mirroring to preview and captured frames.</small>
-                    </span>
-                  </label>
                   <label class="switch-control">
                     <input id="audio-toggle" type="checkbox" />
                     <span class="switch-track" aria-hidden="true"><span></span></span>
@@ -263,11 +180,7 @@
                   <h2 id="permission-title" class="card-title">Permissions</h2>
                   <p class="card-description">Browser access state for media inputs.</p>
                 </div>
-                <span
-                  id="permission-badge"
-                  class="badge"
-                  data-permission="unknown"
-                >unknown</span>
+                <span id="permission-badge" class="badge" data-permission="unknown">unknown</span>
               </div>
               <div class="card-content">
                 <dl class="metric-list">
@@ -291,19 +204,14 @@
                   <span class="switch-copy"><strong>Torch</strong></span>
                 </label>
                 <label id="zoom-row" class="field" hidden>
-                  <span class="field-heading">
-                    <span class="field-label">Zoom</span>
-                    <output id="zoom-value">1.00</output>
-                  </span>
+                  <span class="field-heading"><span class="field-label">Zoom</span><output id="zoom-value">1.00</output></span>
                   <input id="zoom-input" type="range" min="1" max="1" step="0.1" value="1" />
                 </label>
                 <label id="focus-row" class="field" hidden>
                   <span class="field-label">Focus mode</span>
                   <select id="focus-select"></select>
                 </label>
-                <button id="apply-controls" class="button button-secondary button-full">
-                  Apply controls
-                </button>
+                <button id="apply-controls" class="button button-secondary button-full">Apply controls</button>
               </div>
             </section>
           </aside>
@@ -319,15 +227,11 @@
           </summary>
           <div class="diagnostics-grid">
             <article class="card diagnostics-card">
-              <div class="card-header">
-                <h2 class="card-title">Camera state</h2>
-              </div>
+              <div class="card-header"><h2 class="card-title">Camera state</h2></div>
               <div class="card-content"><pre id="state-output"></pre></div>
             </article>
             <article class="card diagnostics-card">
-              <div class="card-header">
-                <h2 class="card-title">Devices and capabilities</h2>
-              </div>
+              <div class="card-header"><h2 class="card-title">Devices and capabilities</h2></div>
               <div class="card-content"><pre id="devices-output"></pre></div>
             </article>
             <article class="card diagnostics-card events-card">
@@ -342,9 +246,7 @@
       </main>
 
       <footer class="app-footer">
-        <div class="container">
-          Uses only declared <code>webcam-ts</code> v4 package exports.
-        </div>
+        <div class="container">Uses only declared <code>webcam-ts</code> v4 package exports.</div>
       </footer>
     </div>
 
@@ -356,9 +258,7 @@
             <span class="badge badge-outline">v4 conformance</span>
           </div>
           <h1>Real browser &amp; device conformance</h1>
-          <p>
-            Run assertion-based scenarios and export privacy-safe evidence. Scenarios that are not implemented yet are reported as blocked, never as a pass.
-          </p>
+          <p>Run assertion-based scenarios and export privacy-safe evidence. Scenarios that are not implemented yet are reported as blocked, never as a pass.</p>
         </div>
         <a class="button button-outline button-sm" href="./">Normal playground</a>
       </header>
@@ -401,9 +301,7 @@
             </label>
             <div class="conformance-actions">
               <button id="conformance-run" class="button button-primary">Run scenario</button>
-              <button id="conformance-export" class="button button-secondary" disabled>
-                Export evidence
-              </button>
+              <button id="conformance-export" class="button button-secondary" disabled>Export evidence</button>
             </div>
           </div>
         </article>
@@ -417,9 +315,7 @@
             <span id="conformance-status" class="badge" data-status="idle">idle</span>
           </div>
           <div class="card-content">
-            <div id="conformance-result" class="conformance-result" data-status="idle" aria-live="polite">
-              Run a scenario to collect evidence.
-            </div>
+            <div id="conformance-result" class="conformance-result" data-status="idle" aria-live="polite">Run a scenario to collect evidence.</div>
           </div>
         </article>
       </section>
@@ -437,9 +333,7 @@
         </div>
       </section>
 
-      <p class="conformance-privacy-note">
-        Default evidence excludes raw device IDs, group IDs, camera labels, captured frames, and URL secrets.
-      </p>
+      <p class="conformance-privacy-note">Default evidence excludes raw device IDs, group IDs, camera labels, captured frames, and URL secrets.</p>
     </main>
 
     <script type="module" src="/src/main.ts"></script>

@@ -31,7 +31,6 @@ export class UiRenderer {
 	private readonly permissionCamera = byId<HTMLElement>("permission-camera");
 	private readonly permissionMicrophone = byId<HTMLElement>("permission-microphone");
 	private readonly deviceSelect = byId<HTMLSelectElement>("device-select");
-	private readonly facingSelect = byId<HTMLSelectElement>("facing-select");
 	private readonly resolutionSelect = byId<HTMLSelectElement>("resolution-select");
 	private readonly resolutionModeSelect = byId<HTMLSelectElement>("resolution-mode-select");
 	private readonly audioToggle = byId<HTMLInputElement>("audio-toggle");
@@ -156,7 +155,7 @@ export class UiRenderer {
 		const resolution = this.selectedResolution();
 		return {
 			deviceId: this.deviceSelect.value,
-			facingMode: this.facingSelect.value as CameraSelection["facingMode"],
+			facingMode: "",
 			resolutionId: resolution.id,
 			resolutionLabel: resolution.label,
 			resolutionMode: this.selectedResolutionMode(),
