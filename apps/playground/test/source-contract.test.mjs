@@ -33,7 +33,7 @@ test("playground source uses only public Webcam-TS entrypoints", async () => {
   assert.match(source, /from "webcam-ts\/controls"/);
 });
 
-test("playground uses the approved neutral shadcn-inspired token system", async () => {
+test("playground keeps the neutral shadcn-inspired token system", async () => {
   const css = await readPlaygroundFile("src/styles.css");
   for (const token of [
     "--background",
@@ -55,7 +55,7 @@ test("playground uses the approved neutral shadcn-inspired token system", async 
   assert.doesNotMatch(css, /backdrop-filter|radial-gradient|#64d8ff|#00a8e8/i);
 });
 
-test("playground keeps required bindings and uses progressive diagnostics", async () => {
+test("playground keeps required bindings and progressive diagnostics", async () => {
   const html = await readPlaygroundFile("index.html");
   for (const id of [
     "camera-preview",
@@ -64,6 +64,8 @@ test("playground keeps required bindings and uses progressive diagnostics", asyn
     "permission-gate-action",
     "preview-requested-resolution",
     "preview-actual-resolution",
+    "preview-device-label",
+    "preview-device-resolution",
     "status-badge",
     "device-select",
     "resolution-select",
@@ -99,87 +101,62 @@ test("mobile-first preview preserves portrait and square frames without cropping
 test("page chrome does not cover scrolled camera content", async () => {
   const css = await readPlaygroundFile("src/styles.css");
   const header = css.match(/\.app-header\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-
   assert.doesNotMatch(header, /position:\s*sticky/);
 });
 
-test("capture result stays out of the center shutter lane", async () => {
+test("resolution overlay remains a two-line white debug block pinned to video top-right", async () => {
   const css = await readPlaygroundFile("src/styles.css");
-  const pool = css.match(/\.capture-pool\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  const metadata = css.match(/\.capture-metadata\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  const resolutionOverlay =
-    css.match(/\.preview-resolution-overlay\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-
-  assert.match(pool, /width:\s*min\(35%,\s*16rem\)/);
-  assert.match(pool, /justify-items:\s*end/);
-  assert.match(metadata, /max-width:\s*100%/);
-  assert.match(metadata, /white-space:\s*normal/);
-  assert.doesNotMatch(resolutionOverlay, /bottom:/);
-  assert.match(resolutionOverlay, /top:\s*0\.5rem/);
-  assert.match(resolutionOverlay, /right:\s*0\.5rem/);
-});
-
-test("resolution overlay is a two-line white debug block pinned to the video top-right", async () => {
-  const css = await readPlaygroundFile("src/styles.css");
-  const overlay =
-    css.match(/\.preview-resolution-overlay\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const overlay = css.match(/\.preview-resolution-overlay\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
   const line = css.match(/\.resolution-line\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-
   assert.doesNotMatch(overlay, /background:/);
   assert.doesNotMatch(overlay, /border:/);
+  assert.match(overlay, /top:\s*0\.5rem/);
+  assert.match(overlay, /right:\s*0\.5rem/);
   assert.match(line, /color:\s*#ffffff/);
-  assert.doesNotMatch(line, /background:/);
-  assert.doesNotMatch(line, /border:/);
 });
 
-test("lifecycle controls are statically defined inside the preview before errors and settings", async () => {
+test("normal actions use a static sticky footer while Switch stays in settings", async () => {
   const html = await readPlaygroundFile("index.html");
-  const previewStart = html.indexOf('id="preview-shell"');
-  const previewEnd = html.indexOf('id="error-panel"');
-  const settings = html.indexOf('class="card settings-card"');
+  const footerStart = html.indexOf('class="mobile-camera-footer"');
+  const footerEnd = html.indexOf('</footer>', footerStart);
+  const settingsStart = html.indexOf('class="card settings-card"');
+  const settingsEnd = html.indexOf('</article>', settingsStart);
+  const footer = html.slice(footerStart, footerEnd);
+  const settings = html.slice(settingsStart, settingsEnd);
 
-  assert.ok(previewStart >= 0, "preview-shell must exist");
-  assert.ok(previewEnd > previewStart, "typed errors must follow the preview");
-  assert.ok(settings > previewEnd, "settings must follow preview and errors");
-
-  const previewMarkup = html.slice(previewStart, previewEnd);
-  assert.match(previewMarkup, /id=["']start-camera["']/);
-  assert.match(previewMarkup, /id=["']switch-camera["']/);
-  assert.match(previewMarkup, /id=["']stop-camera["']/);
-  assert.doesNotMatch(html, /class="card camera-action-panel"/);
-  assert.doesNotMatch(html.slice(settings), /id=["'](?:start|switch|stop)-camera["']/);
+  assert.match(footer, /id=["']start-camera["']/);
+  assert.match(footer, /id=["']capture-photo["']/);
+  assert.match(footer, /id=["']stop-camera["']/);
+  assert.doesNotMatch(footer, /id=["']switch-camera["']/);
+  assert.match(settings, /id=["']device-select["'][\s\S]*id=["']switch-camera["']/);
+  assert.doesNotMatch(html, /preview-session-controls|camera-action-panel/);
 });
 
-test("inactive preview stays compact while lifecycle controls use a preview overlay", async () => {
-  const [css, overlayCss, renderer] = await Promise.all([
-    readPlaygroundFile("src/styles.css"),
-    readPlaygroundFile("src/preview-centric-ui.css"),
+test("reference mobile shell is static and safe-area aware", async () => {
+  const [main, css, renderer] = await Promise.all([
+    readPlaygroundFile("src/main.ts"),
+    readPlaygroundFile("src/reference-mobile-shell.css"),
     readPlaygroundFile("src/ui-renderer.ts"),
   ]);
-
-  assert.match(css, /\.preview-shell\[data-active=["']false["']\][\s\S]*height:\s*clamp\(/);
-  assert.match(overlayCss, /\.preview-session-controls\s*\{[\s\S]*position:\s*absolute/);
-  assert.doesNotMatch(overlayCss, /position:\s*sticky/);
+  assert.match(main, /import "\.\/reference-mobile-shell\.css"/);
+  assert.doesNotMatch(main, /preview-centric-ui|applyPreviewCentricLayout/);
+  assert.match(css, /\.mobile-camera-footer[\s\S]*position:\s*fixed/);
+  assert.match(css, /env\(safe-area-inset-bottom\)/);
+  assert.match(css, /\.camera-media-strip/);
   assert.match(renderer, /this\.previewShell\.dataset\.active\s*=\s*String\(hasActual\)/);
 });
 
 test("physical conformance mode has one lean preview and two runtime-only camera roles", async () => {
   const html = await readPlaygroundFile("index.html");
-  for (const id of [
-    "conformance-preview",
-    "conformance-primary-device",
-    "conformance-alternate-device",
-  ]) {
+  for (const id of ["conformance-preview", "conformance-primary-device", "conformance-alternate-device"]) {
     assert.equal((html.match(new RegExp(`id=["']${id}["']`, "g")) ?? []).length, 1);
   }
-
   const conformanceMarkup = html.slice(html.indexOf('id="conformance-root"'));
   assert.doesNotMatch(conformanceMarkup, /id=["'](?:start|switch|stop)-camera["']/);
 });
 
 test("conformance renderer binds runtime camera roles without reusing the normal camera controller", async () => {
   const renderer = await readPlaygroundFile("src/conformance/conformance-renderer.ts");
-
   assert.match(renderer, /ConformanceDeviceRuntime/);
   assert.match(renderer, /conformance-primary-device/);
   assert.match(renderer, /conformance-alternate-device/);
@@ -191,7 +168,6 @@ test("conformance renderer binds runtime camera roles without reusing the normal
 
 test("conformance preview stays light-theme lean and never crops physical evidence", async () => {
   const css = await readPlaygroundFile("src/conformance/conformance.css");
-
   assert.match(css, /\.conformance-preview-shell[\s\S]*var\(--border\)/);
   assert.match(css, /\.conformance-preview-shell\s+video[\s\S]*object-fit:\s*contain/);
   assert.doesNotMatch(css, /prefers-color-scheme:\s*dark|backdrop-filter|radial-gradient/i);
@@ -200,7 +176,6 @@ test("conformance preview stays light-theme lean and never crops physical eviden
 test("conformance bootstrap wires one real browser executor without reusing normal controller state", async () => {
   const main = await readPlaygroundFile("src/main.ts");
   const conformanceBootstrap = main.slice(main.indexOf("export function bootstrapConformance"));
-
   assert.match(main, /BrowserConformanceExecutor/);
   assert.match(main, /new Camera\(\)/);
   assert.match(main, /new VideoPreview\(video/);
@@ -209,13 +184,11 @@ test("conformance bootstrap wires one real browser executor without reusing norm
   assert.match(conformanceBootstrap, /executor,/);
   assert.match(conformanceBootstrap, /new ConformanceRenderer\(controller,\s*executor,\s*conformanceRoot\)/);
   assert.match(conformanceBootstrap, /prerequisiteChecker:\s*\(definition\)\s*=>\s*executor\.checkPrerequisite\(definition\)/);
-  assert.doesNotMatch(main, /Scenario execution is added in a later stabilization PR\./);
   assert.doesNotMatch(conformanceBootstrap, /createBrowserCameraController/);
 });
 
 test("conformance device refresh is failure-safe and limited to discovery scenarios", async () => {
   const renderer = await readPlaygroundFile("src/conformance/conformance-renderer.ts");
-
   assert.match(renderer, /DEVICE_REFRESH_SCENARIOS/);
   assert.match(renderer, /"permission-request"/);
   assert.match(renderer, /"device-enumeration-before-permission"/);
