@@ -34,88 +34,71 @@
         <div class="page-heading">
           <div>
             <h1>Mobile camera test</h1>
-            <p>Pick a preset and resolution behavior, then open the camera.</p>
+            <p>Choose the camera and resolution, then control the active session from the bottom bar.</p>
           </div>
         </div>
 
         <div class="workspace-grid">
           <section class="workspace-column" aria-label="Camera preview">
-            <article class="card preview-card">
+            <article class="card preview-card reference-camera-card">
               <div class="card-content preview-content">
                 <div id="preview-shell" class="preview-shell" data-orientation="portrait" data-active="false">
                   <video id="camera-preview" aria-label="Live camera preview"></video>
 
                   <div id="preview-empty" class="preview-empty" aria-hidden="true">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M14.5 5H9.7L8.3 7H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3.3l-1.2-2Z" />
-                      <circle cx="12" cy="13" r="3.5" />
-                    </svg>
-                    <span>Camera preview appears here</span>
+                    <div class="camera-idle-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M15 10.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4.5l4 4v-11l-4 4Z" />
+                        <path d="m3 3 18 18" />
+                      </svg>
+                    </div>
+                    <strong>Camera is off</strong>
+                    <span>Start the camera from the action bar when you are ready.</span>
                   </div>
 
                   <div id="permission-gate" class="permission-gate" role="region" aria-live="polite">
                     <div class="permission-gate-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24">
-                        <path d="M14.5 5H9.7L8.3 7H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3.3l-1.2-2Z" />
-                        <circle cx="12" cy="13" r="3.5" />
+                        <path d="M15 10.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4.5l4 4v-11l-4 4Z" />
+                        <path d="m3 3 18 18" />
                       </svg>
                     </div>
                     <div class="permission-gate-copy">
                       <strong id="permission-gate-title">Camera access required</strong>
-                      <p id="permission-gate-message">Allow access before starting a session. The browser will ask for camera permission.</p>
+                      <p id="permission-gate-message">Allow camera access first. Starting the camera remains a separate action.</p>
                     </div>
                     <button id="permission-gate-action" class="button button-primary button-full">Allow camera access</button>
-                  </div>
-
-                  <span id="status-badge" class="badge status-badge preview-status-overlay" data-status="idle">idle</span>
-
-                  <label class="preview-mirror-control" aria-label="Mirror preview">
-                    <input id="mirror-toggle" type="checkbox" checked />
-                    <span class="switch-track" aria-hidden="true"><span></span></span>
-                    <span>Mirror</span>
-                  </label>
-
-                  <div class="preview-session-controls" aria-label="Camera session controls">
-                    <button id="start-camera" class="button button-primary" disabled>Start</button>
-                    <button id="switch-camera" class="button button-secondary" disabled>Switch</button>
-                    <button id="stop-camera" class="button button-destructive-outline" disabled>Stop</button>
-                  </div>
-
-                  <div class="capture-options" aria-label="Capture options">
-                    <label class="capture-opt">
-                      <span class="capture-opt-label">Format</span>
-                      <select id="capture-type">
-                        <option value="image/jpeg">JPEG</option>
-                        <option value="image/png">PNG</option>
-                      </select>
-                    </label>
-                    <label class="capture-opt capture-opt-quality">
-                      <span class="capture-opt-label">Quality</span>
-                      <span class="capture-quality-line">
-                        <input id="capture-quality" type="range" min="0.1" max="1" step="0.01" value="0.92" />
-                        <output id="capture-quality-value">0.92</output>
-                      </span>
-                    </label>
-                  </div>
-
-                  <button id="capture-photo" class="capture-shutter" aria-label="Capture frame" disabled></button>
-
-                  <div id="capture-pool" class="capture-pool" hidden>
-                    <span id="capture-empty" class="capture-thumb capture-thumb-empty" hidden>
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <rect x="3" y="4" width="18" height="16" rx="2" />
-                        <circle cx="8.5" cy="9" r="1.5" />
-                        <path d="m5 17 4.5-4.5 3 3 2-2L19 17" />
-                      </svg>
-                    </span>
-                    <img id="capture-image" class="capture-thumb" alt="Latest captured camera frame" hidden />
-                    <span id="capture-metadata" class="capture-metadata" hidden></span>
                   </div>
 
                   <div class="preview-resolution-overlay" aria-label="Camera resolution diagnostics">
                     <span id="preview-requested-resolution" class="resolution-line">Requested Exact PORTRAIT-720P · 720×1280</span>
                     <span id="preview-actual-resolution" class="resolution-line" data-available="false">Actual —</span>
                   </div>
+                </div>
+
+                <div class="camera-media-strip" aria-live="polite">
+                  <div class="camera-media-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M15 10.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4.5l4 4v-11l-4 4Z" />
+                    </svg>
+                  </div>
+                  <div class="camera-media-copy">
+                    <strong id="preview-device-label">Camera</strong>
+                    <span id="preview-device-resolution">720×1280</span>
+                  </div>
+                  <span id="status-badge" class="badge status-badge" data-status="idle">idle</span>
+                </div>
+
+                <div id="capture-pool" class="capture-pool capture-result-strip" hidden>
+                  <span id="capture-empty" class="capture-thumb capture-thumb-empty" hidden>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="16" rx="2" />
+                      <circle cx="8.5" cy="9" r="1.5" />
+                      <path d="m5 17 4.5-4.5 3 3 2-2L19 17" />
+                    </svg>
+                  </span>
+                  <img id="capture-image" class="capture-thumb" alt="Latest captured camera frame" hidden />
+                  <span id="capture-metadata" class="capture-metadata" hidden></span>
                 </div>
               </div>
             </article>
@@ -133,11 +116,19 @@
               <div class="card-header">
                 <div>
                   <h2 class="card-title">Session configuration</h2>
-                  <p class="card-description">Exact is the default and fails instead of silently using another resolution.</p>
+                  <p class="card-description">Select the target camera and session constraints before starting or switching.</p>
                 </div>
               </div>
               <div class="card-content">
                 <div class="settings-grid">
+                  <div class="field device-switch-field">
+                    <span class="field-label">Camera device</span>
+                    <div class="device-switch-row">
+                      <select id="device-select" aria-label="Camera device"><option value="">Automatic selection</option></select>
+                      <button id="switch-camera" class="button button-secondary" disabled>Switch</button>
+                    </div>
+                    <small class="field-help">Choose a target camera, then switch while a session is active.</small>
+                  </div>
                   <label class="field resolution-field">
                     <span class="field-label">Resolution preset</span>
                     <select id="resolution-select" aria-describedby="resolution-help"></select>
@@ -152,14 +143,29 @@
                     <small id="resolution-mode-help" class="field-help">Exact rejects unsupported width or height with a typed error.</small>
                   </label>
                   <label class="field">
-                    <span class="field-label">Camera device</span>
-                    <select id="device-select"><option value="">Automatic selection</option></select>
+                    <span class="field-label">Capture format</span>
+                    <select id="capture-type">
+                      <option value="image/jpeg">JPEG</option>
+                      <option value="image/png">PNG</option>
+                    </select>
+                  </label>
+                  <label class="field capture-quality-field">
+                    <span class="field-heading"><span class="field-label">JPEG quality</span><output id="capture-quality-value">0.92</output></span>
+                    <input id="capture-quality" type="range" min="0.1" max="1" step="0.01" value="0.92" />
                   </label>
                 </div>
 
                 <div class="separator"></div>
 
                 <div class="toggle-grid">
+                  <label class="switch-control">
+                    <input id="mirror-toggle" type="checkbox" checked />
+                    <span class="switch-track" aria-hidden="true"><span></span></span>
+                    <span class="switch-copy">
+                      <strong>Mirror preview</strong>
+                      <small>Apply mirroring to preview and captured frames.</small>
+                    </span>
+                  </label>
                   <label class="switch-control">
                     <input id="audio-toggle" type="checkbox" />
                     <span class="switch-track" aria-hidden="true"><span></span></span>
@@ -244,6 +250,14 @@
           </div>
         </details>
       </main>
+
+      <footer class="mobile-camera-footer" aria-label="Camera actions">
+        <div class="container mobile-camera-actions">
+          <button id="start-camera" class="button button-primary" disabled>Start</button>
+          <button id="capture-photo" class="button button-secondary" aria-label="Capture frame" disabled>Capture</button>
+          <button id="stop-camera" class="button button-destructive" disabled>Stop</button>
+        </div>
+      </footer>
 
       <footer class="app-footer">
         <div class="container">Uses only declared <code>webcam-ts</code> v4 package exports.</div>
