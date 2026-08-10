@@ -43,16 +43,16 @@ test("normal playground removes facing mode from both markup and renderer select
 	assert.match(renderer, /deviceId:\s*this\.deviceSelect\.value/);
 });
 
-test("preview-centric layout is source markup and CSS, not runtime DOM relocation", async () => {
+test("preview-centric layout is static markup plus focused CSS, not runtime DOM relocation", async () => {
 	const [main, css] = await Promise.all([
 		readPlaygroundFile("src/main.ts"),
-		readPlaygroundFile("src/styles.css"),
+		readPlaygroundFile("src/preview-centric-ui.css"),
 	]);
 
 	assert.doesNotMatch(main, /applyPreviewCentricLayout/);
 	assert.doesNotMatch(main, /preview-centric-layout/);
+	assert.match(main, /import "\.\/preview-centric-ui\.css"/);
 	assert.match(css, /\.preview-status-overlay\s*\{/);
 	assert.match(css, /\.preview-session-controls\s*\{/);
 	assert.match(css, /\.preview-mirror-control\s*\{/);
-	assert.doesNotMatch(css, /\.camera-action-panel\s*\{/);
 });
