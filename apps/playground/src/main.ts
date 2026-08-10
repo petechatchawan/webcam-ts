@@ -1,4 +1,5 @@
 import "./styles.css";
+import "./preview-centric-layout.css";
 import "./conformance/conformance.css";
 import { Camera } from "webcam-ts";
 import { CameraDeviceManager, CameraPermissionService } from "webcam-ts/devices";
@@ -9,6 +10,7 @@ import { ConformanceController } from "./conformance/conformance-controller.js";
 import { collectConformanceEnvironment } from "./conformance/environment.js";
 import { ConformanceRenderer } from "./conformance/conformance-renderer.js";
 import { byId } from "./dom.js";
+import { applyPreviewCentricLayout } from "./preview-centric-layout.js";
 import { UiRenderer } from "./ui-renderer.js";
 
 const PACKAGE_VERSION = "4.0.0-alpha.1";
@@ -36,6 +38,7 @@ export function bootstrapPlayground(): void {
 	const video = byId<HTMLVideoElement>("camera-preview");
 	const controller = createBrowserCameraController(video);
 	const renderer = new UiRenderer(controller);
+	applyPreviewCentricLayout();
 
 	registerPageDisposal(async () => {
 		renderer.dispose();
