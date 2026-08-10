@@ -27,6 +27,8 @@ export class UiRenderer {
 	private readonly permissionGateAction = byId<HTMLButtonElement>("permission-gate-action");
 	private readonly requestedResolution = byId<HTMLElement>("preview-requested-resolution");
 	private readonly actualResolution = byId<HTMLElement>("preview-actual-resolution");
+	private readonly previewDeviceLabel = byId<HTMLElement>("preview-device-label");
+	private readonly previewDeviceResolution = byId<HTMLElement>("preview-device-resolution");
 	private readonly permissionBadge = byId<HTMLElement>("permission-badge");
 	private readonly permissionCamera = byId<HTMLElement>("permission-camera");
 	private readonly permissionMicrophone = byId<HTMLElement>("permission-microphone");
@@ -90,10 +92,16 @@ export class UiRenderer {
 			void this.run(() => this.controller.stop());
 		});
 		const renderSelectedResolution = () => {
-			if (this.latestSnapshot) this.renderPreview(this.latestSnapshot);
+			if (this.latestSnapshot) {
+				this.renderPreview(this.latestSnapshot);
+				this.renderMediaInfo(this.latestSnapshot);
+			}
 		};
 		this.resolutionSelect.addEventListener("change", renderSelectedResolution);
 		this.resolutionModeSelect.addEventListener("change", renderSelectedResolution);
+		this.deviceSelect.addEventListener("change", () => {
+			if (this.latestSnapshot) this.renderMediaInfo(this.latestSnapshot);
+		});
 		this.mirrorToggle.addEventListener("change", () => {
 			this.controller.setMirror(this.mirrorToggle.checked);
 		});
@@ -112,9 +120,7 @@ export class UiRenderer {
 					? { quality: Number(this.captureQuality.value) }
 					: {}),
 			};
-			void this.run(() =>
-				this.controller.capture(options).then(() => undefined),
-			);
+			void this.run(() => this.controller.capture(options).then(() => undefined));
 		});
 		this.zoomInput.addEventListener("input", () => {
 			this.zoomValue.value = Number(this.zoomInput.value).toFixed(2);
@@ -205,8 +211,9 @@ export class UiRenderer {
 		this.permissionBadge.dataset.permission = snapshot.permissions.camera;
 
 		this.renderPermissionGate(snapshot);
-		this.renderPreview(snapshot);
 		this.renderDevices(snapshot);
+		this.renderPreview(snapshot);
+		this.renderMediaInfo(snapshot);
 		this.renderControls(snapshot);
 		this.renderCapture(snapshot);
 		this.renderError(snapshot);
@@ -243,7 +250,7 @@ export class UiRenderer {
 
 		this.permissionGateTitle.textContent = "Camera access required";
 		this.permissionGateMessage.textContent =
-			"Allow access before starting a session. The browser will ask for camera permission.";
+			"Allow camera access first. Starting the camera remains a separate action.";
 		this.permissionGateAction.textContent = "Allow camera access";
 	}
 
@@ -269,6 +276,21 @@ export class UiRenderer {
 		this.previewShell.dataset.orientation =
 			frameWidth === frameHeight ? "square" : frameWidth < frameHeight ? "portrait" : "landscape";
 		this.previewEmpty.hidden = snapshot.camera.status === "active";
+	}
+
+	private renderMediaInfo(snapshot: PlaygroundSnapshot): void {
+		const selected = this.selectedResolution();
+		const actualWidth = numericSetting(snapshot.camera.settings?.width);
+		const actualHeight = numericSetting(snapshot.camera.settings?.height);
+		const deviceId = snapshot.camera.deviceId || this.deviceSelect.value;
+		const device = snapshot.devices.find((candidate) => candidate.deviceId === deviceId);
+		const selectedOption = this.deviceSelect.selectedOptions.item(0);
+		const fallbackLabel = selectedOption?.value ? selectedOption.textContent?.trim() : null;
+		this.previewDeviceLabel.textContent = device?.label?.trim() || fallbackLabel || "Camera";
+		this.previewDeviceResolution.textContent =
+			snapshot.camera.status === "active" && actualWidth > 0 && actualHeight > 0
+				? `${actualWidth}×${actualHeight}`
+				: `${selected.width}×${selected.height}`;
 	}
 
 	private renderDevices(snapshot: PlaygroundSnapshot): void {
