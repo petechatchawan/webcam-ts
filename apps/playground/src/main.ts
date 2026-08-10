@@ -1,4 +1,5 @@
 import "./styles.css";
+import "./preview-centric-ui.css";
 import "./conformance/conformance.css";
 import { Camera } from "webcam-ts";
 import { CameraDeviceManager, CameraPermissionService } from "webcam-ts/devices";
