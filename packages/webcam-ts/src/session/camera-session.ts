@@ -192,8 +192,8 @@ export class CameraSession {
         );
       } catch (retryError) {
         this.assertRequestCurrent(request, lease);
+        if (!this.isResolutionConstraintFailure(retryError, operation)) throw retryError;
         const normalizedRetryError = normalizeBrowserError(retryError, operation);
-        if (normalizedRetryError.code !== "CONSTRAINT_UNSATISFIED") throw retryError;
 
         throw new CameraError(
           `Camera could not satisfy exact ${retry.requestedWidth}×${retry.requestedHeight} in either orientation`,
