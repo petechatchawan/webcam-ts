@@ -4,6 +4,16 @@ import assert from "node:assert/strict";
 import { Camera, CameraError } from "../dist/index.js";
 import { verifyExactResolutionPostcondition } from "../dist/session/exact-resolution-postcondition.js";
 
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 function createTrack({ width = 1280, height = 720, deviceId = "camera" } = {}) {
   return {
     stopCalls: 0,
@@ -83,6 +93,18 @@ test("exact postcondition still rejects a genuinely different resolution", () =>
       verifyExactResolutionPostcondition(
         portrait720Exact,
         { width: 1920, height: 1080 },
+        "start",
+      ),
+    (error) => error instanceof CameraError && error.code === "CONSTRAINT_UNSATISFIED",
+  );
+});
+
+test("partial exact postcondition does not use rotated-pair matching", () => {
+  assert.throws(
+    () =>
+      verifyExactResolutionPostcondition(
+        { resolution: { width: { exact: 720 } } },
+        { width: 1280, height: 720 },
         "start",
       ),
     (error) => error instanceof CameraError && error.code === "CONSTRAINT_UNSATISFIED",
@@ -175,4 +197,65 @@ test("dual orientation failure remains constraint-unsatisfied and records retry 
   assert.equal(port.calls.length, 2);
   assert.equal(camera.getState().status, "idle");
   assert.equal(camera.getActiveStream(), null);
+});
+
+test("dual orientation switch failure preserves the previous active stream", async () => {
+  const activeTrack = createTrack({ deviceId: "camera-a" });
+  const activeStream = createStream(activeTrack);
+  const port = createQueuedPort([
+    activeStream,
+    overconstrained("width"),
+    overconstrained("height"),
+  ]);
+  const camera = new Camera({ mediaDevices: port });
+
+  await camera.start({ deviceId: "camera-a" });
+  await assert.rejects(
+    () => camera.switch({ deviceId: "camera-b", ...portrait720Exact }),
+    (error) =>
+      error instanceof CameraError &&
+      error.code === "CONSTRAINT_UNSATISFIED" &&
+      error.context?.orientationRetryAttempted === true,
+  );
+
+  assert.equal(camera.getState().status, "active");
+  assert.equal(camera.getActiveStream(), activeStream);
+  assert.equal(activeTrack.stopCalls, 0);
+  assert.equal(port.calls.length, 3);
+});
+
+test("stop during the swapped retry preempts the operation and cleans a late stream", async () => {
+  const secondAttemptStarted = deferred();
+  const pendingRetry = deferred();
+  const lateTrack = createTrack({ width: 1280, height: 720 });
+  const lateStream = createStream(lateTrack);
+  let calls = 0;
+  const mediaDevices = {
+    async open() {
+      calls += 1;
+      if (calls === 1) throw overconstrained("width");
+      secondAttemptStarted.resolve();
+      return pendingRetry.promise;
+    },
+    async enumerateDevices() {
+      return [];
+    },
+  };
+  const camera = new Camera({ mediaDevices });
+
+  const startPromise = camera.start(portrait720Exact);
+  await secondAttemptStarted.promise;
+  await camera.stop();
+  pendingRetry.resolve(lateStream);
+
+  await assert.rejects(
+    startPromise,
+    (error) => error instanceof CameraError && error.code === "OPERATION_ABORTED",
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(calls, 2);
+  assert.equal(camera.getState().status, "idle");
+  assert.equal(camera.getActiveStream(), null);
+  assert.equal(lateTrack.stopCalls, 1);
 });
