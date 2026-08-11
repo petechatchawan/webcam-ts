@@ -5,6 +5,12 @@ export type ExactResolutionPostconditionResult =
   | Readonly<{ status: "verified" }>
   | Readonly<{ status: "unobservable" }>;
 
+export interface OrientationEquivalentExactRetry {
+  readonly request: CameraRequest;
+  readonly requestedWidth: number;
+  readonly requestedHeight: number;
+}
+
 function exactValue(constraint: ConstraintNumber | undefined): number | undefined {
   if (constraint === undefined) return undefined;
   if (typeof constraint === "number") return constraint;
@@ -15,6 +21,36 @@ function authoritativeValue(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) && value > 0
     ? value
     : undefined;
+}
+
+export function createOrientationEquivalentExactRetry(
+  request: CameraRequest,
+): OrientationEquivalentExactRetry | null {
+  const resolution = request.resolution;
+  if (!resolution?.width || !resolution.height) return null;
+
+  const requestedWidth = exactValue(resolution.width);
+  const requestedHeight = exactValue(resolution.height);
+  if (
+    requestedWidth === undefined ||
+    requestedHeight === undefined ||
+    requestedWidth === requestedHeight
+  ) {
+    return null;
+  }
+
+  return {
+    request: {
+      ...request,
+      resolution: {
+        ...resolution,
+        width: resolution.height,
+        height: resolution.width,
+      },
+    },
+    requestedWidth,
+    requestedHeight,
+  };
 }
 
 export function verifyExactResolutionPostcondition(
@@ -37,6 +73,17 @@ export function verifyExactResolutionPostcondition(
     (requestedHeight !== undefined && actualHeight === undefined)
   ) {
     return { status: "unobservable" };
+  }
+
+  if (
+    requestedWidth !== undefined &&
+    requestedHeight !== undefined &&
+    actualWidth !== undefined &&
+    actualHeight !== undefined
+  ) {
+    const directMatch = actualWidth === requestedWidth && actualHeight === requestedHeight;
+    const rotatedMatch = actualWidth === requestedHeight && actualHeight === requestedWidth;
+    if (directMatch || rotatedMatch) return { status: "verified" };
   }
 
   const widthMismatch = requestedWidth !== undefined && actualWidth !== requestedWidth;
