@@ -199,6 +199,23 @@ test("dual orientation failure remains constraint-unsatisfied and records retry 
   assert.equal(camera.getActiveStream(), null);
 });
 
+test("a non-resolution failure on the swapped attempt is not mislabeled as dual-orientation failure", async () => {
+  const port = createQueuedPort([overconstrained("width"), overconstrained("frameRate")]);
+  const camera = new Camera({ mediaDevices: port });
+
+  await assert.rejects(
+    () => camera.start(portrait720Exact),
+    (error) =>
+      error instanceof CameraError &&
+      error.code === "CONSTRAINT_UNSATISFIED" &&
+      error.context?.constraint === "frameRate" &&
+      error.context?.orientationRetryAttempted === undefined,
+  );
+
+  assert.equal(port.calls.length, 2);
+  assert.equal(camera.getState().status, "idle");
+});
+
 test("dual orientation switch failure preserves the previous active stream", async () => {
   const activeTrack = createTrack({ deviceId: "camera-a" });
   const activeStream = createStream(activeTrack);
