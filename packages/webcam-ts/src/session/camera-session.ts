@@ -3,7 +3,10 @@ import { buildMediaStreamConstraints, type CameraRequest } from "../domain/camer
 import type { CameraStatus } from "../domain/camera-state.js";
 import type { MediaDevicesPort } from "../platform/media-devices-port.js";
 import { normalizeBrowserError } from "../platform/browser-error-normalizer.js";
-import { verifyExactResolutionPostcondition } from "./exact-resolution-postcondition.js";
+import {
+  createOrientationEquivalentExactRetry,
+  verifyExactResolutionPostcondition,
+} from "./exact-resolution-postcondition.js";
 import { assertCommandAllowed } from "./lifecycle-machine.js";
 import { OperationController, type OperationLease } from "./operation-controller.js";
 import { stopStream } from "./stream-cleanup.js";
@@ -63,8 +66,7 @@ export class CameraSession {
 
     let candidate: MediaStream | null = null;
     try {
-      const constraints = buildMediaStreamConstraints(request);
-      candidate = await this.openMedia(constraints, lease, request.signal);
+      candidate = await this.openRequestedMedia(request, lease, "start");
       this.candidates.add(candidate);
       this.assertRequestCurrent(request, lease);
       const track = this.validateCandidate(candidate, "start");
@@ -98,8 +100,7 @@ export class CameraSession {
 
     let candidate: MediaStream | null = null;
     try {
-      const constraints = buildMediaStreamConstraints(request);
-      candidate = await this.openMedia(constraints, lease, request.signal);
+      candidate = await this.openRequestedMedia(request, lease, "switch");
       this.candidates.add(candidate);
       this.assertRequestCurrent(request, lease);
       const track = this.validateCandidate(candidate, "switch");
@@ -168,6 +169,59 @@ export class CameraSession {
     if (previousStream) this.observer.onStreamChanged(null, previousStream, "disposed");
     this.setStatus("disposed");
     this.observer.onOperationCompleted("dispose", operationId);
+  }
+
+  private async openRequestedMedia(
+    request: CameraRequest,
+    lease: OperationLease,
+    operation: Extract<CameraOperation, "start" | "switch">,
+  ): Promise<MediaStream> {
+    try {
+      return await this.openMedia(buildMediaStreamConstraints(request), lease, request.signal);
+    } catch (error) {
+      this.assertRequestCurrent(request, lease);
+      const retry = createOrientationEquivalentExactRetry(request);
+      if (!retry || !this.isResolutionConstraintFailure(error, operation)) throw error;
+
+      this.assertRequestCurrent(request, lease);
+      try {
+        return await this.openMedia(
+          buildMediaStreamConstraints(retry.request),
+          lease,
+          request.signal,
+        );
+      } catch (retryError) {
+        this.assertRequestCurrent(request, lease);
+        const normalizedRetryError = normalizeBrowserError(retryError, operation);
+        if (normalizedRetryError.code !== "CONSTRAINT_UNSATISFIED") throw retryError;
+
+        throw new CameraError(
+          `Camera could not satisfy exact ${retry.requestedWidth}×${retry.requestedHeight} in either orientation`,
+          {
+            code: "CONSTRAINT_UNSATISFIED",
+            operation,
+            recoverable: true,
+            cause: normalizedRetryError.cause ?? normalizedRetryError,
+            context: {
+              ...(normalizedRetryError.context ?? {}),
+              requestedWidth: retry.requestedWidth,
+              requestedHeight: retry.requestedHeight,
+              orientationRetryAttempted: true,
+            },
+          },
+        );
+      }
+    }
+  }
+
+  private isResolutionConstraintFailure(
+    error: unknown,
+    operation: Extract<CameraOperation, "start" | "switch">,
+  ): boolean {
+    const normalized = normalizeBrowserError(error, operation);
+    if (normalized.code !== "CONSTRAINT_UNSATISFIED") return false;
+    const constraint = normalized.context?.constraint;
+    return constraint === "width" || constraint === "height";
   }
 
   private async openMedia(
