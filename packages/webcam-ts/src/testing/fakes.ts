@@ -1,5 +1,11 @@
 import type { MediaDevicesPort } from "../platform/media-devices-port.js";
 
+// ponytail: browser MediaStreamTrack มี surface ใหญ่กว่า fake; cast รวมที่เดียว
+// ถ้าอนาคตต้องใช้ method อื่นเพิ่ม ให้ขยาย FakeMediaStreamTrack แทนการกระจาย cast
+function asTrack(track: FakeMediaStreamTrack): MediaStreamTrack {
+  return track as unknown as MediaStreamTrack;
+}
+
 export class FakeMediaStreamTrack {
   stopCalls = 0;
   applyConstraintsCalls: MediaTrackConstraints[] = [];
@@ -37,11 +43,11 @@ export class FakeMediaStream {
   constructor(readonly videoTrack = new FakeMediaStreamTrack()) {}
 
   getTracks(): MediaStreamTrack[] {
-    return [this.videoTrack as unknown as MediaStreamTrack];
+    return [asTrack(this.videoTrack)];
   }
 
   getVideoTracks(): MediaStreamTrack[] {
-    return [this.videoTrack as unknown as MediaStreamTrack];
+    return [asTrack(this.videoTrack)];
   }
 }
 
