@@ -83,7 +83,7 @@ It coordinates these objects but never reaches into Webcam-TS internals. It expo
 
 ### Resource ownership
 
-- `CameraSession` remains the sole owner of active/candidate streams.
+- `Camera` remains the sole owner of active/candidate streams.
 - `VideoPreview`, `CameraCapture`, and `CameraControls` borrow stream/track references only.
 - The playground owns generated `blob:` URLs and revokes them before replacement and during disposal.
 - Page teardown disposes services in dependency order and must be idempotent.

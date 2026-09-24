@@ -1,8 +1,3 @@
 {
-	"eslint.workingDirectories": [
-		{
-			"mode": "auto"
-		}
-	],
 	"angular.enable-strict-mode-prompt": false
 }

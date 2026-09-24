@@ -11,7 +11,7 @@ Authority: `docs/superpowers/specs/2026-08-06-webcam-ts-v4-architecture-design.m
 | session | ช่วงเวลาที่กล้อง active ตั้งแต่ start สำเร็จจนหยุด (มี `sessionId`) | connection, instance |
 | operation | คำสั่งที่กำลังทำงาน: `start` \| `switch` \| `stop` \| `dispose` | action, job |
 | operation token | สิทธิ์ชั่วคราวของ operation ที่กำลังวิ่ง (`OperationToken`); invalidate ได้ครั้งเดียวพร้อม reason | lease, lock |
-| candidate | stream ที่เปิดได้แล้วแต่ยังไม่ commit เป็น active (spec §2, §3.4) | pending, temp |
+| candidate | stream ที่เปิดได้แล้วแต่ยังไม่ commit เป็น active (spec §2, §3 invariant 4) | pending, temp |
 | active stream | stream ที่ session เป็นเจ้าของอยู่ — ตัวเดียวเท่านั้น | current, live |
 | request | คำขอเปิดกล้อง (`CameraRequest`) | config, options |
 | constraint | ข้อจำกัดของ track (width/height/frameRate/facingMode/deviceId) | setting |

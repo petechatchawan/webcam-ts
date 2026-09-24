@@ -10,7 +10,7 @@ Replace the current dark glassmorphism playground presentation with a light-firs
 
 ## Scope
 
-This change is presentation and interaction-clarity work only. It may restructure playground markup and CSS, but it must not change Camera, CameraSession, capture, device, permission, or control semantics.
+This change is presentation and interaction-clarity work only. It may restructure playground markup and CSS, but it must not change Camera, capture, device, permission, or control semantics.
 
 ## Visual direction
 

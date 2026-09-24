@@ -310,7 +310,7 @@ test("an empty track label is preserved instead of coerced to null", async () =>
 });
 
 test("public state snapshots never expose active without a session or idle with one", async () => {
-  const stream = createStream(createTrack("camera-a"));
+  const stream = createStream(createTrack({ deviceId: "camera-a" }));
   const camera = new Camera({
     mediaDevices: {
       async open() { return stream; },
@@ -338,7 +338,7 @@ test("public state snapshots never expose active without a session or idle with 
 
 test("an unexpectedly ended active track releases the session and reports TRACK_ENDED", async () => {
   const endedListeners = new Set();
-  const track = createTrack("camera-a");
+  const track = createTrack({ deviceId: "camera-a" });
   track.addEventListener = (type, listener) => {
     if (type === "ended") endedListeners.add(listener);
   };

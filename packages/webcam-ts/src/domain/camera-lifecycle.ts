@@ -1,5 +1,5 @@
-import { CameraError, type CameraOperation } from "../domain/camera-error.js";
-import type { CameraStatus } from "../domain/camera-state.js";
+import { CameraError, type CameraOperation } from "./camera-error.js";
+import type { CameraStatus } from "./camera-state.js";
 
 export function assertCommandAllowed(status: CameraStatus, command: CameraOperation): void {
   if (command === "dispose") return;

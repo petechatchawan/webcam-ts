@@ -213,6 +213,7 @@ export class Camera {
     this.detachActiveTrackEndedListener();
     this.activeStream = null;
     this.activeTrack = null;
+    // Synchronous-reentrancy guard: candidateStream is non-null only between two synchronous statements.
     this.releaseCandidateStream(this.candidateStream);
     if (previousStream) stopStream(previousStream);
     if (!previousStream) return;
