@@ -371,3 +371,47 @@ test("an unexpectedly ended active track releases the session and reports TRACK_
   );
   assert.equal(events.some((event) => event.type === "session-ended"), true);
 });
+
+test("track ended during switching still commits the pending switch", async () => {
+  const endedListeners = new Set();
+  const activeTrack = createTrack({ deviceId: "camera-a" });
+  activeTrack.addEventListener = (type, listener) => {
+    if (type === "ended") endedListeners.add(listener);
+  };
+  activeTrack.removeEventListener = (type, listener) => {
+    if (type === "ended") endedListeners.delete(listener);
+  };
+  activeTrack.emitEnded = () => {
+    activeTrack.readyState = "ended";
+    for (const listener of [...endedListeners]) listener();
+  };
+  const activeStream = createStream(activeTrack);
+  const pending = deferred();
+  const candidateTrack = createTrack({ deviceId: "camera-b" });
+  const candidateStream = createStream(candidateTrack);
+  let calls = 0;
+  const camera = new Camera({
+    mediaDevices: createPort(() => (++calls === 1 ? Promise.resolve(activeStream) : pending.promise)),
+  });
+  const events = [];
+  camera.subscribe((event) => events.push(event));
+
+  await camera.start({ deviceId: "camera-a" });
+  const switchPromise = camera.switch({ deviceId: "camera-b" });
+  activeTrack.emitEnded();
+  pending.resolve(candidateStream);
+  await switchPromise;
+
+  assert.equal(camera.getState().status, "active");
+  assert.equal(camera.getActiveStream(), candidateStream);
+  assert.equal(activeTrack.stopCalls, 1);
+  const endedIndex = events.findIndex(
+    (event) => event.type === "stream-changed" && event.reason === "ended",
+  );
+  const switchedIndex = events.findIndex(
+    (event) => event.type === "stream-changed" && event.reason === "switched",
+  );
+  assert.notEqual(endedIndex, -1);
+  assert.notEqual(switchedIndex, -1);
+  assert.ok(endedIndex < switchedIndex);
+});

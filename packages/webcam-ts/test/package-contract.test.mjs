@@ -42,8 +42,10 @@ test("declared package subpaths import from a packed tarball", () => {
           !devices.CameraDeviceManager || !controls.CameraControls ||
           !testing.FakeMediaDevicesPort) process.exit(2);
       for (const internal of [
+        "assertCommandAllowed",
         "CameraEventHub",
         "OperationController",
+        "OperationToken",
         "stopStream",
         "resolveMediaDevices",
         "normalizeBrowserError",
@@ -52,7 +54,7 @@ test("declared package subpaths import from a packed tarball", () => {
         if (internal in root) process.exit(4);
       }
       try {
-        await import("webcam-ts/session/camera-session");
+        await import("webcam-ts/operation-token");
         process.exit(3);
       } catch (error) {
         if (error.code !== "ERR_PACKAGE_PATH_NOT_EXPORTED") throw error;
