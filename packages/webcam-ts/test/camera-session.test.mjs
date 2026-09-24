@@ -300,6 +300,15 @@ test("state snapshots do not freeze capability objects owned by the track", asyn
   assert.equal(Object.isFrozen(zoomRange), false);
 });
 
+test("an empty track label is preserved instead of coerced to null", async () => {
+  const track = createTrack({ label: "" });
+  const camera = new Camera({ mediaDevices: createPort(async () => createStream(track)) });
+
+  await camera.start();
+
+  assert.equal(camera.getState().trackLabel, "");
+});
+
 test("public state snapshots never expose active without a session or idle with one", async () => {
   const stream = createStream(createTrack("camera-a"));
   const camera = new Camera({

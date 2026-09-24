@@ -199,7 +199,7 @@ export class Camera {
     this.updateState({
       sessionId: beginsSession ? this.createSessionId() : this.state.sessionId,
       deviceId: settings.deviceId ?? null,
-      trackLabel: track.label || null,
+      trackLabel: track.label ?? null,
       settings,
       capabilities,
       startedAt: beginsSession ? this.now() : this.state.startedAt,
