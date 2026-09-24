@@ -70,6 +70,31 @@ test("stop during start prevents stale commit and stops the resolved candidate",
   assert.equal(camera.getState().status, "idle");
 });
 
+test("aborting a start mid-flight recovers to idle and allows the next start", async () => {
+  const pending = deferred();
+  const abortController = new AbortController();
+  const activeTrack = createTrack({ deviceId: "camera-a" });
+  const activeStream = createStream(activeTrack);
+  let calls = 0;
+  const camera = new Camera({
+    mediaDevices: createPort(() => {
+      calls += 1;
+      return calls === 1 ? pending.promise : Promise.resolve(activeStream);
+    }),
+  });
+
+  const startPromise = camera.start({ signal: abortController.signal });
+  abortController.abort();
+  pending.resolve(createStream(createTrack({ deviceId: "camera-b" })));
+
+  await assert.rejects(startPromise, (error) => error.code === "OPERATION_ABORTED");
+  assert.equal(camera.getState().status, "idle");
+
+  await camera.start({ deviceId: "camera-a" });
+  assert.equal(camera.getActiveStream(), activeStream);
+  assert.equal(camera.getState().status, "active");
+});
+
 test("failed switch preserves the previous active stream", async () => {
   const firstTrack = createTrack({ deviceId: "camera-a" });
   const firstStream = createStream(firstTrack);
@@ -91,6 +116,29 @@ test("failed switch preserves the previous active stream", async () => {
   assert.equal(camera.getActiveStream(), firstStream);
   assert.equal(camera.getState().status, "active");
   assert.equal(firstTrack.stopCalls, 0);
+});
+
+test("aborting a switch mid-flight keeps the previous stream active", async () => {
+  const activeTrack = createTrack({ deviceId: "camera-a" });
+  const activeStream = createStream(activeTrack);
+  const pending = deferred();
+  const abortController = new AbortController();
+  const candidateTrack = createTrack({ deviceId: "camera-b" });
+  let calls = 0;
+  const camera = new Camera({
+    mediaDevices: createPort(() => (++calls === 1 ? Promise.resolve(activeStream) : pending.promise)),
+  });
+
+  await camera.start({ deviceId: "camera-a" });
+  const switchPromise = camera.switch({ deviceId: "camera-b", signal: abortController.signal });
+  abortController.abort();
+  pending.resolve(createStream(candidateTrack));
+
+  await assert.rejects(switchPromise, (error) => error.code === "OPERATION_ABORTED");
+  assert.equal(camera.getState().status, "active");
+  assert.equal(camera.getActiveStream(), activeStream);
+  assert.equal(activeTrack.stopCalls, 0);
+  assert.equal(candidateTrack.stopCalls, 1);
 });
 
 test("latest switch wins and stale candidate is stopped", async () => {
@@ -125,6 +173,39 @@ test("latest switch wins and stale candidate is stopped", async () => {
   assert.equal(staleTrack.stopCalls, 1);
   assert.equal(activeTrack.stopCalls, 1);
   assert.equal(winningTrack.stopCalls, 0);
+});
+
+test("a superseded switch does not clobber the newer operation's status", async () => {
+  const activeTrack = createTrack({ deviceId: "camera-a" });
+  const activeStream = createStream(activeTrack);
+  const firstPending = deferred();
+  const secondPending = deferred();
+  const supersededTrack = createTrack({ deviceId: "camera-b" });
+  const supersededStream = createStream(supersededTrack);
+  const winnerTrack = createTrack({ deviceId: "camera-c" });
+  const winnerStream = createStream(winnerTrack);
+  let calls = 0;
+  const camera = new Camera({
+    mediaDevices: createPort(() => {
+      calls += 1;
+      if (calls === 1) return Promise.resolve(activeStream);
+      if (calls === 2) return firstPending.promise;
+      return secondPending.promise;
+    }),
+  });
+
+  await camera.start({ deviceId: "camera-a" });
+  const firstSwitch = camera.switch({ deviceId: "camera-b" });
+  const secondSwitch = camera.switch({ deviceId: "camera-c" });
+  secondPending.resolve(winnerStream);
+  await secondSwitch;
+  assert.equal(camera.getState().status, "active");
+
+  firstPending.resolve(supersededStream);
+  await assert.rejects(firstSwitch, (error) => error.code === "OPERATION_SUPERSEDED");
+  assert.equal(camera.getState().status, "active");
+  assert.equal(camera.getActiveStream(), winnerStream);
+  assert.equal(supersededTrack.stopCalls, 1);
 });
 
 test("dispose preempts a switch and permanently terminates the camera", async () => {

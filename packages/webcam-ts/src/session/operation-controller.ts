@@ -60,6 +60,10 @@ export class OperationController {
     return ++this.nextId;
   }
 
+  isCurrent(token: OperationToken): boolean {
+    return this.current === token;
+  }
+
   invalidate(code: CameraErrorCode = "OPERATION_SUPERSEDED"): void {
     this.current?.invalidate(code);
     this.current = null;

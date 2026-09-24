@@ -75,7 +75,7 @@ export class CameraSession {
         stopStream(candidate);
       }
       const cameraError = this.resolveOperationError(error, token, "start");
-      if (token.isCurrent() && this.status === "starting") this.setStatus("idle");
+      if (this.operations.isCurrent(token) && this.status === "starting") this.setStatus("idle");
       this.observer.onOperationFailed("start", token.id, cameraError);
       throw cameraError;
     }
@@ -112,7 +112,7 @@ export class CameraSession {
         stopStream(candidate);
       }
       const cameraError = this.resolveOperationError(error, token, "switch");
-      if (token.isCurrent() && this.status === "switching") {
+      if (this.operations.isCurrent(token) && this.status === "switching") {
         this.setStatus(this.activeStream ? "active" : "idle");
       }
       this.observer.onOperationFailed("switch", token.id, cameraError);
