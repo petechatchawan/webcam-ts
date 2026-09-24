@@ -6,6 +6,7 @@
   "scripts": {
     "clean": "node -e \"for (const path of ['dist','dist-test']) require('fs').rmSync(path,{recursive:true,force:true})\"",
     "dev": "pnpm --dir ../../packages/webcam-ts build && vite --host 0.0.0.0",
+    "dev:https": "pnpm --dir ../../packages/webcam-ts build && PLAYGROUND_HTTPS=1 vite --host 0.0.0.0",
     "typecheck": "pnpm --dir ../../packages/webcam-ts build && tsc -p tsconfig.json --noEmit",
     "build": "pnpm --dir ../../packages/webcam-ts build && vite build",
     "build:test": "tsc -p tsconfig.test.json",
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "24.0.7",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "typescript": "5.8.3",
     "vite": "6.4.3"
   }
