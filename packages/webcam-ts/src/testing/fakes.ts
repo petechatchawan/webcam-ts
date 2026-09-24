@@ -7,12 +7,12 @@ function asTrack(track: FakeMediaStreamTrack): MediaStreamTrack {
 }
 
 export class FakeMediaStreamTrack {
-	stopCalls = 0;
-	applyConstraintsCalls: MediaTrackConstraints[] = [];
-	readyState: MediaStreamTrackState = "live";
+	public stopCalls = 0;
+	public applyConstraintsCalls: MediaTrackConstraints[] = [];
+	public readyState: MediaStreamTrackState = "live";
 
 	constructor(
-		readonly label = "Fake Camera",
+		public readonly label = "Fake Camera",
 		private settings: MediaTrackSettings = { deviceId: "fake-camera", width: 1280, height: 720 },
 		private capabilities: MediaTrackCapabilities = {},
 	) {}
@@ -40,7 +40,7 @@ export class FakeMediaStreamTrack {
 }
 
 export class FakeMediaStream {
-	constructor(readonly videoTrack = new FakeMediaStreamTrack()) {}
+	constructor(public readonly videoTrack = new FakeMediaStreamTrack()) {}
 
 	public getTracks(): MediaStreamTrack[] {
 		return [asTrack(this.videoTrack)];
@@ -54,8 +54,8 @@ export class FakeMediaStream {
 type OpenResult = MediaStream | Error | (() => Promise<MediaStream>);
 
 export class FakeMediaDevicesPort implements MediaDevicesPort {
-	readonly openCalls: MediaStreamConstraints[] = [];
-	enumerateCalls = 0;
+	public readonly openCalls: MediaStreamConstraints[] = [];
+	public enumerateCalls = 0;
 	private readonly openResults: OpenResult[] = [];
 	private devices: MediaDeviceInfo[] = [];
 	private readonly deviceListeners = new Set<() => void>();

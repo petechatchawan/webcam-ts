@@ -17,6 +17,7 @@ Authority: `packages/webcam-ts/README.md`, `packages/webcam-ts/test`, และ 
 | constraint    | ข้อจำกัดของ track (width/height/frameRate/facingMode/deviceId)      | setting                  |
 | track ended   | อีเวนต์จาก browser ว่า track ตาย — จบ session ด้วย `TRACK_ENDED`    | disconnect               |
 | dispose       | จบถาวร ใช้ต่อไม่ได้ (`DISPOSED`)                                    | close, destroy           |
+| snapshot    | อ่านความสามารถของ device โดยเปิด temp stream ชั่วคราวแล้วทิ้ง (`snapshotCapabilities`) | probe, inspect           |
 
 ## Lifecycle (แหล่งความจริงเดียว)
 

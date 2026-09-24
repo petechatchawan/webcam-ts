@@ -71,7 +71,7 @@ export class UiRenderer {
 		this.unsubscribe = controller.subscribe((snapshot) => this.render(snapshot));
 	}
 
-	dispose(): void {
+	public dispose(): void {
 		this.unsubscribe();
 	}
 

@@ -171,7 +171,7 @@ export class CameraController {
 		});
 	}
 
-	async initialize(): Promise<void> {
+	public async initialize(): Promise<void> {
 		this.assertUsable();
 		if (!this.cameraUnsubscribe) {
 			this.cameraUnsubscribe = this.camera.subscribe((event) => this.onCameraEvent(event));
@@ -200,11 +200,11 @@ export class CameraController {
 		}
 	}
 
-	getSnapshot(): PlaygroundSnapshot {
+	public getSnapshot(): PlaygroundSnapshot {
 		return this.snapshot;
 	}
 
-	subscribe(listener: PlaygroundListener): () => void {
+	public subscribe(listener: PlaygroundListener): () => void {
 		this.assertUsable();
 		this.listeners.add(listener);
 		listener(this.snapshot);
@@ -216,7 +216,7 @@ export class CameraController {
 		};
 	}
 
-	async start(selection: CameraSelection): Promise<void> {
+	public async start(selection: CameraSelection): Promise<void> {
 		this.assertCameraPermission("start");
 		this.preview.setMirror(selection.mirror);
 		await this.runResolutionOperation(selection, () =>
@@ -226,12 +226,12 @@ export class CameraController {
 		await this.refreshAfterStreamChange();
 	}
 
-	async stop(): Promise<void> {
+	public async stop(): Promise<void> {
 		await this.run(() => this.camera.stop());
 		this.patch({ controls: emptyControls, requestedResolution: null });
 	}
 
-	async requestPermissions(audio: boolean): Promise<void> {
+	public async requestPermissions(audio: boolean): Promise<void> {
 		await this.run(async () => {
 			const permissions = await this.permissionService.request({ video: true, audio });
 			if (permissions.camera === "granted") writeCameraGrant();
@@ -240,14 +240,14 @@ export class CameraController {
 		});
 	}
 
-	async refreshDevices(): Promise<void> {
+	public async refreshDevices(): Promise<void> {
 		await this.run(async () => {
 			const devices = await this.deviceManager.list();
 			this.patch({ devices: Object.freeze([...devices]) });
 		});
 	}
 
-	async capture(options: CaptureBlobOptions): Promise<CaptureSnapshot> {
+	public async capture(options: CaptureBlobOptions): Promise<CaptureSnapshot> {
 		const result = await this.run(() => this.captureService.toBlob(options));
 
 		this.captureUrl = replaceObjectUrl(this.captureUrl, result.blob, this.urlPort);
@@ -263,29 +263,29 @@ export class CameraController {
 		return capture;
 	}
 
-	async applyControls(update: CameraControlUpdate): Promise<void> {
+	public async applyControls(update: CameraControlUpdate): Promise<void> {
 		await this.run(async () => {
 			const settings = await this.controlsService.set(update);
 			this.patch({ controls: this.buildControls(settings) });
 		});
 	}
 
-	setMirror(mirror: boolean): void {
+	public setMirror(mirror: boolean): void {
 		this.assertUsable();
 		this.preview.setMirror(mirror);
 	}
 
-	clearError(): void {
+	public clearError(): void {
 		this.assertUsable();
 		this.patch({ error: null });
 	}
 
-	clearEvents(): void {
+	public clearEvents(): void {
 		this.assertUsable();
 		this.patch({ events: Object.freeze([]) });
 	}
 
-	async dispose(): Promise<void> {
+	public async dispose(): Promise<void> {
 		if (this.disposed) return;
 		this.disposed = true;
 		this.cameraUnsubscribe?.();

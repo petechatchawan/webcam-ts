@@ -10,6 +10,7 @@
 - A second `start()` while starting is rejected with `INVALID_STATE` instead of superseding.
 - Renamed `VideoPreview` to `CameraPreview` (and `VideoPreviewOptions` to `CameraPreviewOptions`).
 - Merged capture into one module: `FrameCaptureBackend` is now `FrameEncoder`, `CanvasCaptureBackend` is now `CanvasFrameEncoder`, and `CameraCaptureOptions.backend` is now `encoder`.
+- Renamed `CameraDeviceManager.probe()` to `snapshotCapabilities()` (and `CameraCapabilityProbeOptions` to `SnapshotCapabilitiesOptions`).
 
 ## 4.0.0-alpha.1 — 2026-08-06
 
@@ -26,8 +27,8 @@
 
 ### Added
 
-- Single-owner `Camera` lifecycle with atomic `switch()` transactions.
-- Latest-command-wins switching and stop/dispose preemption.
+- Single-owner `Camera` lifecycle with atomic stream replacement on `start()`.
+- Serial `start()` with stop/dispose preemption.
 - Immutable state snapshots, isolated typed events, and stable error codes.
 - SSR-safe package imports and construction.
 - Explicit capability probing with active-track reuse and temporary-stream cleanup.
@@ -35,4 +36,4 @@
 
 ### Status
 
-This is an architecture alpha. Automated synthetic tests pass, but the stable `4.0.0` release remains gated on the real-browser and real-device verification matrix documented in the architecture specification.
+This is an architecture alpha. Automated synthetic tests pass, but the stable `4.0.0` release remains gated on real-browser and real-device verification.
