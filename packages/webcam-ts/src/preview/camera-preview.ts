@@ -24,7 +24,7 @@ export class CameraPreview {
 		this.muted = options.muted ?? true;
 		this.playsInline = options.playsInline ?? true;
 		this.mirror = options.mirror ?? false;
-		this.applyElementOptions();
+		this.applyOptions();
 	}
 
 	public bind(camera: Camera): void {
@@ -49,7 +49,7 @@ export class CameraPreview {
 		this.assertUsable();
 		if (this.element) this.element.srcObject = null;
 		this.element = element;
-		this.applyElementOptions();
+		this.applyOptions();
 		this.applyStream(this.camera?.getActiveStream() ?? null);
 	}
 
@@ -67,7 +67,7 @@ export class CameraPreview {
 		this.disposed = true;
 	}
 
-	private applyElementOptions(): void {
+	private applyOptions(): void {
 		if (!this.element) return;
 		this.element.autoplay = this.autoplay;
 		this.element.muted = this.muted;
@@ -84,6 +84,7 @@ export class CameraPreview {
 		if (!this.element) return;
 		this.element.srcObject = stream;
 		if (stream && this.autoplay) {
+			// Autoplay rejection is a browser policy outcome, not a preview failure.
 			void this.element.play().catch(() => undefined);
 		}
 	}

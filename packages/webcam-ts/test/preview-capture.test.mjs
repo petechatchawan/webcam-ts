@@ -79,6 +79,21 @@ test("failed replacement start leaves preview on the previous stream", async () 
   assert.equal(video.srcObject, stream);
 });
 
+test("blocked autoplay still assigns the stream to the video element", async () => {
+  const stream = createStream();
+  const camera = new Camera({ mediaDevices: { open: async () => stream, enumerateDevices: async () => [] } });
+  const video = createVideo();
+  video.play = async () => { throw Object.assign(new Error("play blocked"), { name: "NotAllowedError" }); };
+  const preview = new CameraPreview(video);
+
+  preview.bind(camera);
+  await camera.start();
+  await Promise.resolve();
+
+  assert.equal(video.srcObject, stream);
+  preview.dispose();
+});
+
 test("multiple previews can observe one camera", async () => {
   const stream = createStream();
   const camera = new Camera({ mediaDevices: { open: async () => stream, enumerateDevices: async () => [] } });
