@@ -26,8 +26,16 @@ const preview = new CameraPreview(document.querySelector("video")!, {
 });
 preview.bind(camera);
 
-await camera.start({ facingMode: "user" });
+await camera.start({
+	facingMode: "user",
+	resolution: {
+		width: { exact: 1280 },
+		height: { exact: 720 },
+	},
+});
 ```
+
+Use `ideal` instead of `exact` to allow the browser to fall back to the closest match.
 
 ## Replace atomically
 
@@ -47,6 +55,12 @@ const result = await capture.toBlob({
 	type: "image/jpeg",
 	quality: 0.92,
 });
+```
+
+## Stop
+
+```ts
+await camera.stop();
 ```
 
 ## Devices and controls
