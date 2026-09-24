@@ -26,10 +26,12 @@ Verification:
 
 ```bash
 pnpm verify:playground
+pnpm --dir packages/webcam-ts typecheck
 pnpm --dir packages/webcam-ts test
+cd packages/webcam-ts && npm pack --dry-run
 pnpm --dir apps/playground typecheck
 pnpm --dir apps/playground test
-GITHUB_ACTIONS=true pnpm --dir apps/playground build
+pnpm --dir apps/playground build
 ```
 
 GitHub Actions verifies pull requests. Pushes to `master` deploy `apps/playground/dist` to GitHub Pages.
