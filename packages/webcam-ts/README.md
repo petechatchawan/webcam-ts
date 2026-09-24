@@ -58,6 +58,28 @@ import { CameraControls } from "webcam-ts/controls";
 const devices = await new CameraDeviceManager().list();
 const permissions = await new CameraPermissionService().query();
 const controls = new CameraControls(camera);
+const capabilities = await new CameraDeviceManager().snapshotCapabilities("camera-id");
+```
+
+## Events
+
+```ts
+const unsubscribe = camera.subscribe((event) => {
+	if (event.type === "state-changed") console.log(event.state.status);
+});
+unsubscribe();
+```
+
+## Errors
+
+```ts
+import { Camera, CameraError } from "webcam-ts";
+
+try {
+	await camera.start({ deviceId: "external-camera-id" });
+} catch (error) {
+	if (error instanceof CameraError) console.log(error.code, error.recoverable);
+}
 ```
 
 ## Runtime contract
