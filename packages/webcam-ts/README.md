@@ -26,13 +26,7 @@ const preview = new VideoPreview(document.querySelector("video")!, {
 });
 preview.bind(camera);
 
-await camera.start({
-	facingMode: "user",
-	resolution: {
-		width: { ideal: 1280 },
-		height: { ideal: 720 },
-	},
-});
+await camera.start({ facingMode: "user" });
 ```
 
 ## Replace atomically
