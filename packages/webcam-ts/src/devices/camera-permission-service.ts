@@ -22,22 +22,24 @@ export interface CameraPermissionServiceOptions {
 
 export class CameraPermissionService {
 	private readonly mediaDevices: MediaDevicesPort;
-	private readonly explicitPermissions: Permissions | null | undefined;
+	private readonly permissions: Permissions | null;
 
 	constructor(options: CameraPermissionServiceOptions = {}) {
 		this.mediaDevices = options.mediaDevices ?? new BrowserMediaDevicesAdapter();
-		this.explicitPermissions = options.permissions;
+		this.permissions =
+			options.permissions !== undefined
+				? options.permissions
+				: (globalThis.navigator?.permissions ?? null);
 	}
 
 	async query(): Promise<CameraPermissionMap> {
-		const permissions = this.resolvePermissions();
-		if (!permissions) {
+		if (!this.permissions) {
 			return Object.freeze({ camera: "unsupported", microphone: "unsupported" });
 		}
 
 		const [camera, microphone] = await Promise.all([
-			this.queryOne(permissions, "camera"),
-			this.queryOne(permissions, "microphone"),
+			this.queryOne(this.permissions, "camera"),
+			this.queryOne(this.permissions, "microphone"),
 		]);
 		return Object.freeze({ camera, microphone });
 	}
@@ -59,11 +61,6 @@ export class CameraPermissionService {
 			camera: video ? "granted" : queried.camera,
 			microphone: audio ? "granted" : queried.microphone,
 		});
-	}
-
-	private resolvePermissions(): Permissions | null {
-		if (this.explicitPermissions !== undefined) return this.explicitPermissions;
-		return globalThis.navigator?.permissions ?? null;
 	}
 
 	private async queryOne(
