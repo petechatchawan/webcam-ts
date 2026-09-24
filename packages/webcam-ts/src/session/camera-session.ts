@@ -3,9 +3,9 @@ import { buildMediaStreamConstraints, type CameraRequest } from "../domain/camer
 import type { CameraStatus } from "../domain/camera-state.js";
 import type { MediaDevicesPort } from "../platform/media-devices-port.js";
 import { normalizeBrowserError } from "../platform/browser-error-normalizer.js";
-import { assertCommandAllowed } from "./lifecycle-machine.js";
+import { assertCommandAllowed } from "../domain/camera-lifecycle.js";
 import { OperationController, type OperationToken } from "./operation-controller.js";
-import { stopStream } from "./stream-cleanup.js";
+import { stopStream } from "../platform/stream-cleanup.js";
 
 export type StreamChangeReason = "started" | "switched" | "stopped" | "disposed" | "ended";
 

@@ -2,7 +2,7 @@ import type { Camera } from "../camera.js";
 import { CameraError } from "../domain/camera-error.js";
 import { BrowserMediaDevicesAdapter } from "../platform/browser-media-devices-adapter.js";
 import type { MediaDevicesPort } from "../platform/media-devices-port.js";
-import { stopStream } from "../session/stream-cleanup.js";
+import { stopStream } from "../platform/stream-cleanup.js";
 
 export interface CameraDevice {
   readonly deviceId: string;
