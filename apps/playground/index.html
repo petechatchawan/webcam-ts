@@ -158,15 +158,8 @@
               </div>
             </div>
             <div class="lifecycle-actions">
-              <button id="start-camera" class="button button-primary" disabled>
+              <button id="session-toggle" class="button button-full button-primary" disabled>
                 Start camera
-              </button>
-              <button
-                id="stop-camera"
-                class="button button-destructive-outline"
-                disabled
-              >
-                Stop
               </button>
             </div>
           </section>
@@ -193,8 +186,10 @@
                 <p class="card-description">Exact is the default and fails instead of silently using another resolution.</p>
               </div>
             </div>
-            <div class="card-content">
-              <div class="settings-grid">
+            <details class="settings-disclosure">
+              <summary>Change device, resolution, or options</summary>
+              <div class="card-content">
+                <div class="settings-grid">
                 <label class="field resolution-field">
                   <span class="field-label">Resolution preset</span>
                   <select id="resolution-select" aria-describedby="resolution-help"></select>
@@ -249,6 +244,7 @@
                 </label>
               </div>
             </div>
+            </details>
           </article>
         </section>
 

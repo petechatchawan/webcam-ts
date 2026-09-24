@@ -36,8 +36,7 @@ export class UiRenderer {
 	private readonly resolutionModeSelect = byId<HTMLSelectElement>("resolution-mode-select");
 	private readonly audioToggle = byId<HTMLInputElement>("audio-toggle");
 	private readonly mirrorToggle = byId<HTMLInputElement>("mirror-toggle");
-	private readonly startButton = byId<HTMLButtonElement>("start-camera");
-	private readonly stopButton = byId<HTMLButtonElement>("stop-camera");
+	private readonly sessionToggle = byId<HTMLButtonElement>("session-toggle");
 	private readonly captureType = byId<HTMLSelectElement>("capture-type");
 	private readonly captureQuality = byId<HTMLInputElement>("capture-quality");
 	private readonly captureQualityValue = byId<HTMLOutputElement>("capture-quality-value");
@@ -80,11 +79,13 @@ export class UiRenderer {
 			void this.run(() => this.controller.requestPermissions(this.audioToggle.checked));
 		};
 		this.permissionGateAction.addEventListener("click", requestPermission);
-		this.startButton.addEventListener("click", () => {
-			void this.run(() => this.controller.start(this.readSelection()));
-		});
-		this.stopButton.addEventListener("click", () => {
-			void this.run(() => this.controller.stop());
+		this.sessionToggle.addEventListener("click", () => {
+			void this.run(() => {
+				if (this.latestSnapshot?.camera.status === "active") {
+					return this.controller.stop();
+				}
+				return this.controller.start(this.readSelection());
+			});
 		});
 		const renderSelectedResolution = () => {
 			if (this.latestSnapshot) this.renderPreview(this.latestSnapshot);
@@ -188,8 +189,7 @@ export class UiRenderer {
 		this.statusBadge.textContent = snapshot.camera.status;
 		this.statusBadge.dataset.status = snapshot.camera.status;
 
-		this.startButton.disabled = !permissionGranted || !snapshot.availability.canStart;
-		this.stopButton.disabled = !snapshot.availability.canStop;
+		this.renderSessionToggle(snapshot, permissionGranted);
 		this.captureButton.disabled = snapshot.camera.status !== "active";
 		this.applyControlsButton.disabled = snapshot.camera.status !== "active";
 
@@ -220,6 +220,25 @@ export class UiRenderer {
 			null,
 			2,
 		);
+	}
+
+	private renderSessionToggle(snapshot: PlaygroundSnapshot, permissionGranted: boolean): void {
+		const status = snapshot.camera.status;
+		if (status === "active") {
+			this.sessionToggle.textContent = "Stop camera";
+			this.sessionToggle.className = "button button-full button-destructive-outline";
+			this.sessionToggle.disabled = !snapshot.availability.canStop;
+			return;
+		}
+		if (status === "idle") {
+			this.sessionToggle.textContent = "Start camera";
+			this.sessionToggle.className = "button button-full button-primary";
+			this.sessionToggle.disabled = !permissionGranted || !snapshot.availability.canStart;
+			return;
+		}
+		this.sessionToggle.textContent = status === "disposed" ? "Camera disposed" : "Working…";
+		this.sessionToggle.className = "button button-full button-secondary";
+		this.sessionToggle.disabled = true;
 	}
 
 	private renderPermissionGate(snapshot: PlaygroundSnapshot): void {
