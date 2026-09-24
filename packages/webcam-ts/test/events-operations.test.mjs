@@ -31,7 +31,7 @@ test("unsubscribe is idempotent", () => {
   assert.equal(calls, 0);
 });
 
-test("a newer switch supersedes an older lease", () => {
+test("a newer switch supersedes an older token", () => {
   const controller = new OperationController();
   const first = controller.begin("switch");
   const second = controller.begin("switch");
@@ -40,12 +40,12 @@ test("a newer switch supersedes an older lease", () => {
   assert.equal(second.id, first.id + 1);
 });
 
-test("invalidated lease throws OPERATION_SUPERSEDED", () => {
+test("invalidated token throws OPERATION_SUPERSEDED", () => {
   const controller = new OperationController();
-  const lease = controller.begin("switch");
+  const token = controller.begin("switch");
   controller.invalidate();
   assert.throws(
-    () => lease.throwIfInvalid(),
+    () => token.throwIfInvalid(),
     (error) => error.code === "OPERATION_SUPERSEDED",
   );
 });

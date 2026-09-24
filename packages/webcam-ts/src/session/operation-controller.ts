@@ -4,7 +4,7 @@ import {
   type CameraOperation,
 } from "../domain/camera-error.js";
 
-export class OperationLease {
+export class OperationToken {
   private valid = true;
   private invalidCode: CameraErrorCode = "OPERATION_SUPERSEDED";
 
@@ -47,13 +47,13 @@ export class OperationLease {
 
 export class OperationController {
   private nextId = 0;
-  private current: OperationLease | null = null;
+  private current: OperationToken | null = null;
 
-  begin(operation: CameraOperation): OperationLease {
+  begin(operation: CameraOperation): OperationToken {
     this.current?.invalidate("OPERATION_SUPERSEDED");
-    const lease = new OperationLease(++this.nextId, operation);
-    this.current = lease;
-    return lease;
+    const token = new OperationToken(++this.nextId, operation);
+    this.current = token;
+    return token;
   }
 
   invalidate(code: CameraErrorCode = "OPERATION_SUPERSEDED"): void {
