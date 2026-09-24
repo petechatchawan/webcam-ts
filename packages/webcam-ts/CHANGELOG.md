@@ -8,6 +8,8 @@
 - Removed the `switching` status, `switched` stream reason, `switch` operation, and `OPERATION_SUPERSEDED` error.
 - Removed the `OperationToken`/`OperationController` testing exports; cancellation now uses one serial pending start.
 - A second `start()` while starting is rejected with `INVALID_STATE` instead of superseding.
+- Renamed `VideoPreview` to `CameraPreview` (and `VideoPreviewOptions` to `CameraPreviewOptions`).
+- Merged capture into one module: `FrameCaptureBackend` is now `FrameEncoder`, `CanvasCaptureBackend` is now `CanvasFrameEncoder`, and `CameraCaptureOptions.backend` is now `encoder`.
 
 ## 4.0.0-alpha.1 — 2026-08-06
 

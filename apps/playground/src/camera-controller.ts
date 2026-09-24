@@ -13,7 +13,7 @@ import {
 	type CameraDevice,
 	type CameraPermissionMap,
 } from "webcam-ts/devices";
-import { VideoPreview } from "webcam-ts/preview";
+import { CameraPreview } from "webcam-ts/preview";
 import {
 	appendEventLog,
 	buildCameraRequest,
@@ -432,7 +432,7 @@ export class CameraController {
 
 export function createBrowserCameraController(videoElement: HTMLVideoElement): CameraController {
 	const camera = new Camera();
-	const preview = new VideoPreview(videoElement, {
+	const preview = new CameraPreview(videoElement, {
 		autoplay: true,
 		muted: true,
 		playsInline: true,

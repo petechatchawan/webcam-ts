@@ -38,7 +38,7 @@ test("declared package subpaths import from a packed tarball", () => {
       const devices = await import("webcam-ts/devices");
       const controls = await import("webcam-ts/controls");
       const testing = await import("webcam-ts/testing");
-      if (!root.Camera || !preview.VideoPreview || !capture.CameraCapture ||
+      if (!root.Camera || !preview.CameraPreview || !capture.CameraCapture ||
           !devices.CameraDeviceManager || !controls.CameraControls ||
           !testing.FakeMediaDevicesPort) process.exit(2);
       if (typeof root.Camera.prototype.switch === "function") process.exit(5);

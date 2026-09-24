@@ -1,14 +1,14 @@
 import type { Camera } from "../camera.js";
 import { CameraError } from "../domain/camera-error.js";
 
-export interface VideoPreviewOptions {
+export interface CameraPreviewOptions {
 	readonly autoplay?: boolean;
 	readonly muted?: boolean;
 	readonly playsInline?: boolean;
 	readonly mirror?: boolean;
 }
 
-export class VideoPreview {
+export class CameraPreview {
 	private camera: Camera | null = null;
 	private unsubscribe: (() => void) | null = null;
 	private disposed = false;
@@ -18,7 +18,7 @@ export class VideoPreview {
 	private readonly muted: boolean;
 	private readonly playsInline: boolean;
 
-	constructor(element: HTMLVideoElement, options: VideoPreviewOptions = {}) {
+	constructor(element: HTMLVideoElement, options: CameraPreviewOptions = {}) {
 		this.element = element;
 		this.autoplay = options.autoplay ?? true;
 		this.muted = options.muted ?? true;
@@ -90,7 +90,7 @@ export class VideoPreview {
 
 	private assertUsable(): void {
 		if (!this.disposed) return;
-		throw new CameraError("VideoPreview has been disposed", {
+		throw new CameraError("CameraPreview has been disposed", {
 			code: "DISPOSED",
 			recoverable: false,
 		});

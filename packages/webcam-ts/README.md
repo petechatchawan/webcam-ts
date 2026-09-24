@@ -18,10 +18,10 @@ npm install webcam-ts
 
 ```ts
 import { Camera } from "webcam-ts";
-import { VideoPreview } from "webcam-ts/preview";
+import { CameraPreview } from "webcam-ts/preview";
 
 const camera = new Camera();
-const preview = new VideoPreview(document.querySelector("video")!, {
+const preview = new CameraPreview(document.querySelector("video")!, {
 	mirror: true,
 });
 preview.bind(camera);

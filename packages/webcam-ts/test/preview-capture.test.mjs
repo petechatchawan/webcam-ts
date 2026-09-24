@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { Camera } from "../dist/index.js";
-import { VideoPreview } from "../dist/preview/index.js";
+import { CameraPreview } from "../dist/preview/index.js";
 import { CameraCapture } from "../dist/capture/index.js";
 
 function createTrack(deviceId = "camera-a") {
@@ -41,7 +41,7 @@ test("preview follows committed stream changes and dispose does not stop tracks"
   const stream = createStream(track);
   const camera = new Camera({ mediaDevices: { open: async () => stream, enumerateDevices: async () => [] } });
   const video = createVideo();
-  const preview = new VideoPreview(video, { mirror: true });
+  const preview = new CameraPreview(video, { mirror: true });
 
   preview.bind(camera);
   await camera.start();
@@ -71,7 +71,7 @@ test("failed replacement start leaves preview on the previous stream", async () 
     },
   });
   const video = createVideo();
-  const preview = new VideoPreview(video);
+  const preview = new CameraPreview(video);
   preview.bind(camera);
 
   await camera.start();
@@ -84,8 +84,8 @@ test("multiple previews can observe one camera", async () => {
   const camera = new Camera({ mediaDevices: { open: async () => stream, enumerateDevices: async () => [] } });
   const first = createVideo();
   const second = createVideo();
-  new VideoPreview(first).bind(camera);
-  new VideoPreview(second).bind(camera);
+  new CameraPreview(first).bind(camera);
+  new CameraPreview(second).bind(camera);
   await camera.start();
   assert.equal(first.srcObject, stream);
   assert.equal(second.srcObject, stream);
@@ -98,17 +98,17 @@ test("capture subpath imports safely without DOM access", async () => {
 
 test("capture without active stream rejects INVALID_STATE", async () => {
   const camera = new Camera({ mediaDevices: { open: async () => createStream(), enumerateDevices: async () => [] } });
-  const capture = new CameraCapture(camera, { backend: {} });
+  const capture = new CameraCapture(camera, { encoder: {} });
   await assert.rejects(() => capture.toBlob(), (error) => error.code === "INVALID_STATE");
 });
 
-test("capture borrows stream and disposes only its backend", async () => {
+test("capture borrows stream and disposes only its encoder", async () => {
   const track = createTrack();
   const stream = createStream(track);
   const camera = new Camera({ mediaDevices: { open: async () => stream, enumerateDevices: async () => [] } });
   let capturedStream = null;
   let disposeCalls = 0;
-  const backend = {
+  const encoder = {
     async toBlob(input) {
       capturedStream = input;
       return { blob: new Blob(["x"], { type: "image/jpeg" }), width: 1, height: 1, type: "image/jpeg", timestamp: 1 };
@@ -117,7 +117,7 @@ test("capture borrows stream and disposes only its backend", async () => {
     async toImageBitmap() { throw new Error("unused"); },
     dispose() { disposeCalls += 1; },
   };
-  const capture = new CameraCapture(camera, { backend });
+  const capture = new CameraCapture(camera, { encoder });
 
   await camera.start();
   await capture.toBlob();
