@@ -15,6 +15,38 @@ interface DrawnFrame {
 	height: number;
 }
 
+function validateFrameOptions(options: CaptureFrameOptions): void {
+	if (options.scale !== undefined && (!Number.isFinite(options.scale) || options.scale <= 0)) {
+		throw new CameraError("Capture scale must be greater than zero", {
+			code: "INVALID_REQUEST",
+			recoverable: true,
+		});
+	}
+	if (
+		options.crop &&
+		[options.crop.x, options.crop.y, options.crop.width, options.crop.height].some(
+			(value) => !Number.isFinite(value),
+		)
+	) {
+		throw new CameraError("Capture crop values must be finite", {
+			code: "INVALID_REQUEST",
+			recoverable: true,
+		});
+	}
+	if (
+		options.crop &&
+		(options.crop.x < 0 || options.crop.y < 0 || options.crop.width <= 0 || options.crop.height <= 0)
+	) {
+		throw new CameraError(
+			"Capture crop must have non-negative coordinates and positive dimensions",
+			{
+				code: "INVALID_REQUEST",
+				recoverable: true,
+			},
+		);
+	}
+}
+
 export class CanvasCaptureBackend implements FrameCaptureBackend {
 	private video: HTMLVideoElement | null = null;
 	private canvas: HTMLCanvasElement | null = null;
@@ -90,7 +122,7 @@ export class CanvasCaptureBackend implements FrameCaptureBackend {
 
 	private async draw(stream: MediaStream, options: CaptureFrameOptions): Promise<DrawnFrame> {
 		this.assertUsable();
-		this.validateOptions(options);
+		validateFrameOptions(options);
 		const video = await this.ensureVideo(stream);
 		const source = options.crop ?? {
 			x: 0,
@@ -181,41 +213,6 @@ export class CanvasCaptureBackend implements FrameCaptureBackend {
 			});
 		}
 		return { canvas, context };
-	}
-
-	private validateOptions(options: CaptureFrameOptions): void {
-		if (options.scale !== undefined && (!Number.isFinite(options.scale) || options.scale <= 0)) {
-			throw new CameraError("Capture scale must be greater than zero", {
-				code: "INVALID_REQUEST",
-				recoverable: true,
-			});
-		}
-		if (
-			options.crop &&
-			[options.crop.x, options.crop.y, options.crop.width, options.crop.height].some(
-				(value) => !Number.isFinite(value),
-			)
-		) {
-			throw new CameraError("Capture crop values must be finite", {
-				code: "INVALID_REQUEST",
-				recoverable: true,
-			});
-		}
-		if (
-			options.crop &&
-			(options.crop.x < 0 ||
-				options.crop.y < 0 ||
-				options.crop.width <= 0 ||
-				options.crop.height <= 0)
-		) {
-			throw new CameraError(
-				"Capture crop must have non-negative coordinates and positive dimensions",
-				{
-					code: "INVALID_REQUEST",
-					recoverable: true,
-				},
-			);
-		}
 	}
 
 	private assertUsable(): void {
