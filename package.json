@@ -6,7 +6,8 @@
 		"test": "pnpm --dir packages/webcam-ts test && pnpm --dir apps/playground test",
 		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
 		"dev:playground": "turbo run dev --filter=playground",
-		"start:playground": "pnpm --dir apps/playground dev:https",
+		"start:playground": "pnpm --dir apps/playground dev",
+		"start:playground:https": "pnpm --dir apps/playground dev:https",
 		"verify:playground": "node scripts/verify-playground-clean-room.mjs"
 	},
 	"engines": {
