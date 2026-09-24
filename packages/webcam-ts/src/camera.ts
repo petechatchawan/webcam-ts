@@ -20,6 +20,37 @@ interface PendingStart {
 	invalidCode: Extract<CameraErrorCode, "OPERATION_ABORTED" | "DISPOSED"> | null;
 }
 
+function projectActiveStatePatch(
+	track: MediaStreamTrack,
+	previousStream: MediaStream | null,
+	state: CameraState,
+	now: () => number,
+	createSessionId: () => string,
+): Partial<CameraState> {
+	const settings = cloneAndFreeze(track.getSettings());
+	const capabilities = cloneAndFreeze(track.getCapabilities());
+	const beginsSession = previousStream === null || state.sessionId === null;
+	return {
+		sessionId: beginsSession ? createSessionId() : state.sessionId,
+		deviceId: settings.deviceId ?? null,
+		trackLabel: track.label ?? null,
+		settings,
+		capabilities,
+		startedAt: beginsSession ? now() : state.startedAt,
+	};
+}
+
+function relabelStartError(error: CameraError): CameraError {
+	if (error.operation === "start") return error;
+	return new CameraError(error.message, {
+		code: error.code,
+		operation: "start",
+		recoverable: error.recoverable,
+		cause: error.cause ?? error,
+		...(error.context ? { context: error.context } : {}),
+	});
+}
+
 function deepFreeze<T>(value: T): T {
 	if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
 	for (const nested of Object.values(value as Record<string, unknown>)) deepFreeze(nested);
@@ -167,18 +198,9 @@ export class Camera {
 		this.activeStream = stream;
 		this.activeTrack = track;
 		this.attachActiveTrackEndedListener(track);
-
-		const settings = cloneAndFreeze(track.getSettings());
-		const capabilities = cloneAndFreeze(track.getCapabilities());
-		const beginsSession = previousStream === null || this.state.sessionId === null;
-		this.updateState({
-			sessionId: beginsSession ? this.createSessionId() : this.state.sessionId,
-			deviceId: settings.deviceId ?? null,
-			trackLabel: track.label ?? null,
-			settings,
-			capabilities,
-			startedAt: beginsSession ? this.now() : this.state.startedAt,
-		});
+		this.updateState(
+			projectActiveStatePatch(track, previousStream, this.state, this.now, this.createSessionId),
+		);
 
 		this.events.emit({ type: "stream-changed", stream, previousStream, reason: "started" });
 	}
@@ -299,16 +321,7 @@ export class Camera {
 
 	private resolveOperationError(error: unknown, start: PendingStart): CameraError {
 		if (start.invalidCode) return this.pendingStartError(start);
-		if (error instanceof CameraError) {
-			if (error.operation === "start") return error;
-			return new CameraError(error.message, {
-				code: error.code,
-				operation: "start",
-				recoverable: error.recoverable,
-				cause: error.cause ?? error,
-				...(error.context ? { context: error.context } : {}),
-			});
-		}
+		if (error instanceof CameraError) return relabelStartError(error);
 		return normalizeBrowserError(error, "start");
 	}
 
