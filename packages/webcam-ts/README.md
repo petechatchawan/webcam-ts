@@ -22,16 +22,16 @@ import { VideoPreview } from "webcam-ts/preview";
 
 const camera = new Camera();
 const preview = new VideoPreview(document.querySelector("video")!, {
-  mirror: true,
+	mirror: true,
 });
 preview.bind(camera);
 
 await camera.start({
-  facingMode: "user",
-  resolution: {
-    width: { ideal: 1280 },
-    height: { ideal: 720 },
-  },
+	facingMode: "user",
+	resolution: {
+		width: { ideal: 1280 },
+		height: { ideal: 720 },
+	},
 });
 ```
 
@@ -50,18 +50,15 @@ import { CameraCapture } from "webcam-ts/capture";
 
 const capture = new CameraCapture(camera);
 const result = await capture.toBlob({
-  type: "image/jpeg",
-  quality: 0.92,
+	type: "image/jpeg",
+	quality: 0.92,
 });
 ```
 
 ## Devices and controls
 
 ```ts
-import {
-  CameraDeviceManager,
-  CameraPermissionService,
-} from "webcam-ts/devices";
+import { CameraDeviceManager, CameraPermissionService } from "webcam-ts/devices";
 import { CameraControls } from "webcam-ts/controls";
 
 const devices = await new CameraDeviceManager().list();

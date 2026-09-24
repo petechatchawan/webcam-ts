@@ -109,9 +109,7 @@ export class UiRenderer {
 					? { quality: Number(this.captureQuality.value) }
 					: {}),
 			};
-			void this.run(() =>
-				this.controller.capture(options).then(() => undefined),
-			);
+			void this.run(() => this.controller.capture(options).then(() => undefined));
 		});
 		this.zoomInput.addEventListener("input", () => {
 			this.zoomValue.value = Number(this.zoomInput.value).toFixed(2);

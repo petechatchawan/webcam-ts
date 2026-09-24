@@ -1,9 +1,11 @@
 # AGENTS.md — webcam-ts monorepo
 
 ## Stack
+
 TypeScript 5 (strict) · Node >=18 · pnpm 8 workspaces + turbo · Vite playground · `node:test` (.mjs)
 
 ## โครงสร้าง
+
 ```
 packages/webcam-ts/src/camera.ts        แกน lifecycle + ownership (อ่านไฟล์นี้ก่อนเสมอ)
 packages/webcam-ts/src/domain/          types + ตรรกะ pure (request, error, state, event, lifecycle)
@@ -15,6 +17,7 @@ CONTEXT.md                              ภาษา + lifecycle + ownership (au
 ```
 
 ## คำสั่งที่ใช้บ่อย
+
 ```bash
 pnpm --dir packages/webcam-ts test        # build + node:test บน dist
 pnpm --dir apps/playground test
@@ -24,6 +27,7 @@ pnpm --dir apps/playground dev            # playground
 ```
 
 ## กฎ
+
 - ห้าม `any`; cast ได้เฉพาะที่ boundary ของ browser และต้องมี comment
 - public API ทุกตัวต้องมี test ที่ import จาก entrypoint (`webcam-ts`, `webcam-ts/testing`, …) — ห้าม import ลึกเข้า `dist/`
 - error ทุกตัวที่โยนออก public ต้องเป็น `CameraError`
