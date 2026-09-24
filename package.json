@@ -4,7 +4,6 @@
   "scripts": {
     "build": "turbo run build",
     "test": "pnpm --dir packages/webcam-ts test && pnpm --dir apps/playground test",
-    "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "dev:playground": "turbo run dev --filter=playground",
     "start:playground": "pnpm --dir apps/playground dev",
@@ -15,8 +14,6 @@
   },
   "packageManager": "pnpm@8.14.0",
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "eslint": "^8.57.0",
     "prettier": "^2.8.8",
     "turbo": "^2.5.4"
   }
