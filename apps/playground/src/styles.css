@@ -253,7 +253,7 @@ svg {
 .resolution-line {
 	max-width: 16rem;
 	color: #ffffff;
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 	font-size: 0.625rem;
 	line-height: 1.4;
 	text-align: right;
@@ -604,7 +604,7 @@ summary:focus-visible {
 
 .metric-list dd {
 	margin: 0;
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .controls-stack {
@@ -670,7 +670,7 @@ input[type="range"] {
 .capture-quality-line output {
 	min-width: 2.5ch;
 	color: #e2e8f0;
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 	font-size: 0.625rem;
 	text-align: center;
 }
@@ -833,7 +833,7 @@ pre {
 	margin: 0;
 	overflow: auto;
 	color: hsl(var(--muted-foreground));
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 	font-size: 0.6875rem;
 	line-height: 1.55;
 	white-space: pre-wrap;
@@ -864,7 +864,7 @@ pre {
 
 .event-list time {
 	color: hsl(var(--muted-foreground));
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .app-footer {
@@ -880,7 +880,7 @@ code {
 	background: hsl(var(--muted));
 	color: hsl(var(--foreground));
 	padding: 0.1rem 0.25rem;
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 @media (max-width: 720px) {
