@@ -1,6 +1,7 @@
 # Webcam-TS v4 Architecture Design
 
 **Status:** Approved  
+**Amended:** 2026-09-24 — `Camera` owns lifecycle directly; the former `CameraSession` module was collapsed into it. Public API, invariants, and error taxonomy unchanged.
 **Date:** 2026-08-06  
 **Scope:** Clean replacement of Webcam-TS v3
 
@@ -13,7 +14,7 @@ The package is browser-focused and framework-agnostic. It may use standard Web P
 ## 2. Locked decisions
 
 - One `Camera` instance owns at most one active camera session.
-- `CameraSession` is the sole owner of active and candidate `MediaStream` objects.
+- `Camera` is the single lifecycle owner and the sole owner of active and candidate `MediaStream` objects.
 - `start()` and `switch()` are separate commands.
 - `start()` is valid only from `idle`.
 - `switch()` is valid only while a session is active.
@@ -28,7 +29,7 @@ The package is browser-focused and framework-agnostic. It may use standard Web P
 
 ## 3. Core invariants
 
-1. A `MediaStream` has exactly one lifecycle owner: `CameraSession`.
+1. A `MediaStream` has exactly one lifecycle owner: `Camera`.
 2. Platform adapters never retain active stream ownership.
 3. A stale, aborted, failed, or superseded operation must stop every stream it created.
 4. A candidate switch stream cannot replace the active stream until it has a live video track and the operation still owns the current generation token.
@@ -37,7 +38,7 @@ The package is browser-focused and framework-agnostic. It may use standard Web P
 7. Public state is immutable and does not expose mutable internal stores.
 8. Module initialization never reads `window`, `document`, or `navigator`.
 9. `dispose()` is idempotent and terminal.
-10. No service other than `CameraSession` calls `stop()` on session-owned tracks.
+10. No service other than `Camera` calls `stop()` on session-owned tracks.
 
 ## 4. Public package shape
 
@@ -184,11 +185,11 @@ Browser-specific error names are normalized once at the platform boundary.
 
 ### `Camera`
 
-A thin public facade that delegates lifecycle work to `CameraSession`, publishes immutable state/events, and exposes borrowed active stream/track references.
+The single lifecycle owner. Holds lifecycle status, owns active and candidate `MediaStream` objects, runs operation generations, performs atomic commit/rollback, publishes immutable state and events, and exposes borrowed active stream/track references.
 
-### `CameraSession`
+### `OperationToken`
 
-The sole owner of active and candidate streams, operation generations, and atomic commit/rollback behavior.
+Internal cancellation primitive owned by `Camera`. Carries the operation id and operation name; can be invalidated exactly once with a reason (`OPERATION_SUPERSEDED`, `OPERATION_ABORTED`, `DISPOSED`) and throws the corresponding typed error when invalidated.
 
 ### `BrowserMediaDevicesAdapter`
 
@@ -225,7 +226,6 @@ Capture results include output data, dimensions, MIME type where applicable, and
 ```text
 packages/webcam-ts/src/
   domain/
-  session/
   platform/
   events/
   preview/
@@ -234,6 +234,7 @@ packages/webcam-ts/src/
   controls/
   testing/
   camera.ts
+  operation-token.ts
   index.ts
 ```
 
