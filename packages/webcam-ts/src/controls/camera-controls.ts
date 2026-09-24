@@ -22,12 +22,12 @@ export interface CameraControlUpdate {
 export class CameraControls {
 	constructor(private readonly camera: Camera) {}
 
-	getCapabilities(): Readonly<ExtendedCapabilities> {
+	public getCapabilities(): Readonly<ExtendedCapabilities> {
 		const track = this.requireTrack();
 		return Object.freeze({ ...(track.getCapabilities() as ExtendedCapabilities) });
 	}
 
-	async set(update: CameraControlUpdate): Promise<Readonly<MediaTrackSettings>> {
+	public async set(update: CameraControlUpdate): Promise<Readonly<MediaTrackSettings>> {
 		const track = this.requireTrack();
 		const capabilities = track.getCapabilities() as ExtendedCapabilities;
 		const constraints: ExtendedConstraintSet = {};

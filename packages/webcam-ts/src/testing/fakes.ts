@@ -17,24 +17,24 @@ export class FakeMediaStreamTrack {
 		private capabilities: MediaTrackCapabilities = {},
 	) {}
 
-	stop(): void {
+	public stop(): void {
 		this.stopCalls += 1;
 		this.readyState = "ended";
 	}
 
-	getSettings(): MediaTrackSettings {
+	public getSettings(): MediaTrackSettings {
 		return { ...this.settings };
 	}
 
-	setSettings(settings: MediaTrackSettings): void {
+	public setSettings(settings: MediaTrackSettings): void {
 		this.settings = { ...settings };
 	}
 
-	getCapabilities(): MediaTrackCapabilities {
+	public getCapabilities(): MediaTrackCapabilities {
 		return { ...this.capabilities };
 	}
 
-	async applyConstraints(constraints: MediaTrackConstraints = {}): Promise<void> {
+	public async applyConstraints(constraints: MediaTrackConstraints = {}): Promise<void> {
 		this.applyConstraintsCalls.push(constraints);
 	}
 }
@@ -42,11 +42,11 @@ export class FakeMediaStreamTrack {
 export class FakeMediaStream {
 	constructor(readonly videoTrack = new FakeMediaStreamTrack()) {}
 
-	getTracks(): MediaStreamTrack[] {
+	public getTracks(): MediaStreamTrack[] {
 		return [asTrack(this.videoTrack)];
 	}
 
-	getVideoTracks(): MediaStreamTrack[] {
+	public getVideoTracks(): MediaStreamTrack[] {
 		return [asTrack(this.videoTrack)];
 	}
 }
@@ -60,23 +60,25 @@ export class FakeMediaDevicesPort implements MediaDevicesPort {
 	private devices: MediaDeviceInfo[] = [];
 	private readonly deviceListeners = new Set<() => void>();
 
-	enqueueStream(stream: MediaStream = new FakeMediaStream() as unknown as MediaStream): void {
+	public enqueueStream(
+		stream: MediaStream = new FakeMediaStream() as unknown as MediaStream,
+	): void {
 		this.openResults.push(stream);
 	}
 
-	enqueueError(error: Error): void {
+	public enqueueError(error: Error): void {
 		this.openResults.push(error);
 	}
 
-	enqueueOpen(factory: () => Promise<MediaStream>): void {
+	public enqueueOpen(factory: () => Promise<MediaStream>): void {
 		this.openResults.push(factory);
 	}
 
-	setDevices(devices: MediaDeviceInfo[]): void {
+	public setDevices(devices: MediaDeviceInfo[]): void {
 		this.devices = [...devices];
 	}
 
-	async open(constraints: MediaStreamConstraints): Promise<MediaStream> {
+	public async open(constraints: MediaStreamConstraints): Promise<MediaStream> {
 		this.openCalls.push(constraints);
 		const result = this.openResults.shift();
 		if (!result) return new FakeMediaStream() as unknown as MediaStream;
@@ -85,12 +87,12 @@ export class FakeMediaDevicesPort implements MediaDevicesPort {
 		return result;
 	}
 
-	async enumerateDevices(): Promise<MediaDeviceInfo[]> {
+	public async enumerateDevices(): Promise<MediaDeviceInfo[]> {
 		this.enumerateCalls += 1;
 		return [...this.devices];
 	}
 
-	subscribeDeviceChange(listener: () => void): () => void {
+	public subscribeDeviceChange(listener: () => void): () => void {
 		this.deviceListeners.add(listener);
 		let active = true;
 		return () => {
@@ -100,7 +102,7 @@ export class FakeMediaDevicesPort implements MediaDevicesPort {
 		};
 	}
 
-	emitDeviceChange(): void {
+	public emitDeviceChange(): void {
 		for (const listener of [...this.deviceListeners]) listener();
 	}
 }

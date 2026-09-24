@@ -61,19 +61,19 @@ export class CameraCapture {
 		this.backend = options.backend ?? null;
 	}
 
-	async toBlob(options: CaptureBlobOptions = {}): Promise<CapturedBlob> {
+	public async toBlob(options: CaptureBlobOptions = {}): Promise<CapturedBlob> {
 		return this.run((backend, stream) => backend.toBlob(stream, options));
 	}
 
-	async toImageData(options: CaptureFrameOptions = {}): Promise<CapturedImageData> {
+	public async toImageData(options: CaptureFrameOptions = {}): Promise<CapturedImageData> {
 		return this.run((backend, stream) => backend.toImageData(stream, options));
 	}
 
-	async toImageBitmap(options: CaptureFrameOptions = {}): Promise<CapturedImageBitmap> {
+	public async toImageBitmap(options: CaptureFrameOptions = {}): Promise<CapturedImageBitmap> {
 		return this.run((backend, stream) => backend.toImageBitmap(stream, options));
 	}
 
-	dispose(): void {
+	public dispose(): void {
 		if (this.disposed) return;
 		this.backend?.dispose();
 		this.backend = null;

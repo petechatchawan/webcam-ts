@@ -50,7 +50,7 @@ export class CameraDeviceManager {
 		this.mediaDevices = options.mediaDevices ?? new BrowserMediaDevicesAdapter();
 	}
 
-	async list(): Promise<readonly CameraDevice[]> {
+	public async list(): Promise<readonly CameraDevice[]> {
 		this.assertUsable();
 		const devices = await this.mediaDevices.enumerateDevices();
 		return Object.freeze(
@@ -66,7 +66,7 @@ export class CameraDeviceManager {
 		);
 	}
 
-	async snapshotCapabilities(
+	public async snapshotCapabilities(
 		deviceId: string,
 		options: SnapshotCapabilitiesOptions = {},
 	): Promise<CameraDeviceCapabilities> {
@@ -109,7 +109,7 @@ export class CameraDeviceManager {
 		}
 	}
 
-	subscribe(listener: CameraDeviceListener): () => void {
+	public subscribe(listener: CameraDeviceListener): () => void {
 		this.assertUsable();
 		this.listeners.add(listener);
 		if (this.listeners.size === 1) this.installDeviceChangeListener();
@@ -123,7 +123,7 @@ export class CameraDeviceManager {
 		};
 	}
 
-	dispose(): void {
+	public dispose(): void {
 		if (this.disposed) return;
 		this.uninstallDeviceChangeListener();
 		this.listeners.clear();

@@ -56,7 +56,7 @@ export class CameraError extends Error {
 		Object.setPrototypeOf(this, CameraError.prototype);
 	}
 
-	toSnapshot(): CameraErrorSnapshot {
+	public toSnapshot(): CameraErrorSnapshot {
 		return Object.freeze({
 			name: "CameraError" as const,
 			message: this.message,

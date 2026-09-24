@@ -32,7 +32,7 @@ export class CameraPermissionService {
 				: globalThis.navigator?.permissions ?? null;
 	}
 
-	async query(): Promise<CameraPermissionMap> {
+	public async query(): Promise<CameraPermissionMap> {
 		if (!this.permissions) {
 			return Object.freeze({ camera: "unsupported", microphone: "unsupported" });
 		}
@@ -44,7 +44,7 @@ export class CameraPermissionService {
 		return Object.freeze({ camera, microphone });
 	}
 
-	async request(request: CameraPermissionRequest = {}): Promise<CameraPermissionMap> {
+	public async request(request: CameraPermissionRequest = {}): Promise<CameraPermissionMap> {
 		const video = request.video ?? true;
 		const audio = request.audio ?? false;
 		if (!video && !audio) {

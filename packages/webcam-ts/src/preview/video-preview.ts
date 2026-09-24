@@ -27,7 +27,7 @@ export class VideoPreview {
 		this.applyElementOptions();
 	}
 
-	bind(camera: Camera): void {
+	public bind(camera: Camera): void {
 		this.assertUsable();
 		this.detach();
 		this.camera = camera;
@@ -38,14 +38,14 @@ export class VideoPreview {
 		this.applyStream(camera.getActiveStream());
 	}
 
-	detach(): void {
+	public detach(): void {
 		this.unsubscribe?.();
 		this.unsubscribe = null;
 		this.camera = null;
 		if (this.element) this.element.srcObject = null;
 	}
 
-	setElement(element: HTMLVideoElement): void {
+	public setElement(element: HTMLVideoElement): void {
 		this.assertUsable();
 		if (this.element) this.element.srcObject = null;
 		this.element = element;
@@ -53,13 +53,13 @@ export class VideoPreview {
 		this.applyStream(this.camera?.getActiveStream() ?? null);
 	}
 
-	setMirror(mirror: boolean): void {
+	public setMirror(mirror: boolean): void {
 		this.assertUsable();
 		this.mirror = mirror;
 		this.applyMirror();
 	}
 
-	dispose(): void {
+	public dispose(): void {
 		if (this.disposed) return;
 		this.detach();
 		if (this.element) this.element.style.transform = "";

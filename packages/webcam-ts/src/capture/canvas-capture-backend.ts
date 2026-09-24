@@ -56,7 +56,10 @@ export class CanvasCaptureBackend implements FrameCaptureBackend {
 	private context: CanvasRenderingContext2D | null = null;
 	private disposed = false;
 
-	async toBlob(stream: MediaStream, options: CaptureBlobOptions = {}): Promise<CapturedBlob> {
+	public async toBlob(
+		stream: MediaStream,
+		options: CaptureBlobOptions = {},
+	): Promise<CapturedBlob> {
 		const frame = await this.draw(stream, options);
 		const type = options.type ?? "image/jpeg";
 		const quality =
@@ -77,7 +80,7 @@ export class CanvasCaptureBackend implements FrameCaptureBackend {
 		});
 	}
 
-	async toImageData(
+	public async toImageData(
 		stream: MediaStream,
 		options: CaptureFrameOptions = {},
 	): Promise<CapturedImageData> {
@@ -90,7 +93,7 @@ export class CanvasCaptureBackend implements FrameCaptureBackend {
 		});
 	}
 
-	async toImageBitmap(
+	public async toImageBitmap(
 		stream: MediaStream,
 		options: CaptureFrameOptions = {},
 	): Promise<CapturedImageBitmap> {
@@ -110,7 +113,7 @@ export class CanvasCaptureBackend implements FrameCaptureBackend {
 		});
 	}
 
-	dispose(): void {
+	public dispose(): void {
 		if (this.disposed) return;
 		if (this.video) this.video.srcObject = null;
 		if (this.canvas) {

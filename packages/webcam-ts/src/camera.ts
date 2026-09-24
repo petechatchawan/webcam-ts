@@ -103,33 +103,33 @@ export class Camera {
 		this.mediaDevices = options.mediaDevices ?? new BrowserMediaDevicesAdapter();
 	}
 
-	start(request: CameraRequest = {}): Promise<void> {
+	public start(request: CameraRequest = {}): Promise<void> {
 		return this.runStart(request);
 	}
 
-	stop(): Promise<void> {
+	public stop(): Promise<void> {
 		return this.runStop();
 	}
 
-	async dispose(): Promise<void> {
+	public async dispose(): Promise<void> {
 		if (this.state.status === "disposed") return;
 		await this.runDispose();
 		this.events.clear();
 	}
 
-	getState(): CameraState {
+	public getState(): CameraState {
 		return this.state;
 	}
 
-	getActiveStream(): MediaStream | null {
+	public getActiveStream(): MediaStream | null {
 		return this.activeStream;
 	}
 
-	getActiveTrack(): MediaStreamTrack | null {
+	public getActiveTrack(): MediaStreamTrack | null {
 		return this.activeTrack;
 	}
 
-	subscribe(listener: CameraEventListener): () => void {
+	public subscribe(listener: CameraEventListener): () => void {
 		return this.events.subscribe(listener);
 	}
 

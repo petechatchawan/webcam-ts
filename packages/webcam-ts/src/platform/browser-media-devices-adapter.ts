@@ -14,19 +14,19 @@ async function invokeMediaDevices<T>(
 }
 
 export class BrowserMediaDevicesAdapter implements MediaDevicesPort {
-	async open(constraints: MediaStreamConstraints): Promise<MediaStream> {
+	public async open(constraints: MediaStreamConstraints): Promise<MediaStream> {
 		return invokeMediaDevices("getUserMedia", (mediaDevices) =>
 			mediaDevices.getUserMedia(constraints),
 		);
 	}
 
-	async enumerateDevices(): Promise<MediaDeviceInfo[]> {
+	public async enumerateDevices(): Promise<MediaDeviceInfo[]> {
 		return invokeMediaDevices("enumerateDevices", (mediaDevices) =>
 			mediaDevices.enumerateDevices(),
 		);
 	}
 
-	subscribeDeviceChange(listener: () => void): () => void {
+	public subscribeDeviceChange(listener: () => void): () => void {
 		const mediaDevices = resolveMediaDevices();
 		mediaDevices.addEventListener("devicechange", listener);
 		let active = true;

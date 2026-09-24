@@ -3,7 +3,7 @@ import type { CameraEvent, CameraEventListener } from "../domain/camera-event.js
 export class CameraEventHub {
 	private readonly listeners = new Set<CameraEventListener>();
 
-	subscribe(listener: CameraEventListener): () => void {
+	public subscribe(listener: CameraEventListener): () => void {
 		this.listeners.add(listener);
 		let active = true;
 
@@ -14,7 +14,7 @@ export class CameraEventHub {
 		};
 	}
 
-	emit(event: CameraEvent): void {
+	public emit(event: CameraEvent): void {
 		const snapshot = Object.freeze({ ...event }) as CameraEvent;
 		for (const listener of [...this.listeners]) {
 			try {
@@ -25,7 +25,7 @@ export class CameraEventHub {
 		}
 	}
 
-	clear(): void {
+	public clear(): void {
 		this.listeners.clear();
 	}
 }

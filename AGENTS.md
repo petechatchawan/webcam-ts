@@ -29,6 +29,7 @@ pnpm --dir apps/playground dev            # playground
 ## กฎ
 
 - ห้าม `any`; cast ได้เฉพาะที่ boundary ของ browser และต้องมี comment
+- class member ทุกตัวต้องมี visibility modifier ชัดเจน (`public`/`private` ห้าม implicit)
 - public API ทุกตัวต้องมี test ที่ import จาก entrypoint (`webcam-ts`, `webcam-ts/testing`, …) — ห้าม import ลึกเข้า `dist/`
 - error ทุกตัวที่โยนออก public ต้องเป็น `CameraError`
 - `Camera` เท่านั้นที่แตะ MediaStream lifecycle; บริการอื่น (preview/capture/controls/devices) ห้าม stop/เก็บ stream
