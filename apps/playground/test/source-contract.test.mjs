@@ -50,8 +50,8 @@ test("playground uses the approved neutral shadcn-inspired token system", async 
   ]) {
     assert.match(css, new RegExp(token.replace("--", "\\-\\-")));
   }
-  assert.doesNotMatch(css, /@media\s*\(prefers-color-scheme:\s*dark\)/);
-  assert.match(css, /color-scheme:\s*light/);
+  assert.doesNotMatch(css, /@media\s*\(prefers-color-scheme:\s*light\)/);
+  assert.match(css, /color-scheme:\s*dark/);
   assert.doesNotMatch(css, /backdrop-filter|radial-gradient|#64d8ff|#00a8e8/i);
 });
 
