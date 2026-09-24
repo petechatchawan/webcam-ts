@@ -4,15 +4,19 @@ import assert from "node:assert/strict";
 import { CameraError, buildMediaStreamConstraints } from "../dist/index.js";
 import { assertCommandAllowed } from "../dist/testing/index.js";
 
-test("start is rejected outside idle", () => {
+test("start is rejected while starting", () => {
   assert.throws(
-    () => assertCommandAllowed("active", "start"),
+    () => assertCommandAllowed("starting", "start"),
     (error) => error instanceof CameraError && error.code === "INVALID_STATE",
   );
 });
 
-test("switch is accepted while switching for latest-command-wins", () => {
-  assert.doesNotThrow(() => assertCommandAllowed("switching", "switch"));
+test("start is accepted while active to replace the stream", () => {
+  assert.doesNotThrow(() => assertCommandAllowed("active", "start"));
+});
+
+test("stop preempts a pending start", () => {
+  assert.doesNotThrow(() => assertCommandAllowed("starting", "stop"));
 });
 
 test("camera request rejects non-positive exact width", () => {

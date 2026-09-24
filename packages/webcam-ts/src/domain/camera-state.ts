@@ -1,6 +1,6 @@
 import type { CameraErrorSnapshot } from "./camera-error.js";
 
-export type CameraStatus = "idle" | "starting" | "active" | "switching" | "stopping" | "disposed";
+export type CameraStatus = "idle" | "starting" | "active" | "stopping" | "disposed";
 
 export interface CameraState {
   readonly status: CameraStatus;

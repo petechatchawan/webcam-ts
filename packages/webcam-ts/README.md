@@ -35,13 +35,13 @@ await camera.start({
 });
 ```
 
-## Switch atomically
+## Replace atomically
 
 ```ts
-await camera.switch({ deviceId: "external-camera-id" });
+await camera.start({ deviceId: "external-camera-id" });
 ```
 
-A failed switch preserves the previous active stream. Concurrent switches use latest-command-wins, while `stop()` and `dispose()` preempt pending operations.
+Calling `start()` while active replaces the stream atomically. A failed replacement preserves the previous active stream. `stop()` and `dispose()` preempt a pending start.
 
 ## Capture
 

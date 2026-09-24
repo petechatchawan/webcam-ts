@@ -10,7 +10,8 @@ packages/webcam-ts/src/domain/          types + ตรรกะ pure (request, e
 packages/webcam-ts/src/platform/        adapter ของ browser + port (seam จริง: browser + fakes)
 packages/webcam-ts/src/{capture,controls,devices,preview}/  บริการแยกตาม entrypoint
 apps/playground/                        consumer playground (Vite)
-docs/superpowers/specs/                 architecture + behavior specs (authority)
+packages/webcam-ts/README.md            public contract ของ library
+CONTEXT.md                              ภาษา + lifecycle + ownership (authority)
 ```
 
 ## คำสั่งที่ใช้บ่อย
@@ -27,5 +28,5 @@ pnpm --dir apps/playground dev            # playground
 - public API ทุกตัวต้องมี test ที่ import จาก entrypoint (`webcam-ts`, `webcam-ts/testing`, …) — ห้าม import ลึกเข้า `dist/`
 - error ทุกตัวที่โยนออก public ต้องเป็น `CameraError`
 - `Camera` เท่านั้นที่แตะ MediaStream lifecycle; บริการอื่น (preview/capture/controls/devices) ห้าม stop/เก็บ stream
-- concept และชื่อ ตาม `CONTEXT.md` + spec — เพิ่ม/แก้คำต้องอัปเดต CONTEXT.md ใน commit เดียวกัน
+- concept และชื่อ ตาม `CONTEXT.md` — เพิ่ม/แก้คำต้องอัปเดต CONTEXT.md ใน commit เดียวกัน
 - 1 commit = 1 การเปลี่ยนแปลงที่ verify ได้; commit message conventional

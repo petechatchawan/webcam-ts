@@ -47,7 +47,6 @@ interface ExtendedSettings extends MediaTrackSettings {
 
 export interface CameraPort {
 	start(request?: CameraRequest): Promise<void>;
-	switch(request: CameraRequest): Promise<void>;
 	stop(): Promise<void>;
 	dispose(): Promise<void>;
 	getState(): CameraState;
@@ -227,16 +226,6 @@ export class CameraController {
 		await this.refreshAfterStreamChange();
 	}
 
-	async switch(selection: CameraSelection): Promise<void> {
-		this.assertCameraPermission("switch");
-		this.preview.setMirror(selection.mirror);
-		await this.runResolutionOperation(selection, () =>
-			this.camera.switch(buildCameraRequest(selection)),
-		);
-		this.patch({ requestedResolution: projectRequestedResolution(selection) });
-		await this.refreshAfterStreamChange();
-	}
-
 	async stop(): Promise<void> {
 		await this.run(() => this.camera.stop());
 		this.patch({ controls: emptyControls, requestedResolution: null });
@@ -334,12 +323,12 @@ export class CameraController {
 		}
 	}
 
-	private assertCameraPermission(operation: "start" | "switch"): void {
+	private assertCameraPermission(operation: "start"): void {
 		this.assertUsable();
 		if (hasCameraPermission(this.snapshot.permissions.camera) || readCameraGrant()) return;
 
 		const error = Object.assign(
-			new Error("Allow camera access before starting or switching a camera session."),
+			new Error("Allow camera access before starting a camera session."),
 			{
 				code: "PERMISSION_REQUIRED",
 				operation,

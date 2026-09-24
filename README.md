@@ -6,14 +6,13 @@ Webcam-TS is a framework-agnostic TypeScript camera library built around determi
 
 **https://petechatchawan.github.io/webcam-ts/**
 
-The playground is implemented with Vite and Vanilla TypeScript. It consumes only the declared public package entrypoints and demonstrates permissions, device discovery, atomic switching, preview, capture, hardware controls, immutable state, typed events, and typed errors.
+The playground is implemented with Vite and Vanilla TypeScript. It consumes only the declared public package entrypoints and demonstrates permissions, device discovery, atomic replacement, preview, capture, hardware controls, immutable state, typed events, and typed errors.
 
 ## Repository
 
 ```text
 packages/webcam-ts   public npm package
 apps/playground      framework-free browser playground
-docs/superpowers     architecture specifications and implementation plans
 ```
 
 ## Development

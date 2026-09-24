@@ -1,4 +1,4 @@
-export type CameraOperation = "start" | "switch" | "stop" | "dispose";
+export type CameraOperation = "start" | "stop" | "dispose";
 
 export type CameraErrorCode =
   | "UNSUPPORTED_RUNTIME"
@@ -12,7 +12,6 @@ export type CameraErrorCode =
   | "CONSTRAINT_UNSATISFIED"
   | "SECURITY_RESTRICTION"
   | "OPERATION_ABORTED"
-  | "OPERATION_SUPERSEDED"
   | "STREAM_OPEN_FAILED"
   | "STREAM_INVALID"
   | "TRACK_ENDED"

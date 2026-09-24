@@ -72,7 +72,6 @@ test("playground keeps required bindings and uses progressive diagnostics", asyn
     "mirror-toggle",
     "audio-toggle",
     "start-camera",
-    "switch-camera",
     "stop-camera",
     "capture-photo",
     "controls-panel",
@@ -146,9 +145,8 @@ test("lifecycle controls follow the preview and precede errors and settings", as
 
   const actionMarkup = html.slice(actionPanel, errorPanel);
   assert.match(actionMarkup, /id=["']start-camera["']/);
-  assert.match(actionMarkup, /id=["']switch-camera["']/);
   assert.match(actionMarkup, /id=["']stop-camera["']/);
-  assert.doesNotMatch(html.slice(settings), /id=["'](?:start|switch|stop)-camera["']/);
+  assert.doesNotMatch(html.slice(settings), /id=["'](?:start|stop)-camera["']/);
 });
 
 test("inactive preview is compact and lifecycle controls become a mobile sticky dock", async () => {

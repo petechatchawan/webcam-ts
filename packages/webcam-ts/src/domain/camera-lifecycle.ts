@@ -12,8 +12,7 @@ export function assertCommandAllowed(status: CameraStatus, command: CameraOperat
   }
 
   const allowed =
-    (command === "start" && status === "idle") ||
-    (command === "switch" && (status === "active" || status === "switching")) ||
+    (command === "start" && (status === "idle" || status === "active")) ||
     command === "stop";
 
   if (!allowed) {

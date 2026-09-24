@@ -22,10 +22,9 @@ const exactSelection = {
   mirror: false,
 };
 
-test("active status enables switch and stop but not start", () => {
+test("active status enables replacement start and stop", () => {
   assert.deepEqual(deriveCommandAvailability("active"), {
-    canStart: false,
-    canSwitch: true,
+    canStart: true,
     canStop: true,
     busy: false,
   });

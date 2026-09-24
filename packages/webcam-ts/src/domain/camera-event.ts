@@ -7,7 +7,7 @@ export type CameraEvent =
       type: "stream-changed";
       stream: MediaStream | null;
       previousStream: MediaStream | null;
-      reason: "started" | "switched" | "stopped" | "disposed" | "ended";
+      reason: "started" | "stopped" | "disposed" | "ended";
     }>
   | Readonly<{ type: "operation-started"; operation: CameraOperation; operationId: number }>
   | Readonly<{ type: "operation-completed"; operation: CameraOperation; operationId: number }>

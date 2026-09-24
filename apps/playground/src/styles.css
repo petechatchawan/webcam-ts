@@ -420,7 +420,6 @@ svg {
 }
 
 .status-badge[data-status="starting"],
-.status-badge[data-status="switching"],
 .status-badge[data-status="stopping"] {
   background: hsl(38 92% 50% / 0.13);
   color: hsl(32 81% 31%);

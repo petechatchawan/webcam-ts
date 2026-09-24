@@ -1,10 +1,9 @@
-import { CameraError, type CameraOperation } from "./domain/camera-error.js";
+import { CameraError, type CameraErrorCode, type CameraOperation } from "./domain/camera-error.js";
 import type { CameraEvent, CameraEventListener } from "./domain/camera-event.js";
 import { assertCommandAllowed } from "./domain/camera-lifecycle.js";
 import { buildMediaStreamConstraints, type CameraRequest } from "./domain/camera-request.js";
 import type { CameraState, CameraStatus } from "./domain/camera-state.js";
 import { CameraEventHub } from "./events/camera-event-hub.js";
-import { OperationController, type OperationToken } from "./operation-token.js";
 import { BrowserMediaDevicesAdapter } from "./platform/browser-media-devices-adapter.js";
 import { normalizeBrowserError } from "./platform/browser-error-normalizer.js";
 import type { MediaDevicesPort } from "./platform/media-devices-port.js";
@@ -14,6 +13,11 @@ export interface CameraOptions {
   readonly mediaDevices?: MediaDevicesPort;
   readonly now?: () => number;
   readonly createSessionId?: () => string;
+}
+
+interface PendingStart {
+  readonly id: number;
+  invalidCode: Extract<CameraErrorCode, "OPERATION_ABORTED" | "DISPOSED"> | null;
 }
 
 function deepFreeze<T>(value: T): T {
@@ -50,7 +54,6 @@ function initialState(): CameraState {
 export class Camera {
   private readonly events = new CameraEventHub();
   private readonly mediaDevices: MediaDevicesPort;
-  private readonly operations = new OperationController();
   private readonly now: () => number;
   private readonly createSessionId: () => string;
   private state: CameraState = initialState();
@@ -58,6 +61,8 @@ export class Camera {
   private activeTrack: MediaStreamTrack | null = null;
   private activeTrackEndedListener: (() => void) | null = null;
   private candidateStream: MediaStream | null = null;
+  private nextOperationId = 0;
+  private pendingStart: PendingStart | null = null;
 
   constructor(options: CameraOptions = {}) {
     this.now = options.now ?? Date.now;
@@ -67,10 +72,6 @@ export class Camera {
 
   start(request: CameraRequest = {}): Promise<void> {
     return this.runStart(request);
-  }
-
-  switch(request: CameraRequest): Promise<void> {
-    return this.runSwitch(request);
   }
 
   stop(): Promise<void> {
@@ -101,68 +102,43 @@ export class Camera {
 
   private async runStart(request: CameraRequest = {}): Promise<void> {
     assertCommandAllowed(this.state.status, "start");
-    const token = this.operations.begin("start");
+    const start = this.beginStart();
     this.setStatus("starting");
-    this.events.emit({ type: "operation-started", operation: "start", operationId: token.id });
+    this.events.emit({ type: "operation-started", operation: "start", operationId: start.id });
 
     let candidate: MediaStream | null = null;
     try {
       const constraints = buildMediaStreamConstraints(request);
       candidate = await this.mediaDevices.open(constraints);
       this.candidateStream = candidate;
-      this.assertRequestCurrent(request, token);
-      const track = this.validateCandidate(candidate, "start");
-      this.assertRequestCurrent(request, token);
-
-      this.commitStream(candidate, track, "started");
-      this.setStatus("active");
-      this.completeOperation("start", token.id);
-    } catch (error) {
-      this.releaseCandidateStream(candidate);
-      const cameraError = this.resolveOperationError(error, token, "start");
-      if (this.operations.isCurrent(token) && this.state.status === "starting") this.setStatus("idle");
-      this.failOperation("start", token.id, cameraError);
-      throw cameraError;
-    }
-  }
-
-  private async runSwitch(request: CameraRequest): Promise<void> {
-    assertCommandAllowed(this.state.status, "switch");
-    const token = this.operations.begin("switch");
-    this.setStatus("switching");
-    this.events.emit({ type: "operation-started", operation: "switch", operationId: token.id });
-
-    let candidate: MediaStream | null = null;
-    try {
-      const constraints = buildMediaStreamConstraints(request);
-      candidate = await this.mediaDevices.open(constraints);
-      this.candidateStream = candidate;
-      this.assertRequestCurrent(request, token);
-      const track = this.validateCandidate(candidate, "switch");
-      this.assertRequestCurrent(request, token);
+      this.assertStartCurrent(request, start);
+      const track = this.validateCandidate(candidate);
+      this.assertStartCurrent(request, start);
 
       const previousStream = this.activeStream;
-      this.commitStream(candidate, track, "switched");
+      this.commitStream(candidate, track);
+      this.pendingStart = null;
       this.setStatus("active");
       if (previousStream) stopStream(previousStream);
-      this.completeOperation("switch", token.id);
+      this.completeOperation("start", start.id);
     } catch (error) {
       this.releaseCandidateStream(candidate);
-      const cameraError = this.resolveOperationError(error, token, "switch");
-      if (this.operations.isCurrent(token) && this.state.status === "switching") {
+      const cameraError = this.resolveOperationError(error, start);
+      if (this.pendingStart === start && this.state.status === "starting") {
         this.setStatus(this.activeStream ? "active" : "idle");
       }
-      this.failOperation("switch", token.id, cameraError);
+      if (this.pendingStart === start) this.pendingStart = null;
+      this.failOperation("start", start.id, cameraError);
       throw cameraError;
     }
   }
 
   private async runStop(): Promise<void> {
     assertCommandAllowed(this.state.status, "stop");
-    if (this.state.status === "idle") return;
+    if (this.state.status === "idle" || this.state.status === "stopping") return;
 
-    const operationId = this.operations.nextOperationId();
-    this.operations.invalidate("OPERATION_ABORTED");
+    const operationId = ++this.nextOperationId;
+    this.invalidatePendingStart("OPERATION_ABORTED");
     this.setStatus("stopping");
     this.events.emit({ type: "operation-started", operation: "stop", operationId });
 
@@ -172,8 +148,9 @@ export class Camera {
   }
 
   private async runDispose(): Promise<void> {
-    const operationId = this.operations.nextOperationId();
-    this.operations.invalidate("DISPOSED");
+    assertCommandAllowed(this.state.status, "dispose");
+    const operationId = ++this.nextOperationId;
+    this.invalidatePendingStart("DISPOSED");
     this.events.emit({ type: "operation-started", operation: "dispose", operationId });
 
     this.releaseStream("disposed");
@@ -181,11 +158,7 @@ export class Camera {
     this.completeOperation("dispose", operationId);
   }
 
-  private commitStream(
-    stream: MediaStream,
-    track: MediaStreamTrack,
-    reason: "started" | "switched",
-  ): void {
+  private commitStream(stream: MediaStream, track: MediaStreamTrack): void {
     const previousStream = this.activeStream;
     this.candidateStream = null;
     this.detachActiveTrackEndedListener();
@@ -195,7 +168,7 @@ export class Camera {
 
     const settings = cloneAndFreeze(track.getSettings());
     const capabilities = cloneAndFreeze(track.getCapabilities());
-    const beginsSession = reason === "started" || this.state.sessionId === null;
+    const beginsSession = previousStream === null || this.state.sessionId === null;
     this.updateState({
       sessionId: beginsSession ? this.createSessionId() : this.state.sessionId,
       deviceId: settings.deviceId ?? null,
@@ -205,7 +178,7 @@ export class Camera {
       startedAt: beginsSession ? this.now() : this.state.startedAt,
     });
 
-    this.events.emit({ type: "stream-changed", stream, previousStream, reason });
+    this.events.emit({ type: "stream-changed", stream, previousStream, reason: "started" });
   }
 
   private releaseStream(reason: "stopped" | "disposed" | "ended"): void {
@@ -213,7 +186,7 @@ export class Camera {
     this.detachActiveTrackEndedListener();
     this.activeStream = null;
     this.activeTrack = null;
-    // Synchronous-reentrancy guard: candidateStream is non-null only between two synchronous statements.
+    // A candidate is assigned after open and cleared synchronously on commit or failure.
     this.releaseCandidateStream(this.candidateStream);
     if (previousStream) stopStream(previousStream);
     if (!previousStream) return;
@@ -270,40 +243,67 @@ export class Camera {
     this.updateState({ status });
   }
 
-  private assertRequestCurrent(request: CameraRequest, token: OperationToken): void {
-    if (request.signal?.aborted) token.invalidate("OPERATION_ABORTED");
-    token.throwIfInvalid();
+  private beginStart(): PendingStart {
+    const start: PendingStart = { id: ++this.nextOperationId, invalidCode: null };
+    this.pendingStart = start;
+    return start;
   }
 
-  private validateCandidate(stream: MediaStream, operation: "start" | "switch"): MediaStreamTrack {
+  private invalidatePendingStart(
+    code: Extract<CameraErrorCode, "OPERATION_ABORTED" | "DISPOSED">,
+  ): void {
+    if (this.pendingStart && !this.pendingStart.invalidCode) {
+      this.pendingStart.invalidCode = code;
+    }
+    this.pendingStart = null;
+  }
+
+  private pendingStartError(start: PendingStart): CameraError {
+    const code = start.invalidCode ?? "OPERATION_ABORTED";
+    const message =
+      code === "DISPOSED"
+        ? "Camera was disposed while the operation was running"
+        : "start operation was aborted";
+    return new CameraError(message, {
+      code,
+      operation: "start",
+      recoverable: code !== "DISPOSED",
+      context: { operationId: start.id },
+    });
+  }
+
+  private assertStartCurrent(request: CameraRequest, start: PendingStart): void {
+    if (request.signal?.aborted && !start.invalidCode) {
+      start.invalidCode = "OPERATION_ABORTED";
+    }
+    if (start.invalidCode) throw this.pendingStartError(start);
+  }
+
+  private validateCandidate(stream: MediaStream): MediaStreamTrack {
     const track = stream.getVideoTracks()[0];
     if (!track || track.readyState === "ended") {
       throw new CameraError("Camera stream does not contain a live video track", {
         code: "STREAM_INVALID",
-        operation,
+        operation: "start",
         recoverable: true,
       });
     }
     return track;
   }
 
-  private resolveOperationError(
-    error: unknown,
-    token: OperationToken,
-    operation: "start" | "switch",
-  ): CameraError {
-    if (!token.isCurrent()) return token.toInvalidError();
+  private resolveOperationError(error: unknown, start: PendingStart): CameraError {
+    if (start.invalidCode) return this.pendingStartError(start);
     if (error instanceof CameraError) {
-      if (error.operation === operation) return error;
+      if (error.operation === "start") return error;
       return new CameraError(error.message, {
         code: error.code,
-        operation,
+        operation: "start",
         recoverable: error.recoverable,
         cause: error.cause ?? error,
         ...(error.context ? { context: error.context } : {}),
       });
     }
-    return normalizeBrowserError(error, operation);
+    return normalizeBrowserError(error, "start");
   }
 
   private completeOperation(operation: CameraOperation, operationId: number): void {

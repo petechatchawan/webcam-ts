@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Breaking
+
+- Replaced `Camera.switch()` with `Camera.start()` for atomic stream replacement.
+- Removed the `switching` status, `switched` stream reason, `switch` operation, and `OPERATION_SUPERSEDED` error.
+- Removed the `OperationToken`/`OperationController` testing exports; cancellation now uses one serial pending start.
+- A second `start()` while starting is rejected with `INVALID_STATE` instead of superseding.
+
 ## 4.0.0-alpha.1 — 2026-08-06
 
 ### Breaking

@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 
 import {
   CameraEventHub,
-  OperationController,
   stopStream,
 } from "../dist/testing/index.js";
 
@@ -29,34 +28,6 @@ test("unsubscribe is idempotent", () => {
   unsubscribe();
   hub.emit({ type: "operation-completed", operation: "stop", operationId: 1 });
   assert.equal(calls, 0);
-});
-
-test("a newer switch supersedes an older token", () => {
-  const controller = new OperationController();
-  const first = controller.begin("switch");
-  const second = controller.begin("switch");
-  assert.equal(first.isCurrent(), false);
-  assert.equal(second.isCurrent(), true);
-  assert.equal(second.id, first.id + 1);
-});
-
-test("invalidated token throws OPERATION_SUPERSEDED", () => {
-  const controller = new OperationController();
-  const token = controller.begin("switch");
-  controller.invalidate();
-  assert.throws(
-    () => token.throwIfInvalid(),
-    (error) => error.code === "OPERATION_SUPERSEDED",
-  );
-});
-
-test("operation ids come from one monotonic counter", () => {
-  const controller = new OperationController();
-  const first = controller.begin("start");
-  const administrative = controller.nextOperationId();
-  const second = controller.begin("switch");
-  assert.equal(administrative, first.id + 1);
-  assert.equal(second.id, administrative + 1);
 });
 
 test("stopStream stops each track only once", () => {

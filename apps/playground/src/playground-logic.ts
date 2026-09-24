@@ -105,16 +105,15 @@ export function buildCameraRequest(selection: CameraSelection): CameraRequest {
 export function deriveCommandAvailability(status: CameraStatus): CommandAvailability {
 	switch (status) {
 		case "idle":
-			return { canStart: true, canSwitch: false, canStop: false, busy: false };
+			return { canStart: true, canStop: false, busy: false };
 		case "active":
-			return { canStart: false, canSwitch: true, canStop: true, busy: false };
+			return { canStart: true, canStop: true, busy: false };
 		case "starting":
-		case "switching":
-			return { canStart: false, canSwitch: false, canStop: true, busy: true };
+			return { canStart: false, canStop: true, busy: true };
 		case "stopping":
-			return { canStart: false, canSwitch: false, canStop: false, busy: true };
+			return { canStart: false, canStop: false, busy: true };
 		case "disposed":
-			return { canStart: false, canSwitch: false, canStop: false, busy: false };
+			return { canStart: false, canStop: false, busy: false };
 	}
 }
 

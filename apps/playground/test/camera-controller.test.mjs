@@ -26,7 +26,7 @@ function activeState(deviceId = "camera-1") {
   });
 }
 
-function createFixture({ startError, switchError } = {}) {
+function createFixture({ startErrors = [] } = {}) {
   let state = idleState;
   const cameraListeners = new Set();
   const disposeCalls = { preview: 0, capture: 0, devices: 0, camera: 0 };
@@ -37,13 +37,9 @@ function createFixture({ startError, switchError } = {}) {
 
   const camera = {
     async start() {
-      if (startError) throw startError;
+      const error = startErrors.shift();
+      if (error) throw error;
       state = activeState();
-      emitState();
-    },
-    async switch() {
-      if (switchError) throw switchError;
-      state = activeState("camera-2");
       emitState();
     },
     async stop() {
@@ -123,7 +119,14 @@ function createFixture({ startError, switchError } = {}) {
     now: () => 100,
   });
 
-  return { controller, disposeCalls, revokedUrls };
+  return {
+    controller,
+    disposeCalls,
+    revokedUrls,
+    failNextStart(error) {
+      startErrors.push(error);
+    },
+  };
 }
 
 const selection = {
@@ -179,7 +182,7 @@ test("exact start failure reports the requested resolution and failed constraint
       constraint: "height",
     }),
   });
-  const fixture = createFixture({ startError: error });
+  const fixture = createFixture({ startErrors: [error] });
   await fixture.controller.initialize();
   await fixture.controller.requestPermissions(false);
 
@@ -200,18 +203,19 @@ test("exact start failure reports the requested resolution and failed constraint
   assert.equal(fixture.controller.getSnapshot().requestedResolution, null);
 });
 
-test("failed switch preserves active state and reports typed error", async () => {
+test("failed replacement start preserves active state and reports typed error", async () => {
   const error = Object.assign(new Error("Camera is busy"), {
     code: "DEVICE_BUSY",
-    operation: "switch",
+    operation: "start",
     recoverable: true,
   });
-  const fixture = createFixture({ switchError: error });
+  const fixture = createFixture();
   await fixture.controller.initialize();
   await fixture.controller.requestPermissions(false);
   await fixture.controller.start(selection);
+  fixture.failNextStart(error);
 
-  await assert.rejects(() => fixture.controller.switch({
+  await assert.rejects(() => fixture.controller.start({
     ...selection,
     deviceId: "camera-2",
     resolutionId: "PORTRAIT-720P",
@@ -222,7 +226,7 @@ test("failed switch preserves active state and reports typed error", async () =>
 
   assert.equal(fixture.controller.getSnapshot().camera.status, "active");
   assert.equal(fixture.controller.getSnapshot().error.code, "DEVICE_BUSY");
-  assert.equal(fixture.controller.getSnapshot().error.operation, "switch");
+  assert.equal(fixture.controller.getSnapshot().error.operation, "start");
   assert.equal(fixture.controller.getSnapshot().requestedResolution.id, "LANDSCAPE-720P");
 });
 

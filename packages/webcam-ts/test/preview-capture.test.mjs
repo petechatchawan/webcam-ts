@@ -57,7 +57,7 @@ test("preview follows committed stream changes and dispose does not stop tracks"
   assert.equal(track.stopCalls, 0);
 });
 
-test("failed switch leaves preview on the previous stream", async () => {
+test("failed replacement start leaves preview on the previous stream", async () => {
   const stream = createStream();
   let calls = 0;
   const camera = new Camera({
@@ -75,7 +75,7 @@ test("failed switch leaves preview on the previous stream", async () => {
   preview.bind(camera);
 
   await camera.start();
-  await assert.rejects(() => camera.switch({ deviceId: "camera-b" }));
+  await assert.rejects(() => camera.start({ deviceId: "camera-b" }));
   assert.equal(video.srcObject, stream);
 });
 

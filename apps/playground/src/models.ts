@@ -35,7 +35,6 @@ export interface CameraSelection {
 
 export interface CommandAvailability {
 	readonly canStart: boolean;
-	readonly canSwitch: boolean;
 	readonly canStop: boolean;
 	readonly busy: boolean;
 }

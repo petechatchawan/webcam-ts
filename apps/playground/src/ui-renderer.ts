@@ -37,7 +37,6 @@ export class UiRenderer {
 	private readonly audioToggle = byId<HTMLInputElement>("audio-toggle");
 	private readonly mirrorToggle = byId<HTMLInputElement>("mirror-toggle");
 	private readonly startButton = byId<HTMLButtonElement>("start-camera");
-	private readonly switchButton = byId<HTMLButtonElement>("switch-camera");
 	private readonly stopButton = byId<HTMLButtonElement>("stop-camera");
 	private readonly captureType = byId<HTMLSelectElement>("capture-type");
 	private readonly captureQuality = byId<HTMLInputElement>("capture-quality");
@@ -83,9 +82,6 @@ export class UiRenderer {
 		this.permissionGateAction.addEventListener("click", requestPermission);
 		this.startButton.addEventListener("click", () => {
 			void this.run(() => this.controller.start(this.readSelection()));
-		});
-		this.switchButton.addEventListener("click", () => {
-			void this.run(() => this.controller.switch(this.readSelection()));
 		});
 		this.stopButton.addEventListener("click", () => {
 			void this.run(() => this.controller.stop());
@@ -195,7 +191,6 @@ export class UiRenderer {
 		this.statusBadge.dataset.status = snapshot.camera.status;
 
 		this.startButton.disabled = !permissionGranted || !snapshot.availability.canStart;
-		this.switchButton.disabled = !permissionGranted || !snapshot.availability.canSwitch;
 		this.stopButton.disabled = !snapshot.availability.canStop;
 		this.captureButton.disabled = snapshot.camera.status !== "active";
 		this.applyControlsButton.disabled = snapshot.camera.status !== "active";
