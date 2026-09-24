@@ -8,9 +8,14 @@
 - Removed callback-based configuration and all legacy compatibility surfaces.
 - Moved preview, capture, devices, permissions, and controls into explicit subpath services.
 
+### Changed
+
+- `Camera` now owns the lifecycle directly; the internal `CameraSession` module was collapsed into it.
+- `/testing` exports `OperationToken` instead of `OperationLease`.
+
 ### Added
 
-- Single-owner `CameraSession` lifecycle with atomic `switch()` transactions.
+- Single-owner `Camera` lifecycle with atomic `switch()` transactions.
 - Latest-command-wins switching and stop/dispose preemption.
 - Immutable state snapshots, isolated typed events, and stable error codes.
 - SSR-safe package imports and construction.

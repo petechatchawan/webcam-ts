@@ -2,7 +2,7 @@ import {
   CameraError,
   type CameraErrorCode,
   type CameraOperation,
-} from "../domain/camera-error.js";
+} from "./domain/camera-error.js";
 
 export class OperationToken {
   private valid = true;

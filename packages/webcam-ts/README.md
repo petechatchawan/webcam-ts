@@ -73,7 +73,7 @@ const controls = new CameraControls(camera);
 
 - Browser-focused with SSR-safe imports and construction.
 - One `Camera` instance owns at most one active session.
-- `CameraSession` is the sole owner of active and candidate streams.
+- `Camera` is the sole owner of active and candidate streams.
 - Preview, capture, device, permission, and control services remain separate.
 - Errors, state snapshots, and events are typed.
 
