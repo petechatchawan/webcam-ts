@@ -29,7 +29,6 @@ export class CameraSession {
   private activeTrackEndedListener: (() => void) | null = null;
   private readonly candidates = new Set<MediaStream>();
   private readonly operations = new OperationController();
-  private nextAdministrativeOperationId = 10_000;
 
   constructor(
     private readonly mediaDevices: MediaDevicesPort,
@@ -125,7 +124,7 @@ export class CameraSession {
     assertCommandAllowed(this.status, "stop");
     if (this.status === "idle") return;
 
-    const operationId = ++this.nextAdministrativeOperationId;
+    const operationId = this.operations.nextOperationId();
     this.operations.invalidate("OPERATION_ABORTED");
     this.setStatus("stopping");
     this.observer.onOperationStarted("stop", operationId);
@@ -145,7 +144,7 @@ export class CameraSession {
   async dispose(): Promise<void> {
     if (this.status === "disposed") return;
 
-    const operationId = ++this.nextAdministrativeOperationId;
+    const operationId = this.operations.nextOperationId();
     this.operations.invalidate("DISPOSED");
     this.observer.onOperationStarted("dispose", operationId);
 
@@ -203,14 +202,7 @@ export class CameraSession {
   }
 
   private assertRequestCurrent(request: CameraRequest, token: OperationToken): void {
-    if (request.signal?.aborted) {
-      throw new CameraError(`${token.operation} operation was aborted`, {
-        code: "OPERATION_ABORTED",
-        operation: token.operation,
-        recoverable: true,
-        context: { operationId: token.id },
-      });
-    }
+    if (request.signal?.aborted) token.invalidate("OPERATION_ABORTED");
     token.throwIfInvalid();
   }
 

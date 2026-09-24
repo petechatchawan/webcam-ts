@@ -50,6 +50,15 @@ test("invalidated token throws OPERATION_SUPERSEDED", () => {
   );
 });
 
+test("operation ids come from one monotonic counter", () => {
+  const controller = new OperationController();
+  const first = controller.begin("start");
+  const administrative = controller.nextOperationId();
+  const second = controller.begin("switch");
+  assert.equal(administrative, first.id + 1);
+  assert.equal(second.id, administrative + 1);
+});
+
 test("stopStream stops each track only once", () => {
   const track = { stopCalls: 0, stop() { this.stopCalls++; } };
   const stream = { getTracks() { return [track]; } };
