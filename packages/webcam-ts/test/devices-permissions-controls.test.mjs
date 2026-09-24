@@ -118,7 +118,7 @@ test("controls apply validated values without owning the track", async () => {
   assert.equal(track.stopCalls, 0);
 });
 
-test("capability probe reuses a matching active track without opening or stopping it", async () => {
+test("capability snapshot reuses a matching active track without opening or stopping it", async () => {
   const track = createTrack({
     capabilities: { width: { min: 320, max: 1920 } },
     settings: { deviceId: "camera-a", width: 1280, height: 720 },
@@ -133,7 +133,7 @@ test("capability probe reuses a matching active track without opening or stoppin
   const manager = new CameraDeviceManager({ mediaDevices: port });
   await camera.start({ deviceId: "camera-a" });
 
-  const result = await manager.probe("camera-a", { camera });
+  const result = await manager.snapshotCapabilities("camera-a", { camera });
 
   assert.equal(openCalls, 1);
   assert.equal(result.deviceId, "camera-a");
@@ -141,7 +141,7 @@ test("capability probe reuses a matching active track without opening or stoppin
   assert.equal(track.stopCalls, 0);
 });
 
-test("capability probe cleans an explicit temporary stream", async () => {
+test("capability snapshot cleans an explicit temporary stream", async () => {
   const track = createTrack({
     capabilities: { width: { min: 320, max: 3840 } },
     settings: { deviceId: "camera-b", width: 1920, height: 1080 },
@@ -153,7 +153,7 @@ test("capability probe cleans an explicit temporary stream", async () => {
     },
   });
 
-  const result = await manager.probe("camera-b");
+  const result = await manager.snapshotCapabilities("camera-b");
 
   assert.equal(result.capabilities.width.max, 3840);
   assert.equal(track.stopCalls, 1);

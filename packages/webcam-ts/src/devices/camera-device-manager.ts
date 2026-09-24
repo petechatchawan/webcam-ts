@@ -17,7 +17,7 @@ export interface CameraDeviceCapabilities {
 	readonly capabilities: Readonly<MediaTrackCapabilities>;
 }
 
-export interface CameraCapabilityProbeOptions {
+export interface SnapshotCapabilitiesOptions {
 	readonly camera?: Camera;
 	readonly signal?: AbortSignal;
 }
@@ -43,7 +43,7 @@ function cloneAndFreeze<T>(value: T): T {
 export class CameraDeviceManager {
 	private readonly mediaDevices: MediaDevicesPort;
 	private readonly listeners = new Set<CameraDeviceListener>();
-	private removeDeviceChange: (() => void) | null = null;
+	private unsubscribeDeviceChange: (() => void) | null = null;
 	private disposed = false;
 
 	constructor(options: CameraDeviceManagerOptions = {}) {
@@ -66,9 +66,9 @@ export class CameraDeviceManager {
 		);
 	}
 
-	async probe(
+	async snapshotCapabilities(
 		deviceId: string,
-		options: CameraCapabilityProbeOptions = {},
+		options: SnapshotCapabilitiesOptions = {},
 	): Promise<CameraDeviceCapabilities> {
 		this.assertUsable();
 		if (!deviceId.trim()) {
@@ -76,6 +76,7 @@ export class CameraDeviceManager {
 				code: "INVALID_REQUEST",
 			});
 		}
+
 		this.throwIfAborted(options.signal);
 
 		const activeTrack = options.camera?.getActiveTrack() ?? null;
@@ -86,17 +87,17 @@ export class CameraDeviceManager {
 			}
 		}
 
-		let probeStream: MediaStream | null = null;
+		let tempStream: MediaStream | null = null;
 		try {
-			probeStream = await this.mediaDevices.open({
+			tempStream = await this.mediaDevices.open({
 				video: { deviceId: { exact: deviceId } },
 				audio: false,
 			});
 			this.throwIfAborted(options.signal);
 
-			const track = probeStream.getVideoTracks()[0];
+			const track = tempStream.getVideoTracks()[0];
 			if (!track || track.readyState !== "live") {
-				throw new CameraError("Capability probe did not produce a live video track", {
+				throw new CameraError("Capability snapshot did not produce a live video track", {
 					code: "STREAM_INVALID",
 					context: { deviceId },
 				});
@@ -104,7 +105,7 @@ export class CameraDeviceManager {
 
 			return this.createCapabilitySnapshot(deviceId, track);
 		} finally {
-			if (probeStream) stopStream(probeStream);
+			if (tempStream) stopStream(tempStream);
 		}
 	}
 
@@ -143,22 +144,22 @@ export class CameraDeviceManager {
 
 	private throwIfAborted(signal?: AbortSignal): void {
 		if (!signal?.aborted) return;
-		throw new CameraError("Capability probe was aborted", {
+		throw new CameraError("Capability snapshot was aborted", {
 			code: "OPERATION_ABORTED",
 			cause: signal.reason,
 		});
 	}
 
 	private installDeviceChangeListener(): void {
-		if (this.removeDeviceChange || !this.mediaDevices.subscribeDeviceChange) return;
-		this.removeDeviceChange = this.mediaDevices.subscribeDeviceChange(() => {
+		if (this.unsubscribeDeviceChange || !this.mediaDevices.subscribeDeviceChange) return;
+		this.unsubscribeDeviceChange = this.mediaDevices.subscribeDeviceChange(() => {
 			void this.publishCurrentDevices();
 		});
 	}
 
 	private uninstallDeviceChangeListener(): void {
-		this.removeDeviceChange?.();
-		this.removeDeviceChange = null;
+		this.unsubscribeDeviceChange?.();
+		this.unsubscribeDeviceChange = null;
 	}
 
 	private async publishCurrentDevices(): Promise<void> {
