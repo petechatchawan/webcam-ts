@@ -35,7 +35,10 @@ function validateFrameOptions(options: CaptureFrameOptions): void {
 	}
 	if (
 		options.crop &&
-		(options.crop.x < 0 || options.crop.y < 0 || options.crop.width <= 0 || options.crop.height <= 0)
+		(options.crop.x < 0 ||
+			options.crop.y < 0 ||
+			options.crop.width <= 0 ||
+			options.crop.height <= 0)
 	) {
 		throw new CameraError(
 			"Capture crop must have non-negative coordinates and positive dimensions",

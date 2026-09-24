@@ -29,7 +29,7 @@ export class CameraPermissionService {
 		this.permissions =
 			options.permissions !== undefined
 				? options.permissions
-				: (globalThis.navigator?.permissions ?? null);
+				: globalThis.navigator?.permissions ?? null;
 	}
 
 	async query(): Promise<CameraPermissionMap> {
