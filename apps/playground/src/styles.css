@@ -941,6 +941,52 @@ code {
 	font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+@media (max-width: 480px) {
+	.stage-topbar {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.3rem;
+	}
+	.capture-options {
+		justify-content: space-between;
+	}
+	.preview-resolution-overlay {
+		justify-items: start;
+	}
+	.resolution-pill {
+		max-width: 100%;
+	}
+	.resolution-line {
+		max-width: 12rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.control-strip {
+		bottom: 6.25rem;
+		max-width: calc(100% - 1rem);
+		padding: 0.35rem 0.6rem;
+	}
+	.control-zoom input[type="range"] {
+		width: clamp(4.5rem, 30vw, 8rem);
+	}
+	.capture-pool {
+		width: 4.5rem;
+	}
+	.capture-thumb {
+		width: 2.5rem;
+		height: 2.5rem;
+	}
+	.capture-metadata {
+		display: none;
+	}
+	.capture-shutter {
+		bottom: 1rem;
+		width: 3.75rem;
+		height: 3.75rem;
+	}
+}
+
 @media (max-width: 720px) {
 	body {
 		padding-bottom: max(1rem, env(safe-area-inset-bottom));
