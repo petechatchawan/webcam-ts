@@ -618,25 +618,21 @@ summary:focus-visible {
 }
 
 .control-strip {
-	position: absolute;
-	z-index: 6;
-	bottom: 6.75rem;
-	left: 50%;
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
-	transform: translateX(-50%);
-	border: 1px solid rgb(255 255 255 / 0.18);
-	border-radius: 999px;
-	background: rgb(2 6 23 / 0.84);
-	padding: 0.4rem 0.75rem;
+	justify-content: center;
+	gap: 0.75rem;
+	border: 1px solid hsl(var(--border));
+	border-radius: var(--radius);
+	background: hsl(var(--card));
+	padding: 0.6rem 0.75rem;
 }
 
 .control-chip {
 	display: flex;
 	align-items: center;
 	gap: 0.4rem;
-	color: #f8fafc;
+	color: hsl(var(--foreground));
 	font-size: 0.75rem;
 	cursor: pointer;
 }
@@ -648,19 +644,15 @@ summary:focus-visible {
 }
 
 .control-zoom input[type="range"] {
-	width: clamp(6rem, 38vw, 12rem);
+	width: clamp(8rem, 45vw, 16rem);
 }
 
 .control-zoom output {
 	min-width: 3ch;
-	color: #e2e8f0;
+	color: hsl(var(--muted-foreground));
 	font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 	font-size: 0.6875rem;
 	text-align: center;
-}
-
-.preview-shell[data-active="false"] .control-strip {
-	display: none;
 }
 
 input[type="range"] {
