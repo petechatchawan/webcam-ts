@@ -8,12 +8,6 @@ import {
 } from "./playground-logic.js";
 import type { CameraSelection, PlaygroundSnapshot, ResolutionPreset } from "./models.js";
 
-interface MutableControlUpdate {
-	torch?: boolean;
-	zoom?: number;
-	focusMode?: string;
-}
-
 export class UiRenderer {
 	private readonly unsubscribe: () => void;
 	private lastDevicesKey = "";
@@ -48,7 +42,7 @@ export class UiRenderer {
 	private readonly statusBadge = byId<HTMLElement>("status-badge");
 	private readonly stateOutput = byId<HTMLElement>("state-output");
 	private readonly devicesOutput = byId<HTMLElement>("devices-output");
-	private readonly controlsPanel = byId<HTMLElement>("controls-panel");
+	private readonly controlStrip = byId<HTMLElement>("control-strip");
 	private readonly torchRow = byId<HTMLElement>("torch-row");
 	private readonly torchToggle = byId<HTMLInputElement>("torch-toggle");
 	private readonly zoomRow = byId<HTMLElement>("zoom-row");
@@ -56,7 +50,6 @@ export class UiRenderer {
 	private readonly zoomValue = byId<HTMLOutputElement>("zoom-value");
 	private readonly focusRow = byId<HTMLElement>("focus-row");
 	private readonly focusSelect = byId<HTMLSelectElement>("focus-select");
-	private readonly applyControlsButton = byId<HTMLButtonElement>("apply-controls");
 	private readonly errorPanel = byId<HTMLElement>("error-panel");
 	private readonly errorCode = byId<HTMLElement>("error-code");
 	private readonly errorMessage = byId<HTMLElement>("error-message");
@@ -115,15 +108,15 @@ export class UiRenderer {
 		this.zoomInput.addEventListener("input", () => {
 			this.zoomValue.value = Number(this.zoomInput.value).toFixed(2);
 		});
-		this.applyControlsButton.addEventListener("click", () => {
-			const snapshot = this.controller.getSnapshot();
-			const update: MutableControlUpdate = {};
-			if (snapshot.controls.torchSupported) update.torch = this.torchToggle.checked;
-			if (snapshot.controls.zoom) update.zoom = Number(this.zoomInput.value);
-			if (snapshot.controls.focusModes.length && this.focusSelect.value) {
-				update.focusMode = this.focusSelect.value;
-			}
-			void this.run(() => this.controller.applyControls(update));
+		this.torchToggle.addEventListener("change", () => {
+			void this.run(() => this.controller.applyControls({ torch: this.torchToggle.checked }));
+		});
+		this.zoomInput.addEventListener("change", () => {
+			void this.run(() => this.controller.applyControls({ zoom: Number(this.zoomInput.value) }));
+		});
+		this.focusSelect.addEventListener("change", () => {
+			if (!this.focusSelect.value) return;
+			void this.run(() => this.controller.applyControls({ focusMode: this.focusSelect.value }));
 		});
 		this.dismissErrorButton.addEventListener("click", () => this.controller.clearError());
 		this.clearEventsButton.addEventListener("click", () => this.controller.clearEvents());
@@ -191,7 +184,6 @@ export class UiRenderer {
 
 		this.renderSessionToggle(snapshot, permissionGranted);
 		this.captureButton.disabled = snapshot.camera.status !== "active";
-		this.applyControlsButton.disabled = snapshot.camera.status !== "active";
 
 		this.permissionCamera.textContent = snapshot.permissions.camera;
 		this.permissionMicrophone.textContent = snapshot.permissions.microphone;
@@ -307,7 +299,7 @@ export class UiRenderer {
 			snapshot.controls.torchSupported ||
 			snapshot.controls.zoom !== null ||
 			snapshot.controls.focusModes.length > 0;
-		this.controlsPanel.hidden = !hasControls;
+		this.controlStrip.hidden = !hasControls;
 		this.torchRow.hidden = !snapshot.controls.torchSupported;
 		this.zoomRow.hidden = snapshot.controls.zoom === null;
 		this.focusRow.hidden = snapshot.controls.focusModes.length === 0;

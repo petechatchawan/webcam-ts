@@ -73,7 +73,7 @@ test("playground keeps required bindings and uses progressive diagnostics", asyn
     "audio-toggle",
     "session-toggle",
     "capture-photo",
-    "controls-panel",
+    "control-strip",
     "state-output",
     "devices-output",
     "event-list",

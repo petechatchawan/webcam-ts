@@ -75,27 +75,53 @@
             </button>
           </div>
 
-          <div class="capture-options" aria-label="Capture options">
-            <label class="capture-opt">
-              <span class="capture-opt-label">Format</span>
-              <select id="capture-type">
-                <option value="image/jpeg">JPEG</option>
-                <option value="image/png">PNG</option>
-              </select>
-            </label>
-            <label class="capture-opt capture-opt-quality">
-              <span class="capture-opt-label">Quality</span>
-              <span class="capture-quality-line">
-                <input
-                  id="capture-quality"
-                  type="range"
-                  min="0.1"
-                  max="1"
-                  step="0.01"
-                  value="0.92"
-                />
-                <output id="capture-quality-value">0.92</output>
+          <div class="stage-topbar">
+            <div class="capture-options" aria-label="Capture options">
+              <label class="capture-opt">
+                <span class="capture-opt-label">Format</span>
+                <select id="capture-type">
+                  <option value="image/jpeg">JPEG</option>
+                  <option value="image/png">PNG</option>
+                </select>
+              </label>
+              <label class="capture-opt capture-opt-quality">
+                <span class="capture-opt-label">Quality</span>
+                <span class="capture-quality-line">
+                  <input
+                    id="capture-quality"
+                    type="range"
+                    min="0.1"
+                    max="1"
+                    step="0.01"
+                    value="0.92"
+                  />
+                  <output id="capture-quality-value">0.92</output>
+                </span>
+              </label>
+            </div>
+
+            <div class="preview-resolution-overlay" aria-label="Camera resolution diagnostics">
+              <span id="preview-requested-resolution" class="resolution-line">
+                Requested Exact PORTRAIT-720P · 720×1280
               </span>
+              <span
+                id="preview-actual-resolution"
+                class="resolution-line"
+                data-available="false"
+              >Actual —</span>
+            </div>
+          </div>
+
+          <div id="control-strip" class="control-strip" hidden>
+            <label id="torch-row" class="control-chip" hidden>
+              <input id="torch-toggle" type="checkbox" />
+              <span aria-hidden="true">⚡</span>
+              <span>Torch</span>
+            </label>
+            <label id="zoom-row" class="control-chip control-zoom" hidden>
+              <span aria-hidden="true">🔍</span>
+              <input id="zoom-input" type="range" min="1" max="1" step="0.1" value="1" />
+              <output id="zoom-value">1.00</output>
             </label>
           </div>
 
@@ -125,17 +151,6 @@
               hidden
             />
             <span id="capture-metadata" class="capture-metadata" hidden></span>
-          </div>
-
-          <div class="preview-resolution-overlay" aria-label="Camera resolution diagnostics">
-            <span id="preview-requested-resolution" class="resolution-line">
-              Requested Exact PORTRAIT-720P · 720×1280
-            </span>
-            <span
-              id="preview-actual-resolution"
-              class="resolution-line"
-              data-available="false"
-            >Actual —</span>
           </div>
         </div>
       </section>
@@ -205,6 +220,10 @@
                   <option value="environment">Rear / environment</option>
                 </select>
               </label>
+              <label id="focus-row" class="field" hidden>
+                <span class="field-label">Focus mode</span>
+                <select id="focus-select"></select>
+              </label>
             </div>
 
             <div class="separator"></div>
@@ -230,36 +249,6 @@
           </div>
         </details>
       </article>
-
-      <section id="controls-panel" class="card controls-sheet" hidden aria-labelledby="controls-title">
-        <div class="card-header">
-          <div>
-            <h2 id="controls-title" class="card-title">Hardware controls</h2>
-            <p class="card-description">Capabilities exposed by the active video track.</p>
-          </div>
-        </div>
-        <div class="card-content controls-stack">
-          <label id="torch-row" class="switch-control compact-switch" hidden>
-            <input id="torch-toggle" type="checkbox" />
-            <span class="switch-track" aria-hidden="true"><span></span></span>
-            <span class="switch-copy"><strong>Torch</strong></span>
-          </label>
-          <label id="zoom-row" class="field" hidden>
-            <span class="field-heading">
-              <span class="field-label">Zoom</span>
-              <output id="zoom-value">1.00</output>
-            </span>
-            <input id="zoom-input" type="range" min="1" max="1" step="0.1" value="1" />
-          </label>
-          <label id="focus-row" class="field" hidden>
-            <span class="field-label">Focus mode</span>
-            <select id="focus-select"></select>
-          </label>
-          <button id="apply-controls" class="button button-secondary button-full">
-            Apply controls
-          </button>
-        </div>
-      </section>
 
       <details class="diagnostics-disclosure">
         <summary>
