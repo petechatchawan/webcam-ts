@@ -47,6 +47,8 @@ export class UiRenderer {
 	private readonly torchToggle = byId<HTMLInputElement>("torch-toggle");
 	private readonly zoomRow = byId<HTMLElement>("zoom-row");
 	private readonly zoomInput = byId<HTMLInputElement>("zoom-input");
+	private readonly zoomMin = byId<HTMLElement>("zoom-min");
+	private readonly zoomMax = byId<HTMLElement>("zoom-max");
 	private readonly zoomValue = byId<HTMLOutputElement>("zoom-value");
 	private readonly focusRow = byId<HTMLElement>("focus-row");
 	private readonly focusSelect = byId<HTMLSelectElement>("focus-select");
@@ -309,6 +311,8 @@ export class UiRenderer {
 			this.zoomInput.max = String(snapshot.controls.zoom.max);
 			this.zoomInput.step = String(snapshot.controls.zoom.step);
 			this.zoomInput.value = String(snapshot.controls.zoom.value);
+			this.zoomMin.textContent = `${snapshot.controls.zoom.min.toFixed(1)}×`;
+			this.zoomMax.textContent = `${snapshot.controls.zoom.max.toFixed(1)}×`;
 			this.zoomValue.value = snapshot.controls.zoom.value.toFixed(2);
 		}
 

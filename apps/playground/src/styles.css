@@ -638,13 +638,47 @@ summary:focus-visible {
 }
 
 .control-chip input[type="checkbox"] {
-	width: 1.1rem;
-	height: 1.1rem;
-	accent-color: hsl(var(--primary));
+	width: 2.5rem;
+	height: 1.5rem;
+	flex: 0 0 auto;
+	appearance: none;
+	border-radius: 999px;
+	background: hsl(var(--input));
+	margin: 0;
+	transition: background 150ms ease;
+	position: relative;
+	cursor: pointer;
+}
+
+.control-chip input[type="checkbox"]::after {
+	content: "";
+	position: absolute;
+	top: 0.1875rem;
+	left: 0.1875rem;
+	width: 1.125rem;
+	height: 1.125rem;
+	border-radius: 999px;
+	background: hsl(var(--foreground));
+	transition: transform 150ms ease;
+}
+
+.control-chip input[type="checkbox"]:checked {
+	background: hsl(142 71% 45%);
+}
+
+.control-chip input[type="checkbox"]:checked::after {
+	transform: translateX(1rem);
 }
 
 .control-zoom input[type="range"] {
 	width: clamp(8rem, 45vw, 16rem);
+	min-height: 2.5rem;
+}
+
+.zoom-bound {
+	color: hsl(var(--muted-foreground));
+	font-size: 0.6875rem;
+	font-variant-numeric: tabular-nums;
 }
 
 .control-zoom output {

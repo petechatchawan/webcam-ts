@@ -71,6 +71,8 @@ test("playground keeps required bindings and uses progressive diagnostics", asyn
     "resolution-mode-select",
     "mirror-toggle",
     "audio-toggle",
+    "zoom-min",
+    "zoom-max",
     "session-toggle",
     "capture-photo",
     "control-strip",
