@@ -1,6 +1,6 @@
 {
   "name": "webcam-ts",
-  "version": "4.0.0-alpha.1",
+  "version": "4.0.0",
   "description": "Framework-agnostic TypeScript camera session library for modern browsers",
   "type": "module",
   "main": "./dist/index.js",
