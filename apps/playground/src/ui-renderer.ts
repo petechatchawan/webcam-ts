@@ -111,14 +111,27 @@ export class UiRenderer {
 			this.zoomValue.value = Number(this.zoomInput.value).toFixed(2);
 		});
 		this.torchToggle.addEventListener("change", () => {
-			void this.run(() => this.controller.applyControls({ torch: this.torchToggle.checked }));
+			const checked = this.torchToggle.checked;
+			void this.run(() => this.controller.applyControls({ torch: checked })).catch(() => {
+				this.torchToggle.checked = !checked;
+			});
 		});
 		this.zoomInput.addEventListener("change", () => {
-			void this.run(() => this.controller.applyControls({ zoom: Number(this.zoomInput.value) }));
+			void this.run(() => this.controller.applyControls({ zoom: Number(this.zoomInput.value) })).catch(
+				() => this.resetZoomInput(),
+			);
 		});
 		this.focusSelect.addEventListener("change", () => {
-			if (!this.focusSelect.value) return;
-			void this.run(() => this.controller.applyControls({ focusMode: this.focusSelect.value }));
+			const selected = this.focusSelect.value;
+			if (!selected) return;
+			const previous = this.lastFocusMode;
+			void this.run(async () => {
+				await this.controller.applyControls({ focusMode: selected });
+				this.lastFocusMode = selected;
+			}).catch(() => {
+				this.lastFocusMode = previous;
+				this.focusSelect.value = previous;
+			});
 		});
 		this.dismissErrorButton.addEventListener("click", () => this.controller.clearError());
 		this.clearEventsButton.addEventListener("click", () => this.controller.clearEvents());
@@ -235,6 +248,15 @@ export class UiRenderer {
 		this.sessionToggle.disabled = true;
 	}
 
+	private resetZoomInput(): void {
+		const zoom = this.controller.getSnapshot().controls.zoom;
+		if (!zoom) return;
+		this.zoomInput.value = String(zoom.value);
+		this.zoomValue.value = zoom.value.toFixed(2);
+	}
+
+	private lastFocusMode = "";
+
 	private renderPermissionGate(snapshot: PlaygroundSnapshot): void {
 		const granted = hasCameraPermission(snapshot.permissions.camera);
 		this.permissionGate.hidden = granted;
@@ -319,6 +341,7 @@ export class UiRenderer {
 		const focusKey = snapshot.controls.focusModes.join("|");
 		if (this.focusSelect.dataset.key !== focusKey) {
 			this.focusSelect.dataset.key = focusKey;
+			this.lastFocusMode = "";
 			this.focusSelect.replaceChildren(
 				...snapshot.controls.focusModes.map((mode) => new Option(mode, mode)),
 			);
