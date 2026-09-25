@@ -117,9 +117,9 @@ export class UiRenderer {
 			});
 		});
 		this.zoomInput.addEventListener("change", () => {
-			void this.run(() => this.controller.applyControls({ zoom: Number(this.zoomInput.value) })).catch(
-				() => this.resetZoomInput(),
-			);
+			void this.run(() =>
+				this.controller.applyControls({ zoom: Number(this.zoomInput.value) }),
+			).catch(() => this.resetZoomInput());
 		});
 		this.focusSelect.addEventListener("change", () => {
 			const selected = this.focusSelect.value;
