@@ -264,8 +264,10 @@ svg {
 	display: grid;
 	gap: 0.625rem;
 	overflow: visible;
-	border: 1px solid hsl(var(--border));
-	padding: 0.75rem;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	padding: 0;
 }
 
 .lifecycle-actions {
@@ -949,11 +951,7 @@ code {
 		position: sticky;
 		z-index: 20;
 		bottom: max(0.5rem, env(safe-area-inset-bottom));
-		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius);
-		background: hsl(var(--background) / 0.98);
-		padding: 0.5rem;
-		box-shadow: var(--shadow-md);
+		padding: 0;
 	}
 }
 
@@ -982,7 +980,9 @@ code {
 	}
 
 	.camera-action-panel {
-		padding: 0.875rem;
+		border: 0;
+		background: transparent;
+		padding: 0;
 	}
 
 	.lifecycle-actions {
