@@ -816,13 +816,13 @@ input[type="range"] {
 	display: none;
 }
 
-.capture-card .capture-options {
+.settings-disclosure .capture-options {
 	display: grid;
 	gap: 0.75rem;
 	grid-template-columns: minmax(0, 1fr);
 }
 
-.capture-card .capture-quality-line input[type="range"] {
+.settings-disclosure .capture-quality-line input[type="range"] {
 	width: 100%;
 }
 
