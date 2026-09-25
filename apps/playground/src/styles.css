@@ -637,37 +637,33 @@ summary:focus-visible {
 	cursor: pointer;
 }
 
-.control-chip input[type="checkbox"] {
-	width: 2.5rem;
-	height: 1.5rem;
-	flex: 0 0 auto;
-	appearance: none;
+.torch-switch {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	border: 1px solid hsl(var(--border));
 	border-radius: 999px;
-	background: hsl(var(--input));
-	margin: 0;
-	transition: background 150ms ease;
-	position: relative;
-	cursor: pointer;
+	background: transparent;
+	color: hsl(var(--foreground));
+	padding: 0.45rem 0.8rem;
+	font-size: 0.75rem;
+	font-weight: 600;
 }
 
-.control-chip input[type="checkbox"]::after {
-	content: "";
-	position: absolute;
-	top: 0.1875rem;
-	left: 0.1875rem;
-	width: 1.125rem;
-	height: 1.125rem;
+.torch-switch .torch-dot {
+	width: 0.5rem;
+	height: 0.5rem;
 	border-radius: 999px;
-	background: hsl(var(--foreground));
-	transition: transform 150ms ease;
+	background: hsl(var(--muted-foreground));
 }
 
-.control-chip input[type="checkbox"]:checked {
-	background: hsl(142 71% 45%);
+.torch-switch[aria-checked="true"] {
+	border-color: hsl(142 71% 45% / 0.6);
 }
 
-.control-chip input[type="checkbox"]:checked::after {
-	transform: translateX(1rem);
+.torch-switch[aria-checked="true"] .torch-dot {
+	background: hsl(142 71% 55%);
+	box-shadow: 0 0 6px hsl(142 71% 55%);
 }
 
 .control-zoom input[type="range"] {

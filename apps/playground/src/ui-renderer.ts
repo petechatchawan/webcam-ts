@@ -43,8 +43,7 @@ export class UiRenderer {
 	private readonly stateOutput = byId<HTMLElement>("state-output");
 	private readonly devicesOutput = byId<HTMLElement>("devices-output");
 	private readonly controlStrip = byId<HTMLElement>("control-strip");
-	private readonly torchRow = byId<HTMLElement>("torch-row");
-	private readonly torchToggle = byId<HTMLInputElement>("torch-toggle");
+	private readonly torchToggle = byId<HTMLButtonElement>("torch-toggle");
 	private readonly zoomRow = byId<HTMLElement>("zoom-row");
 	private readonly zoomInput = byId<HTMLInputElement>("zoom-input");
 	private readonly zoomMin = byId<HTMLElement>("zoom-min");
@@ -110,11 +109,12 @@ export class UiRenderer {
 		this.zoomInput.addEventListener("input", () => {
 			this.zoomValue.value = Number(this.zoomInput.value).toFixed(2);
 		});
-		this.torchToggle.addEventListener("change", () => {
-			const checked = this.torchToggle.checked;
-			void this.run(() => this.controller.applyControls({ torch: checked })).catch(() => {
-				this.torchToggle.checked = !checked;
-			});
+		this.torchToggle.addEventListener("click", () => {
+			const next = this.torchToggle.getAttribute("aria-checked") !== "true";
+			void this.run(async () => {
+				await this.controller.applyControls({ torch: next });
+				this.torchToggle.setAttribute("aria-checked", String(next));
+			}).catch(() => undefined);
 		});
 		this.zoomInput.addEventListener("change", () => {
 			void this.run(() =>
@@ -324,7 +324,8 @@ export class UiRenderer {
 			snapshot.controls.zoom !== null ||
 			snapshot.controls.focusModes.length > 0;
 		this.controlStrip.hidden = !hasControls;
-		this.torchRow.hidden = !snapshot.controls.torchSupported;
+		this.torchToggle.hidden = !snapshot.controls.torchSupported;
+		if (!snapshot.controls.torchSupported) this.torchToggle.setAttribute("aria-checked", "false");
 		this.zoomRow.hidden = snapshot.controls.zoom === null;
 		this.focusRow.hidden = snapshot.controls.focusModes.length === 0;
 
