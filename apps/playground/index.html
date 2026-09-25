@@ -130,11 +130,11 @@
       </section>
 
       <div id="control-strip" class="control-strip" hidden>
-        <label id="torch-row" class="control-chip" hidden>
-          <input id="torch-toggle" type="checkbox" />
+        <button id="torch-toggle" class="torch-switch" role="switch" aria-checked="false" hidden>
           <span aria-hidden="true">⚡</span>
           <span>Torch</span>
-        </label>
+          <span class="torch-dot" aria-hidden="true"></span>
+        </button>
         <label id="zoom-row" class="control-chip control-zoom" hidden>
           <span aria-hidden="true">🔍</span>
           <output id="zoom-min" class="zoom-bound">1.0×</output>
