@@ -675,7 +675,7 @@ input[type="range"] {
 	left: 0.5rem;
 	display: flex;
 	align-items: flex-start;
-	justify-content: space-between;
+	justify-content: flex-end;
 	gap: 0.5rem;
 	pointer-events: none;
 }
@@ -811,10 +811,19 @@ input[type="range"] {
 	white-space: normal;
 }
 
-.preview-shell[data-active="false"] .capture-options,
 .preview-shell[data-active="false"] .capture-shutter,
 .preview-shell[data-active="false"] .capture-pool {
 	display: none;
+}
+
+.capture-card .capture-options {
+	display: grid;
+	gap: 0.75rem;
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.capture-card .capture-quality-line input[type="range"] {
+	width: 100%;
 }
 
 .capture-opt select:disabled,
