@@ -98,6 +98,14 @@
             disabled
           ></button>
 
+          <div id="lightbox" class="lightbox" hidden>
+            <img id="lightbox-image" class="lightbox-image" alt="Captured camera frame fullscreen" />
+            <span id="lightbox-meta" class="lightbox-meta"></span>
+            <button id="lightbox-close" class="button button-secondary" type="button">
+              Close
+            </button>
+          </div>
+
           <div id="capture-pool" class="capture-pool" hidden>
             <span
               id="capture-empty"
@@ -122,11 +130,11 @@
       </section>
 
       <div id="control-strip" class="control-strip" hidden>
-        <button id="torch-toggle" class="torch-switch" role="switch" aria-checked="false" hidden>
+        <label id="torch-row" class="control-chip" hidden>
+          <input id="torch-toggle" type="checkbox" />
           <span aria-hidden="true">⚡</span>
           <span>Torch</span>
-          <span class="torch-dot" aria-hidden="true"></span>
-        </button>
+        </label>
         <label id="zoom-row" class="control-chip control-zoom" hidden>
           <span aria-hidden="true">🔍</span>
           <output id="zoom-min" class="zoom-bound">1.0×</output>

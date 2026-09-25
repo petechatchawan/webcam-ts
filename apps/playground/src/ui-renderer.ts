@@ -39,11 +39,17 @@ export class UiRenderer {
 	private readonly captureImage = byId<HTMLImageElement>("capture-image");
 	private readonly captureEmpty = byId<HTMLElement>("capture-empty");
 	private readonly captureMetadata = byId<HTMLElement>("capture-metadata");
+	private readonly lightbox = byId<HTMLElement>("lightbox");
+	private readonly lightboxImage = byId<HTMLImageElement>("lightbox-image");
+	private readonly lightboxMeta = byId<HTMLElement>("lightbox-meta");
+	private readonly lightboxClose = byId<HTMLButtonElement>("lightbox-close");
+	private lightboxUrl: string | null = null;
 	private readonly statusBadge = byId<HTMLElement>("status-badge");
 	private readonly stateOutput = byId<HTMLElement>("state-output");
 	private readonly devicesOutput = byId<HTMLElement>("devices-output");
 	private readonly controlStrip = byId<HTMLElement>("control-strip");
-	private readonly torchToggle = byId<HTMLButtonElement>("torch-toggle");
+	private readonly torchRow = byId<HTMLElement>("torch-row");
+	private readonly torchToggle = byId<HTMLInputElement>("torch-toggle");
 	private readonly zoomRow = byId<HTMLElement>("zoom-row");
 	private readonly zoomInput = byId<HTMLInputElement>("zoom-input");
 	private readonly zoomMin = byId<HTMLElement>("zoom-min");
@@ -106,32 +112,21 @@ export class UiRenderer {
 			};
 			void this.run(() => this.controller.capture(options).then(() => undefined));
 		});
+		this.captureImage.addEventListener("click", () => this.openLightbox());
+		this.lightboxClose.addEventListener("click", () => this.closeLightbox());
+		this.lightboxImage.addEventListener("click", () => this.closeLightbox());
 		this.zoomInput.addEventListener("input", () => {
 			this.zoomValue.value = Number(this.zoomInput.value).toFixed(2);
 		});
-		this.torchToggle.addEventListener("click", () => {
-			const next = this.torchToggle.getAttribute("aria-checked") !== "true";
-			void this.run(async () => {
-				await this.controller.applyControls({ torch: next });
-				this.torchToggle.setAttribute("aria-checked", String(next));
-			}).catch(() => undefined);
+		this.torchToggle.addEventListener("change", () => {
+			void this.run(() => this.controller.applyControls({ torch: this.torchToggle.checked }));
 		});
 		this.zoomInput.addEventListener("change", () => {
-			void this.run(() =>
-				this.controller.applyControls({ zoom: Number(this.zoomInput.value) }),
-			).catch(() => this.resetZoomInput());
+			void this.run(() => this.controller.applyControls({ zoom: Number(this.zoomInput.value) }));
 		});
 		this.focusSelect.addEventListener("change", () => {
-			const selected = this.focusSelect.value;
-			if (!selected) return;
-			const previous = this.lastFocusMode;
-			void this.run(async () => {
-				await this.controller.applyControls({ focusMode: selected });
-				this.lastFocusMode = selected;
-			}).catch(() => {
-				this.lastFocusMode = previous;
-				this.focusSelect.value = previous;
-			});
+			if (!this.focusSelect.value) return;
+			void this.run(() => this.controller.applyControls({ focusMode: this.focusSelect.value }));
 		});
 		this.dismissErrorButton.addEventListener("click", () => this.controller.clearError());
 		this.clearEventsButton.addEventListener("click", () => this.controller.clearEvents());
@@ -248,15 +243,6 @@ export class UiRenderer {
 		this.sessionToggle.disabled = true;
 	}
 
-	private resetZoomInput(): void {
-		const zoom = this.controller.getSnapshot().controls.zoom;
-		if (!zoom) return;
-		this.zoomInput.value = String(zoom.value);
-		this.zoomValue.value = zoom.value.toFixed(2);
-	}
-
-	private lastFocusMode = "";
-
 	private renderPermissionGate(snapshot: PlaygroundSnapshot): void {
 		const granted = hasCameraPermission(snapshot.permissions.camera);
 		this.permissionGate.hidden = granted;
@@ -324,8 +310,7 @@ export class UiRenderer {
 			snapshot.controls.zoom !== null ||
 			snapshot.controls.focusModes.length > 0;
 		this.controlStrip.hidden = !hasControls;
-		this.torchToggle.hidden = !snapshot.controls.torchSupported;
-		if (!snapshot.controls.torchSupported) this.torchToggle.setAttribute("aria-checked", "false");
+		this.torchRow.hidden = !snapshot.controls.torchSupported;
 		this.zoomRow.hidden = snapshot.controls.zoom === null;
 		this.focusRow.hidden = snapshot.controls.focusModes.length === 0;
 
@@ -342,7 +327,6 @@ export class UiRenderer {
 		const focusKey = snapshot.controls.focusModes.join("|");
 		if (this.focusSelect.dataset.key !== focusKey) {
 			this.focusSelect.dataset.key = focusKey;
-			this.lastFocusMode = "";
 			this.focusSelect.replaceChildren(
 				...snapshot.controls.focusModes.map((mode) => new Option(mode, mode)),
 			);
@@ -365,6 +349,22 @@ export class UiRenderer {
 		this.captureMetadata.textContent = `${capture.width}×${capture.height} · ${
 			capture.type
 		} · ${formatBytes(capture.size)} · ${new Date(capture.timestamp).toLocaleTimeString()}`;
+		if (capture.url !== this.lightboxUrl) this.closeLightbox();
+	}
+
+	private openLightbox(): void {
+		const src = this.captureImage.getAttribute("src");
+		if (!src) return;
+		this.lightboxUrl = src;
+		this.lightboxImage.src = src;
+		this.lightboxMeta.textContent = this.captureMetadata.textContent ?? "";
+		this.lightbox.hidden = false;
+	}
+
+	private closeLightbox(): void {
+		this.lightboxUrl = null;
+		this.lightbox.hidden = true;
+		this.lightboxImage.removeAttribute("src");
 	}
 
 	private renderError(snapshot: PlaygroundSnapshot): void {

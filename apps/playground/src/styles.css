@@ -637,33 +637,37 @@ summary:focus-visible {
 	cursor: pointer;
 }
 
-.torch-switch {
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-	border: 1px solid hsl(var(--border));
+.control-chip input[type="checkbox"] {
+	width: 2.5rem;
+	height: 1.5rem;
+	flex: 0 0 auto;
+	appearance: none;
 	border-radius: 999px;
-	background: transparent;
-	color: hsl(var(--foreground));
-	padding: 0.45rem 0.8rem;
-	font-size: 0.75rem;
-	font-weight: 600;
+	background: hsl(var(--input));
+	margin: 0;
+	transition: background 150ms ease;
+	position: relative;
+	cursor: pointer;
 }
 
-.torch-switch .torch-dot {
-	width: 0.5rem;
-	height: 0.5rem;
+.control-chip input[type="checkbox"]::after {
+	content: "";
+	position: absolute;
+	top: 0.1875rem;
+	left: 0.1875rem;
+	width: 1.125rem;
+	height: 1.125rem;
 	border-radius: 999px;
-	background: hsl(var(--muted-foreground));
+	background: hsl(var(--foreground));
+	transition: transform 150ms ease;
 }
 
-.torch-switch[aria-checked="true"] {
-	border-color: hsl(142 71% 45% / 0.6);
+.control-chip input[type="checkbox"]:checked {
+	background: hsl(142 71% 45%);
 }
 
-.torch-switch[aria-checked="true"] .torch-dot {
-	background: hsl(142 71% 55%);
-	box-shadow: 0 0 6px hsl(142 71% 55%);
+.control-chip input[type="checkbox"]:checked::after {
+	transform: translateX(1rem);
 }
 
 .control-zoom input[type="range"] {
@@ -787,6 +791,33 @@ input[type="range"] {
 	opacity: 0.35;
 }
 
+.lightbox {
+	position: absolute;
+	z-index: 20;
+	inset: 0;
+	display: grid;
+	place-content: center;
+	justify-items: center;
+	gap: 0.5rem;
+	background: rgb(0 0 0 / 0.92);
+	padding: 1rem;
+}
+
+.lightbox-image {
+	max-width: 100%;
+	max-height: 70%;
+	border-radius: 0.5rem;
+	object-fit: contain;
+	cursor: zoom-out;
+}
+
+.lightbox-meta {
+	color: #e2e8f0;
+	font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 0.6875rem;
+	text-align: center;
+}
+
 .capture-pool {
 	position: absolute;
 	z-index: 6;
@@ -810,6 +841,7 @@ input[type="range"] {
 
 #capture-image.capture-thumb {
 	object-fit: cover;
+	cursor: zoom-in;
 }
 
 .capture-thumb-empty {
@@ -1007,9 +1039,6 @@ code {
 	.capture-thumb {
 		width: 2.5rem;
 		height: 2.5rem;
-	}
-	.capture-metadata {
-		display: none;
 	}
 	.capture-shutter {
 		bottom: 1rem;
