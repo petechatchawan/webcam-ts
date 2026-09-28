@@ -1,30 +1,31 @@
-import { CameraError } from "../domain/camera-error.js";
+import { WebcamError } from "../domain/error.js";
 import { BrowserMediaDevicesAdapter } from "../platform/browser-media-devices-adapter.js";
+import { normalizeBrowserError } from "../platform/browser-error-normalizer.js";
 import type { MediaDevicesPort } from "../platform/media-devices-port.js";
 import { stopStream } from "../platform/stream-cleanup.js";
 
-export type CameraPermissionState = "granted" | "denied" | "prompt" | "unsupported" | "unknown";
+export type MediaPermissionState = "granted" | "denied" | "prompt" | "unsupported" | "unknown";
 
-export interface CameraPermissionMap {
-	readonly camera: CameraPermissionState;
-	readonly microphone: CameraPermissionState;
+export interface PermissionMap {
+	readonly camera: MediaPermissionState;
+	readonly microphone: MediaPermissionState;
 }
 
-export interface CameraPermissionRequest {
+export interface PermissionRequest {
 	readonly video?: boolean;
 	readonly audio?: boolean;
 }
 
-export interface CameraPermissionServiceOptions {
+export interface PermissionServiceOptions {
 	readonly mediaDevices?: MediaDevicesPort;
 	readonly permissions?: Permissions | null;
 }
 
-export class CameraPermissionService {
+export class PermissionService {
 	private readonly mediaDevices: MediaDevicesPort;
 	private readonly permissions: Permissions | null;
 
-	constructor(options: CameraPermissionServiceOptions = {}) {
+	public constructor(options: PermissionServiceOptions = {}) {
 		this.mediaDevices = options.mediaDevices ?? new BrowserMediaDevicesAdapter();
 		this.permissions =
 			options.permissions !== undefined
@@ -32,30 +33,43 @@ export class CameraPermissionService {
 				: globalThis.navigator?.permissions ?? null;
 	}
 
-	public async query(): Promise<CameraPermissionMap> {
+	public async query(): Promise<PermissionMap> {
 		if (!this.permissions) {
 			return Object.freeze({ camera: "unsupported", microphone: "unsupported" });
 		}
 
 		const [camera, microphone] = await Promise.all([
-			this.queryOne(this.permissions, "camera"),
-			this.queryOne(this.permissions, "microphone"),
+			this.queryPermissionState(this.permissions, "camera"),
+			this.queryPermissionState(this.permissions, "microphone"),
 		]);
 		return Object.freeze({ camera, microphone });
 	}
 
-	public async request(request: CameraPermissionRequest = {}): Promise<CameraPermissionMap> {
+	public async request(request: PermissionRequest = {}): Promise<PermissionMap> {
 		const video = request.video ?? true;
 		const audio = request.audio ?? false;
 		if (!video && !audio) {
-			throw new CameraError("At least one permission must be requested", {
+			throw new WebcamError("At least one permission must be requested", {
 				code: "INVALID_REQUEST",
 				recoverable: true,
 			});
 		}
 
-		const stream = await this.mediaDevices.open({ video, audio });
-		stopStream(stream);
+		let stream: MediaStream | null = null;
+		try {
+			stream = await this.mediaDevices.open({ video, audio });
+		} catch (error) {
+			throw normalizeBrowserError(error);
+		} finally {
+			if (stream) {
+				try {
+					stopStream(stream);
+				} catch (error) {
+					throw normalizeBrowserError(error, undefined, "UNKNOWN");
+				}
+			}
+		}
+
 		const queried = await this.query();
 		return Object.freeze({
 			camera: video ? "granted" : queried.camera,
@@ -63,10 +77,10 @@ export class CameraPermissionService {
 		});
 	}
 
-	private async queryOne(
+	private async queryPermissionState(
 		permissions: Permissions,
 		name: "camera" | "microphone",
-	): Promise<CameraPermissionState> {
+	): Promise<MediaPermissionState> {
 		try {
 			const result = await permissions.query({ name: name as PermissionName });
 			return result.state;

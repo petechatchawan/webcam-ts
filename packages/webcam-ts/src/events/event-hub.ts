@@ -1,9 +1,9 @@
-import type { CameraEvent, CameraEventListener } from "../domain/camera-event.js";
+import type { WebcamEvent, WebcamEventListener } from "../domain/event.js";
 
-export class CameraEventHub {
-	private readonly listeners = new Set<CameraEventListener>();
+export class EventHub {
+	private readonly listeners = new Set<WebcamEventListener>();
 
-	public subscribe(listener: CameraEventListener): () => void {
+	public subscribe(listener: WebcamEventListener): () => void {
 		this.listeners.add(listener);
 		let active = true;
 
@@ -14,8 +14,8 @@ export class CameraEventHub {
 		};
 	}
 
-	public emit(event: CameraEvent): void {
-		const snapshot = Object.freeze({ ...event }) as CameraEvent;
+	public emit(event: WebcamEvent): void {
+		const snapshot = Object.freeze({ ...event }) as WebcamEvent;
 		for (const listener of [...this.listeners]) {
 			try {
 				listener(snapshot);

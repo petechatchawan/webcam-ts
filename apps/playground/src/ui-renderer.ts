@@ -1,12 +1,12 @@
 import type { CaptureBlobOptions } from "webcam-ts/capture";
 import { byId, formatBytes } from "./dom.js";
-import type { CameraController } from "./camera-controller.js";
+import type { WebcamController } from "./webcam-controller.js";
 import {
 	findResolutionPreset,
 	getResolutionPresets,
-	hasCameraPermission,
+	hasWebcamPermission,
 } from "./playground-logic.js";
-import type { CameraSelection, PlaygroundSnapshot, ResolutionPreset } from "./models.js";
+import type { WebcamSelection, PlaygroundSnapshot, ResolutionPreset } from "./models.js";
 
 export class UiRenderer {
 	private readonly unsubscribe: () => void;
@@ -22,7 +22,7 @@ export class UiRenderer {
 	private readonly requestedResolution = byId<HTMLElement>("preview-requested-resolution");
 	private readonly actualResolution = byId<HTMLElement>("preview-actual-resolution");
 	private readonly permissionBadge = byId<HTMLElement>("permission-badge");
-	private readonly permissionCamera = byId<HTMLElement>("permission-camera");
+	private readonly permissionWebcam = byId<HTMLElement>("permission-camera");
 	private readonly permissionMicrophone = byId<HTMLElement>("permission-microphone");
 	private readonly deviceSelect = byId<HTMLSelectElement>("device-select");
 	private readonly facingSelect = byId<HTMLSelectElement>("facing-select");
@@ -63,7 +63,7 @@ export class UiRenderer {
 	private readonly eventList = byId<HTMLOListElement>("event-list");
 	private readonly clearEventsButton = byId<HTMLButtonElement>("clear-events");
 
-	constructor(private readonly controller: CameraController) {
+	public constructor(private readonly controller: WebcamController) {
 		this.populateResolutionOptions();
 		this.bindEvents();
 		this.unsubscribe = controller.subscribe((snapshot) => this.render(snapshot));
@@ -80,7 +80,7 @@ export class UiRenderer {
 		this.permissionGateAction.addEventListener("click", requestPermission);
 		this.sessionToggle.addEventListener("click", () => {
 			void this.run(() => {
-				if (this.latestSnapshot?.camera.status === "active") {
+				if (this.latestSnapshot?.webcam.status === "active") {
 					return this.controller.stop();
 				}
 				return this.controller.start(this.readSelection());
@@ -163,11 +163,11 @@ export class UiRenderer {
 		this.resolutionSelect.value = "PORTRAIT-720P";
 	}
 
-	private readSelection(): CameraSelection {
+	private readSelection(): WebcamSelection {
 		const resolution = this.selectedResolution();
 		return {
 			deviceId: this.deviceSelect.value,
-			facingMode: this.facingSelect.value as CameraSelection["facingMode"],
+			facingMode: this.facingSelect.value as WebcamSelection["facingMode"],
 			resolutionId: resolution.id,
 			resolutionLabel: resolution.label,
 			resolutionMode: this.selectedResolutionMode(),
@@ -186,7 +186,7 @@ export class UiRenderer {
 		return fallback;
 	}
 
-	private selectedResolutionMode(): CameraSelection["resolutionMode"] {
+	private selectedResolutionMode(): WebcamSelection["resolutionMode"] {
 		return this.resolutionModeSelect.value === "ideal" ? "ideal" : "exact";
 	}
 
@@ -194,21 +194,21 @@ export class UiRenderer {
 		try {
 			await operation();
 		} catch {
-			// Typed failures are projected by CameraController.
+			// Typed failures are projected by WebcamController.
 		}
 	}
 
 	private render(snapshot: PlaygroundSnapshot): void {
 		this.latestSnapshot = snapshot;
-		const permissionGranted = hasCameraPermission(snapshot.permissions.camera);
+		const permissionGranted = hasWebcamPermission(snapshot.permissions.camera);
 
-		this.statusBadge.textContent = snapshot.camera.status;
-		this.statusBadge.dataset.status = snapshot.camera.status;
+		this.statusBadge.textContent = snapshot.webcam.status;
+		this.statusBadge.dataset.status = snapshot.webcam.status;
 
 		this.renderSessionToggle(snapshot, permissionGranted);
-		this.captureButton.disabled = snapshot.camera.status !== "active";
+		this.captureButton.disabled = snapshot.webcam.status !== "active";
 
-		this.permissionCamera.textContent = snapshot.permissions.camera;
+		this.permissionWebcam.textContent = snapshot.permissions.camera;
 		this.permissionMicrophone.textContent = snapshot.permissions.microphone;
 		this.permissionBadge.textContent = snapshot.permissions.camera;
 		this.permissionBadge.dataset.permission = snapshot.permissions.camera;
@@ -221,14 +221,14 @@ export class UiRenderer {
 		this.renderError(snapshot);
 		this.renderEvents(snapshot);
 
-		this.stateOutput.textContent = JSON.stringify(snapshot.camera, null, 2);
+		this.stateOutput.textContent = JSON.stringify(snapshot.webcam, null, 2);
 		this.devicesOutput.textContent = JSON.stringify(
 			{
 				devices: snapshot.devices,
 				requestedResolution: snapshot.requestedResolution,
 				actualResolution: {
-					width: snapshot.camera.settings?.width ?? null,
-					height: snapshot.camera.settings?.height ?? null,
+					width: snapshot.webcam.settings?.width ?? null,
+					height: snapshot.webcam.settings?.height ?? null,
 				},
 				controls: snapshot.controls,
 			},
@@ -238,7 +238,7 @@ export class UiRenderer {
 	}
 
 	private renderSessionToggle(snapshot: PlaygroundSnapshot, permissionGranted: boolean): void {
-		const status = snapshot.camera.status;
+		const status = snapshot.webcam.status;
 		if (status === "active") {
 			this.sessionToggle.textContent = "Stop camera";
 			this.sessionToggle.className = "button button-full button-destructive-outline";
@@ -251,7 +251,7 @@ export class UiRenderer {
 			this.sessionToggle.disabled = !permissionGranted || !snapshot.availability.canStart;
 			return;
 		}
-		this.sessionToggle.textContent = status === "disposed" ? "Camera disposed" : "Working…";
+		this.sessionToggle.textContent = status === "disposed" ? "Webcam disposed" : "Working…";
 		this.sessionToggle.className = "button button-full button-secondary";
 		this.sessionToggle.disabled = true;
 	}
@@ -266,19 +266,19 @@ export class UiRenderer {
 	private lastFocusMode = "";
 
 	private renderPermissionGate(snapshot: PlaygroundSnapshot): void {
-		const granted = hasCameraPermission(snapshot.permissions.camera);
+		const granted = hasWebcamPermission(snapshot.permissions.camera);
 		this.permissionGate.hidden = granted;
 		this.permissionGateAction.disabled = snapshot.availability.busy;
 
 		if (snapshot.permissions.camera === "denied") {
-			this.permissionGateTitle.textContent = "Camera access is blocked";
+			this.permissionGateTitle.textContent = "Webcam access is blocked";
 			this.permissionGateMessage.textContent =
 				"Allow camera access in this site's browser settings, then try again.";
 			this.permissionGateAction.textContent = "Try camera access again";
 			return;
 		}
 
-		this.permissionGateTitle.textContent = "Camera access required";
+		this.permissionGateTitle.textContent = "Webcam access required";
 		this.permissionGateMessage.textContent =
 			"Allow access before starting a session. The browser will ask for camera permission.";
 		this.permissionGateAction.textContent = "Allow camera access";
@@ -289,9 +289,9 @@ export class UiRenderer {
 		const committed = snapshot.requestedResolution;
 		const requested = committed ?? selected;
 		const requestedMode = committed?.mode ?? this.selectedResolutionMode();
-		const actualWidth = numericSetting(snapshot.camera.settings?.width);
-		const actualHeight = numericSetting(snapshot.camera.settings?.height);
-		const hasActual = snapshot.camera.status === "active" && actualWidth > 0 && actualHeight > 0;
+		const actualWidth = numericSetting(snapshot.webcam.settings?.width);
+		const actualHeight = numericSetting(snapshot.webcam.settings?.height);
+		const hasActual = snapshot.webcam.status === "active" && actualWidth > 0 && actualHeight > 0;
 		const frameWidth = hasActual ? actualWidth : selected.width;
 		const frameHeight = hasActual ? actualHeight : selected.height;
 		const modeLabel = requestedMode === "exact" ? "Exact" : "Prefer";
@@ -305,24 +305,24 @@ export class UiRenderer {
 		this.previewShell.style.setProperty("--preview-aspect-ratio", `${frameWidth} / ${frameHeight}`);
 		this.previewShell.dataset.orientation =
 			frameWidth === frameHeight ? "square" : frameWidth < frameHeight ? "portrait" : "landscape";
-		this.previewEmpty.hidden = snapshot.camera.status === "active";
+		this.previewEmpty.hidden = snapshot.webcam.status === "active";
 	}
 
 	private renderDevices(snapshot: PlaygroundSnapshot): void {
 		const key = snapshot.devices
-			.map((device) => `${device.deviceId}:${device.label ?? ""}`)
+			.map((device) => `${device.deviceId}:${device.label || ""}`)
 			.join("|");
 		if (key === this.lastDevicesKey) return;
 		this.lastDevicesKey = key;
 		const previous = this.deviceSelect.value;
 		this.deviceSelect.replaceChildren(new Option("Automatic selection", ""));
 		snapshot.devices.forEach((device, index) => {
-			this.deviceSelect.add(new Option(device.label ?? `Camera ${index + 1}`, device.deviceId));
+			this.deviceSelect.add(new Option(device.label || `Webcam ${index + 1}`, device.deviceId));
 		});
 		if ([...this.deviceSelect.options].some((option) => option.value === previous)) {
 			this.deviceSelect.value = previous;
-		} else if (snapshot.camera.deviceId) {
-			this.deviceSelect.value = snapshot.camera.deviceId;
+		} else if (snapshot.webcam.deviceId) {
+			this.deviceSelect.value = snapshot.webcam.deviceId;
 		}
 	}
 
@@ -359,7 +359,7 @@ export class UiRenderer {
 
 	private renderCapture(snapshot: PlaygroundSnapshot): void {
 		const capture = snapshot.capture;
-		const showPool = Boolean(capture) || snapshot.camera.status === "active";
+		const showPool = Boolean(capture) || snapshot.webcam.status === "active";
 		this.capturePool.hidden = !showPool;
 		this.captureImage.hidden = !capture;
 		this.captureEmpty.hidden = Boolean(capture);

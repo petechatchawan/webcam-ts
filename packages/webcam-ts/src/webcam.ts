@@ -1,15 +1,15 @@
-import { CameraError, type CameraErrorCode, type CameraOperation } from "./domain/camera-error.js";
-import type { CameraEvent, CameraEventListener } from "./domain/camera-event.js";
-import { assertCommandAllowed } from "./domain/camera-lifecycle.js";
-import { buildMediaStreamConstraints, type CameraRequest } from "./domain/camera-request.js";
-import type { CameraState, CameraStatus } from "./domain/camera-state.js";
-import { CameraEventHub } from "./events/camera-event-hub.js";
+import { WebcamError, type WebcamErrorCode, type WebcamOperation } from "./domain/error.js";
+import type { WebcamEvent, WebcamEventListener } from "./domain/event.js";
+import { assertCommandAllowed } from "./domain/lifecycle.js";
+import { buildMediaStreamConstraints, type WebcamRequest } from "./domain/request.js";
+import type { WebcamState, WebcamStatus } from "./domain/state.js";
+import { EventHub } from "./events/event-hub.js";
 import { BrowserMediaDevicesAdapter } from "./platform/browser-media-devices-adapter.js";
 import { normalizeBrowserError } from "./platform/browser-error-normalizer.js";
 import type { MediaDevicesPort } from "./platform/media-devices-port.js";
 import { stopStream } from "./platform/stream-cleanup.js";
 
-export interface CameraOptions {
+export interface WebcamOptions {
 	readonly mediaDevices?: MediaDevicesPort;
 	readonly now?: () => number;
 	readonly createSessionId?: () => string;
@@ -17,16 +17,16 @@ export interface CameraOptions {
 
 interface PendingStart {
 	readonly id: number;
-	invalidCode: Extract<CameraErrorCode, "OPERATION_ABORTED" | "DISPOSED"> | null;
+	invalidCode: Extract<WebcamErrorCode, "OPERATION_ABORTED" | "DISPOSED"> | null;
 }
 
 function projectActiveStatePatch(
 	track: MediaStreamTrack,
 	previousStream: MediaStream | null,
-	state: CameraState,
+	state: WebcamState,
 	now: () => number,
 	createSessionId: () => string,
-): Partial<CameraState> {
+): Partial<WebcamState> {
 	const settings = cloneAndFreeze(track.getSettings());
 	const capabilities = cloneAndFreeze(track.getCapabilities());
 	const beginsSession = previousStream === null || state.sessionId === null;
@@ -40,9 +40,9 @@ function projectActiveStatePatch(
 	};
 }
 
-function relabelStartError(error: CameraError): CameraError {
+function relabelStartError(error: WebcamError): WebcamError {
 	if (error.operation === "start") return error;
-	return new CameraError(error.message, {
+	return new WebcamError(error.message, {
 		code: error.code,
 		operation: "start",
 		recoverable: error.recoverable,
@@ -69,7 +69,7 @@ function cloneAndFreeze<T>(value: T): T {
 	return Object.freeze(clone) as T;
 }
 
-function initialState(): CameraState {
+function initialState(): WebcamState {
 	return deepFreeze({
 		status: "idle" as const,
 		sessionId: null,
@@ -82,12 +82,12 @@ function initialState(): CameraState {
 	});
 }
 
-export class Camera {
-	private readonly events = new CameraEventHub();
+export class Webcam {
+	private readonly events = new EventHub();
 	private readonly mediaDevices: MediaDevicesPort;
 	private readonly now: () => number;
 	private readonly createSessionId: () => string;
-	private state: CameraState = initialState();
+	private state: WebcamState = initialState();
 	private activeStream: MediaStream | null = null;
 	private activeTrack: MediaStreamTrack | null = null;
 	private activeTrackEndedListener: (() => void) | null = null;
@@ -95,15 +95,15 @@ export class Camera {
 	private nextOperationId = 0;
 	private pendingStart: PendingStart | null = null;
 
-	constructor(options: CameraOptions = {}) {
+	public constructor(options: WebcamOptions = {}) {
 		this.now = options.now ?? Date.now;
 		this.createSessionId =
 			options.createSessionId ??
-			(() => `camera-${this.now()}-${Math.random().toString(36).slice(2)}`);
+			(() => `webcam-${this.now()}-${Math.random().toString(36).slice(2)}`);
 		this.mediaDevices = options.mediaDevices ?? new BrowserMediaDevicesAdapter();
 	}
 
-	public start(request: CameraRequest = {}): Promise<void> {
+	public start(request: WebcamRequest = {}): Promise<void> {
 		return this.runStart(request);
 	}
 
@@ -117,7 +117,7 @@ export class Camera {
 		this.events.clear();
 	}
 
-	public getState(): CameraState {
+	public getState(): WebcamState {
 		return this.state;
 	}
 
@@ -129,11 +129,11 @@ export class Camera {
 		return this.activeTrack;
 	}
 
-	public subscribe(listener: CameraEventListener): () => void {
+	public subscribe(listener: WebcamEventListener): () => void {
 		return this.events.subscribe(listener);
 	}
 
-	private async runStart(request: CameraRequest = {}): Promise<void> {
+	private async runStart(request: WebcamRequest = {}): Promise<void> {
 		assertCommandAllowed(this.state.status, "start");
 		const start = this.beginStart();
 		this.setStatus("starting");
@@ -156,13 +156,13 @@ export class Camera {
 			this.completeOperation("start", start.id);
 		} catch (error) {
 			this.releaseCandidateStream(candidate);
-			const cameraError = this.resolveOperationError(error, start);
+			const operationError = this.resolveOperationError(error, start);
 			if (this.pendingStart === start && this.state.status === "starting") {
 				this.setStatus(this.activeStream ? "active" : "idle");
 			}
 			if (this.pendingStart === start) this.pendingStart = null;
-			this.failOperation("start", start.id, cameraError);
-			throw cameraError;
+			this.failOperation("start", start.id, operationError);
+			throw operationError;
 		}
 	}
 
@@ -193,14 +193,21 @@ export class Camera {
 
 	private commitStream(stream: MediaStream, track: MediaStreamTrack): void {
 		const previousStream = this.activeStream;
+		const statePatch = projectActiveStatePatch(
+			track,
+			previousStream,
+			this.state,
+			this.now,
+			this.createSessionId,
+		);
+		const endedListener = this.installActiveTrackEndedListener(track);
+
 		this.candidateStream = null;
 		this.detachActiveTrackEndedListener();
 		this.activeStream = stream;
 		this.activeTrack = track;
-		this.attachActiveTrackEndedListener(track);
-		this.updateState(
-			projectActiveStatePatch(track, previousStream, this.state, this.now, this.createSessionId),
-		);
+		this.activeTrackEndedListener = endedListener;
+		this.updateState(statePatch);
 
 		this.events.emit({ type: "stream-changed", stream, previousStream, reason: "started" });
 	}
@@ -232,10 +239,10 @@ export class Camera {
 		if (stream !== this.activeStream) stopStream(stream);
 	}
 
-	private attachActiveTrackEndedListener(track: MediaStreamTrack): void {
+	private installActiveTrackEndedListener(track: MediaStreamTrack): () => void {
 		const listener = () => this.handleActiveTrackEnded(track);
-		this.activeTrackEndedListener = listener;
 		track.addEventListener?.("ended", listener);
+		return listener;
 	}
 
 	private detachActiveTrackEndedListener(): void {
@@ -258,7 +265,7 @@ export class Camera {
 		if (wasActive) this.setStatus("stopping");
 		this.releaseStream("ended");
 
-		const error = new CameraError("The active camera track ended unexpectedly", {
+		const error = new WebcamError("The active camera track ended unexpectedly", {
 			code: "TRACK_ENDED",
 			recoverable: true,
 		});
@@ -267,7 +274,7 @@ export class Camera {
 		if (wasActive) this.setStatus("idle");
 	}
 
-	private setStatus(status: CameraStatus): void {
+	private setStatus(status: WebcamStatus): void {
 		this.updateState({ status });
 	}
 
@@ -278,7 +285,7 @@ export class Camera {
 	}
 
 	private invalidatePendingStart(
-		code: Extract<CameraErrorCode, "OPERATION_ABORTED" | "DISPOSED">,
+		code: Extract<WebcamErrorCode, "OPERATION_ABORTED" | "DISPOSED">,
 	): void {
 		if (this.pendingStart && !this.pendingStart.invalidCode) {
 			this.pendingStart.invalidCode = code;
@@ -286,13 +293,13 @@ export class Camera {
 		this.pendingStart = null;
 	}
 
-	private pendingStartError(start: PendingStart): CameraError {
+	private pendingStartError(start: PendingStart): WebcamError {
 		const code = start.invalidCode ?? "OPERATION_ABORTED";
 		const message =
 			code === "DISPOSED"
-				? "Camera was disposed while the operation was running"
+				? "Webcam was disposed while the operation was running"
 				: "start operation was aborted";
-		return new CameraError(message, {
+		return new WebcamError(message, {
 			code,
 			operation: "start",
 			recoverable: code !== "DISPOSED",
@@ -300,7 +307,7 @@ export class Camera {
 		});
 	}
 
-	private assertStartCurrent(request: CameraRequest, start: PendingStart): void {
+	private assertStartCurrent(request: WebcamRequest, start: PendingStart): void {
 		if (request.signal?.aborted && !start.invalidCode) {
 			start.invalidCode = "OPERATION_ABORTED";
 		}
@@ -310,7 +317,7 @@ export class Camera {
 	private validateCandidate(stream: MediaStream): MediaStreamTrack {
 		const track = stream.getVideoTracks()[0];
 		if (!track || track.readyState === "ended") {
-			throw new CameraError("Camera stream does not contain a live video track", {
+			throw new WebcamError("Webcam stream does not contain a live video track", {
 				code: "STREAM_INVALID",
 				operation: "start",
 				recoverable: true,
@@ -319,25 +326,25 @@ export class Camera {
 		return track;
 	}
 
-	private resolveOperationError(error: unknown, start: PendingStart): CameraError {
+	private resolveOperationError(error: unknown, start: PendingStart): WebcamError {
 		if (start.invalidCode) return this.pendingStartError(start);
-		if (error instanceof CameraError) return relabelStartError(error);
+		if (error instanceof WebcamError) return relabelStartError(error);
 		return normalizeBrowserError(error, "start");
 	}
 
-	private completeOperation(operation: CameraOperation, operationId: number): void {
+	private completeOperation(operation: WebcamOperation, operationId: number): void {
 		if (this.state.lastError) this.updateState({ lastError: null });
 		this.events.emit({ type: "operation-completed", operation, operationId });
 	}
 
-	private failOperation(operation: CameraOperation, operationId: number, error: CameraError): void {
+	private failOperation(operation: WebcamOperation, operationId: number, error: WebcamError): void {
 		this.updateState({ lastError: error.toSnapshot() });
 		this.events.emit({ type: "operation-failed", operation, operationId, error });
 	}
 
-	private updateState(patch: Partial<CameraState>): void {
+	private updateState(patch: Partial<WebcamState>): void {
 		this.state = deepFreeze({ ...this.state, ...patch });
-		const event: CameraEvent = { type: "state-changed", state: this.state };
+		const event: WebcamEvent = { type: "state-changed", state: this.state };
 		this.events.emit(event);
 	}
 }

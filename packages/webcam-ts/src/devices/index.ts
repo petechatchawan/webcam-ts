@@ -1,2 +1,2 @@
-export * from "./camera-device-manager.js";
-export * from "./camera-permission-service.js";
+export * from "./device-manager.js";
+export * from "./permission-service.js";

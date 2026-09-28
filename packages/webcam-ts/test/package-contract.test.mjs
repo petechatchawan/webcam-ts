@@ -38,13 +38,13 @@ test("declared package subpaths import from a packed tarball", () => {
       const devices = await import("webcam-ts/devices");
       const controls = await import("webcam-ts/controls");
       const testing = await import("webcam-ts/testing");
-      if (!root.Camera || !preview.CameraPreview || !capture.CameraCapture ||
-          !devices.CameraDeviceManager || !controls.CameraControls ||
+      if (!root.Webcam || !preview.Preview || !capture.Capture ||
+          !devices.DeviceManager || !devices.PermissionService || !controls.Controls ||
           !testing.FakeMediaDevicesPort) process.exit(2);
-      if (typeof root.Camera.prototype.switch === "function") process.exit(5);
+      if (typeof root.Webcam.prototype.switch === "function") process.exit(5);
       for (const internal of [
         "assertCommandAllowed",
-        "CameraEventHub",
+        "EventHub",
         "stopStream",
         "resolveMediaDevices",
         "normalizeBrowserError",

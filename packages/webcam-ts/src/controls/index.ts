@@ -1,1 +1,1 @@
-export * from "./camera-controls.js";
+export * from "./controls.js";

@@ -24,7 +24,7 @@ async function readPlaygroundFile(path) {
 
 test("playground source uses only public Webcam-TS entrypoints", async () => {
   const source = await readTypeScriptTree(sourceRoot);
-  assert.doesNotMatch(source, /packages\/webcam-ts\/src|\/dist\/|CameraSession/);
+  assert.doesNotMatch(source, /packages\/webcam-ts\/src|\/dist\/|WebcamSession/);
   assert.doesNotMatch(source, /@angular|react|vue|rxjs|primeng/i);
   assert.match(source, /from "webcam-ts"/);
   assert.match(source, /from "webcam-ts\/preview"/);

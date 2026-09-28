@@ -1,10 +1,10 @@
 import "./styles.css";
 import { byId } from "./dom.js";
-import { createBrowserCameraController } from "./camera-controller.js";
+import { createBrowserWebcamController } from "./webcam-controller.js";
 import { UiRenderer } from "./ui-renderer.js";
 
 const video = byId<HTMLVideoElement>("camera-preview");
-const controller = createBrowserCameraController(video);
+const controller = createBrowserWebcamController(video);
 const renderer = new UiRenderer(controller);
 
 let disposed = false;

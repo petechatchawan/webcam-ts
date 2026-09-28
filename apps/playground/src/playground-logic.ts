@@ -1,9 +1,9 @@
-import type { CameraRequest } from "webcam-ts";
-import type { CameraPermissionMap } from "webcam-ts/devices";
+import type { WebcamRequest } from "webcam-ts";
+import type { PermissionMap } from "webcam-ts/devices";
 import type {
-	CameraFailureLike,
-	CameraSelection,
-	CameraStatus,
+	WebcamFailureLike,
+	WebcamSelection,
+	WebcamStatus,
 	CommandAvailability,
 	PlaygroundError,
 	RequestedResolutionSnapshot,
@@ -51,12 +51,12 @@ export function findResolutionPreset(id: string): ResolutionPreset | null {
 	return RESOLUTION_PRESETS.find((preset) => preset.id === id) ?? null;
 }
 
-export function hasCameraPermission(state: CameraPermissionMap["camera"]): boolean {
+export function hasWebcamPermission(state: PermissionMap["camera"]): boolean {
 	return state === "granted";
 }
 
 export function projectRequestedResolution(
-	selection: CameraSelection,
+	selection: WebcamSelection,
 ): RequestedResolutionSnapshot {
 	return Object.freeze({
 		id: selection.resolutionId,
@@ -67,7 +67,7 @@ export function projectRequestedResolution(
 	});
 }
 
-export function buildCameraRequest(selection: CameraSelection): CameraRequest {
+export function buildWebcamRequest(selection: WebcamSelection): WebcamRequest {
 	const request: {
 		deviceId?: string;
 		facingMode?: "user" | "environment";
@@ -102,7 +102,7 @@ export function buildCameraRequest(selection: CameraSelection): CameraRequest {
 	return request;
 }
 
-export function deriveCommandAvailability(status: CameraStatus): CommandAvailability {
+export function deriveCommandAvailability(status: WebcamStatus): CommandAvailability {
 	switch (status) {
 		case "idle":
 			return { canStart: true, canStop: false, busy: false };
@@ -122,8 +122,8 @@ export function appendEventLog<T>(entries: readonly T[], entry: T, limit = 80): 
 	return Object.freeze([...entries, entry].slice(-limit));
 }
 
-export function projectCameraError(error: unknown): PlaygroundError {
-	const candidate = (error && typeof error === "object" ? error : {}) as CameraFailureLike;
+export function projectWebcamError(error: unknown): PlaygroundError {
+	const candidate = (error && typeof error === "object" ? error : {}) as WebcamFailureLike;
 	const message = typeof candidate.message === "string" ? candidate.message : String(error);
 	const code = typeof candidate.code === "string" ? candidate.code : "UNKNOWN";
 	const operation = typeof candidate.operation === "string" ? candidate.operation : undefined;
@@ -144,9 +144,9 @@ export function projectCameraError(error: unknown): PlaygroundError {
 
 export function projectResolutionSelectionError(
 	error: unknown,
-	selection: CameraSelection,
+	selection: WebcamSelection,
 ): PlaygroundError {
-	const projected = projectCameraError(error);
+	const projected = projectWebcamError(error);
 	if (projected.code !== "CONSTRAINT_UNSATISFIED" || selection.resolutionMode !== "exact") {
 		return projected;
 	}

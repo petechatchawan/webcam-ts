@@ -1,5 +1,5 @@
-import type { Camera } from "../camera.js";
-import { CameraError } from "../domain/camera-error.js";
+import type { Webcam } from "../webcam.js";
+import { WebcamError } from "../domain/error.js";
 
 interface ExtendedCapabilities extends MediaTrackCapabilities {
 	torch?: boolean;
@@ -13,23 +13,23 @@ interface ExtendedConstraintSet extends MediaTrackConstraintSet {
 	focusMode?: string;
 }
 
-export interface CameraControlUpdate {
+export interface ControlUpdate {
 	readonly torch?: boolean;
 	readonly zoom?: number;
 	readonly focusMode?: string;
 }
 
-export class CameraControls {
-	constructor(private readonly camera: Camera) {}
+export class Controls {
+	public constructor(private readonly webcam: Webcam) {}
 
 	public getCapabilities(): Readonly<ExtendedCapabilities> {
 		const track = this.requireTrack();
-		return Object.freeze({ ...(track.getCapabilities() as ExtendedCapabilities) });
+		return Object.freeze(this.readCapabilities(track));
 	}
 
-	public async set(update: CameraControlUpdate): Promise<Readonly<MediaTrackSettings>> {
+	public async set(update: ControlUpdate): Promise<Readonly<MediaTrackSettings>> {
 		const track = this.requireTrack();
-		const capabilities = track.getCapabilities() as ExtendedCapabilities;
+		const capabilities = this.readCapabilities(track);
 		const constraints: ExtendedConstraintSet = {};
 
 		if (update.torch !== undefined) {
@@ -41,7 +41,7 @@ export class CameraControls {
 			const range = capabilities.zoom;
 			if (!range) this.unsupported("zoom");
 			if (!Number.isFinite(update.zoom) || update.zoom < range.min || update.zoom > range.max) {
-				throw new CameraError("Zoom is outside the supported range", {
+				throw new WebcamError("Zoom is outside the supported range", {
 					code: "INVALID_REQUEST",
 					recoverable: true,
 					context: { min: range.min, max: range.max },
@@ -57,7 +57,7 @@ export class CameraControls {
 		}
 
 		if (Object.keys(constraints).length === 0) {
-			throw new CameraError("At least one camera control must be supplied", {
+			throw new WebcamError("At least one camera control must be supplied", {
 				code: "INVALID_REQUEST",
 				recoverable: true,
 			});
@@ -67,7 +67,7 @@ export class CameraControls {
 			await track.applyConstraints({ advanced: [constraints] });
 			return Object.freeze({ ...track.getSettings() });
 		} catch (error) {
-			throw new CameraError("Failed to apply camera controls", {
+			throw new WebcamError("Failed to apply camera controls", {
 				code: "CONTROL_FAILED",
 				recoverable: true,
 				cause: error,
@@ -76,9 +76,9 @@ export class CameraControls {
 	}
 
 	private requireTrack(): MediaStreamTrack {
-		const track = this.camera.getActiveTrack();
+		const track = this.webcam.getActiveTrack();
 		if (!track) {
-			throw new CameraError("Camera must be active before using controls", {
+			throw new WebcamError("Webcam must be active before using controls", {
 				code: "INVALID_STATE",
 				recoverable: true,
 			});
@@ -86,8 +86,21 @@ export class CameraControls {
 		return track;
 	}
 
+	private readCapabilities(track: MediaStreamTrack): ExtendedCapabilities {
+		try {
+			return { ...(track.getCapabilities() as ExtendedCapabilities) };
+		} catch (error) {
+			if (error instanceof WebcamError) throw error;
+			throw new WebcamError("Failed to read camera control capabilities", {
+				code: "CONTROL_FAILED",
+				recoverable: true,
+				cause: error,
+			});
+		}
+	}
+
 	private unsupported(control: string): never {
-		throw new CameraError(`${control} is not supported by the active camera`, {
+		throw new WebcamError(`${control} is not supported by the active camera`, {
 			code: "CONTROL_UNSUPPORTED",
 			recoverable: true,
 			context: { control },

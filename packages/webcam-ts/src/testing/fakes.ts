@@ -11,8 +11,8 @@ export class FakeMediaStreamTrack {
 	public applyConstraintsCalls: MediaTrackConstraints[] = [];
 	public readyState: MediaStreamTrackState = "live";
 
-	constructor(
-		public readonly label = "Fake Camera",
+	public constructor(
+		public readonly label = "Fake Webcam",
 		private settings: MediaTrackSettings = { deviceId: "fake-camera", width: 1280, height: 720 },
 		private capabilities: MediaTrackCapabilities = {},
 	) {}
@@ -40,7 +40,7 @@ export class FakeMediaStreamTrack {
 }
 
 export class FakeMediaStream {
-	constructor(public readonly videoTrack = new FakeMediaStreamTrack()) {}
+	public constructor(public readonly videoTrack = new FakeMediaStreamTrack()) {}
 
 	public getTracks(): MediaStreamTrack[] {
 		return [asTrack(this.videoTrack)];
@@ -49,6 +49,11 @@ export class FakeMediaStream {
 	public getVideoTracks(): MediaStreamTrack[] {
 		return [asTrack(this.videoTrack)];
 	}
+}
+
+// ponytail: fake streams only implement the methods used by this package; expand them if more are needed.
+function asStream(stream: FakeMediaStream): MediaStream {
+	return stream as unknown as MediaStream;
 }
 
 type OpenResult = MediaStream | Error | (() => Promise<MediaStream>);
@@ -60,9 +65,7 @@ export class FakeMediaDevicesPort implements MediaDevicesPort {
 	private devices: MediaDeviceInfo[] = [];
 	private readonly deviceListeners = new Set<() => void>();
 
-	public enqueueStream(
-		stream: MediaStream = new FakeMediaStream() as unknown as MediaStream,
-	): void {
+	public enqueueStream(stream: MediaStream = asStream(new FakeMediaStream())): void {
 		this.openResults.push(stream);
 	}
 
@@ -81,7 +84,7 @@ export class FakeMediaDevicesPort implements MediaDevicesPort {
 	public async open(constraints: MediaStreamConstraints): Promise<MediaStream> {
 		this.openCalls.push(constraints);
 		const result = this.openResults.shift();
-		if (!result) return new FakeMediaStream() as unknown as MediaStream;
+		if (!result) return asStream(new FakeMediaStream());
 		if (result instanceof Error) throw result;
 		if (typeof result === "function") return result();
 		return result;

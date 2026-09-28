@@ -13,6 +13,6 @@
   "include": [
     "src/models.ts",
     "src/playground-logic.ts",
-    "src/camera-controller.ts"
+    "src/webcam-controller.ts"
   ]
 }

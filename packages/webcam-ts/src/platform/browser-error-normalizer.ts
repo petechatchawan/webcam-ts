@@ -1,14 +1,18 @@
-import { CameraError, type CameraErrorCode, type CameraOperation } from "../domain/camera-error.js";
+import { WebcamError, type WebcamErrorCode, type WebcamOperation } from "../domain/error.js";
 
 interface BrowserConstraintFailure extends Error {
 	readonly constraint?: unknown;
 }
 
-export function normalizeBrowserError(error: unknown, operation?: CameraOperation): CameraError {
-	if (error instanceof CameraError) return error;
+export function normalizeBrowserError(
+	error: unknown,
+	operation?: WebcamOperation,
+	fallbackCode: WebcamErrorCode = "STREAM_OPEN_FAILED",
+): WebcamError {
+	if (error instanceof WebcamError) return error;
 
 	const name = error instanceof Error ? error.name : undefined;
-	const mapping: Record<string, CameraErrorCode> = {
+	const mapping: Record<string, WebcamErrorCode> = {
 		NotAllowedError: "PERMISSION_DENIED",
 		PermissionDeniedError: "PERMISSION_DENIED",
 		NotFoundError: "DEVICE_NOT_FOUND",
@@ -20,7 +24,7 @@ export function normalizeBrowserError(error: unknown, operation?: CameraOperatio
 		SecurityError: "SECURITY_RESTRICTION",
 		AbortError: "OPERATION_ABORTED",
 	};
-	const code = name ? mapping[name] ?? "STREAM_OPEN_FAILED" : "UNKNOWN";
+	const code = name ? mapping[name] ?? fallbackCode : "UNKNOWN";
 	const rawConstraint =
 		error instanceof Error ? (error as BrowserConstraintFailure).constraint : undefined;
 	const constraint =
@@ -32,7 +36,7 @@ export function normalizeBrowserError(error: unknown, operation?: CameraOperatio
 		  })
 		: undefined;
 
-	return new CameraError(error instanceof Error ? error.message : "Camera operation failed", {
+	return new WebcamError(error instanceof Error ? error.message : "Webcam operation failed", {
 		code,
 		operation,
 		recoverable: !["UNSUPPORTED_RUNTIME", "UNSUPPORTED_BROWSER"].includes(code),

@@ -1,5 +1,5 @@
-import type { Camera } from "../camera.js";
-import { CameraError } from "../domain/camera-error.js";
+import type { Webcam } from "../webcam.js";
+import { WebcamError } from "../domain/error.js";
 
 export interface CropRegion {
 	readonly x: number;
@@ -48,15 +48,15 @@ export interface FrameEncoder {
 	dispose(): void;
 }
 
-export interface CameraCaptureOptions {
+export interface CaptureOptions {
 	readonly encoder?: FrameEncoder;
 }
 
-export class CameraCapture {
+export class Capture {
 	private encoder: FrameEncoder | null;
 	private disposed = false;
 
-	constructor(private readonly camera: Camera, options: CameraCaptureOptions = {}) {
+	public constructor(private readonly webcam: Webcam, options: CaptureOptions = {}) {
 		this.encoder = options.encoder ?? null;
 	}
 
@@ -74,7 +74,16 @@ export class CameraCapture {
 
 	public dispose(): void {
 		if (this.disposed) return;
-		this.encoder?.dispose();
+		try {
+			this.encoder?.dispose();
+		} catch (error) {
+			if (error instanceof WebcamError) throw error;
+			throw new WebcamError("Failed to dispose webcam capture encoder", {
+				code: "CAPTURE_FAILED",
+				recoverable: true,
+				cause: error,
+			});
+		}
 		this.encoder = null;
 		this.disposed = true;
 	}
@@ -83,15 +92,15 @@ export class CameraCapture {
 		operation: (encoder: FrameEncoder, stream: MediaStream) => Promise<T>,
 	): Promise<T> {
 		if (this.disposed) {
-			throw new CameraError("CameraCapture has been disposed", {
+			throw new WebcamError("Capture has been disposed", {
 				code: "DISPOSED",
 				recoverable: false,
 			});
 		}
 
-		const stream = this.camera.getActiveStream();
+		const stream = this.webcam.getActiveStream();
 		if (!stream) {
-			throw new CameraError("Camera must be active before capture", {
+			throw new WebcamError("Webcam must be active before capture", {
 				code: "INVALID_STATE",
 				recoverable: true,
 			});
@@ -101,8 +110,8 @@ export class CameraCapture {
 		try {
 			return await operation(encoder, stream);
 		} catch (error) {
-			if (error instanceof CameraError) throw error;
-			throw new CameraError("Camera frame capture failed", {
+			if (error instanceof WebcamError) throw error;
+			throw new WebcamError("Webcam frame capture failed", {
 				code: "CAPTURE_FAILED",
 				recoverable: true,
 				cause: error,
@@ -120,7 +129,7 @@ interface DrawnFrame {
 
 function validateFrameOptions(options: CaptureFrameOptions): void {
 	if (options.scale !== undefined && (!Number.isFinite(options.scale) || options.scale <= 0)) {
-		throw new CameraError("Capture scale must be greater than zero", {
+		throw new WebcamError("Capture scale must be greater than zero", {
 			code: "INVALID_REQUEST",
 			recoverable: true,
 		});
@@ -131,7 +140,7 @@ function validateFrameOptions(options: CaptureFrameOptions): void {
 			(value) => !Number.isFinite(value),
 		)
 	) {
-		throw new CameraError("Capture crop values must be finite", {
+		throw new WebcamError("Capture crop values must be finite", {
 			code: "INVALID_REQUEST",
 			recoverable: true,
 		});
@@ -143,7 +152,7 @@ function validateFrameOptions(options: CaptureFrameOptions): void {
 			options.crop.width <= 0 ||
 			options.crop.height <= 0)
 	) {
-		throw new CameraError(
+		throw new WebcamError(
 			"Capture crop must have non-negative coordinates and positive dimensions",
 			{
 				code: "INVALID_REQUEST",
@@ -159,74 +168,99 @@ export class CanvasFrameEncoder implements FrameEncoder {
 	private context: CanvasRenderingContext2D | null = null;
 	private disposed = false;
 
-	public async toBlob(
-		stream: MediaStream,
-		options: CaptureBlobOptions = {},
-	): Promise<CapturedBlob> {
-		const frame = await this.draw(stream, options);
-		const type = options.type ?? "image/jpeg";
-		const quality =
-			options.quality === undefined ? 0.92 : Math.max(0, Math.min(1, options.quality));
-		const blob = await new Promise<Blob>((resolve, reject) => {
-			frame.canvas.toBlob(
-				(value) => (value ? resolve(value) : reject(new Error("Canvas returned an empty blob"))),
+	public toBlob(stream: MediaStream, options: CaptureBlobOptions = {}): Promise<CapturedBlob> {
+		return this.withCaptureError(async () => {
+			const frame = await this.draw(stream, options);
+			const type = options.type ?? "image/jpeg";
+			const quality =
+				options.quality === undefined ? 0.92 : Math.max(0, Math.min(1, options.quality));
+			const blob = await new Promise<Blob>((resolve, reject) => {
+				frame.canvas.toBlob(
+					(value) => (value ? resolve(value) : reject(new Error("Canvas returned an empty blob"))),
+					type,
+					quality,
+				);
+			});
+			return Object.freeze({
+				blob,
+				width: frame.width,
+				height: frame.height,
 				type,
-				quality,
-			);
-		});
-		return Object.freeze({
-			blob,
-			width: frame.width,
-			height: frame.height,
-			type,
-			timestamp: Date.now(),
+				timestamp: Date.now(),
+			});
 		});
 	}
 
-	public async toImageData(
+	public toImageData(
 		stream: MediaStream,
 		options: CaptureFrameOptions = {},
 	): Promise<CapturedImageData> {
-		const frame = await this.draw(stream, options);
-		return Object.freeze({
-			imageData: frame.context.getImageData(0, 0, frame.width, frame.height),
-			width: frame.width,
-			height: frame.height,
-			timestamp: Date.now(),
+		return this.withCaptureError(async () => {
+			const frame = await this.draw(stream, options);
+			return Object.freeze({
+				imageData: frame.context.getImageData(0, 0, frame.width, frame.height),
+				width: frame.width,
+				height: frame.height,
+				timestamp: Date.now(),
+			});
 		});
 	}
 
-	public async toImageBitmap(
+	public toImageBitmap(
 		stream: MediaStream,
 		options: CaptureFrameOptions = {},
 	): Promise<CapturedImageBitmap> {
-		const frame = await this.draw(stream, options);
-		if (typeof globalThis.createImageBitmap !== "function") {
-			throw new CameraError("ImageBitmap capture is not supported by this browser", {
-				code: "UNSUPPORTED_BROWSER",
-				recoverable: false,
+		return this.withCaptureError(async () => {
+			const frame = await this.draw(stream, options);
+			if (typeof globalThis.createImageBitmap !== "function") {
+				throw new WebcamError("ImageBitmap capture is not supported by this browser", {
+					code: "UNSUPPORTED_BROWSER",
+					recoverable: false,
+				});
+			}
+			const imageBitmap = await globalThis.createImageBitmap(frame.canvas);
+			return Object.freeze({
+				imageBitmap,
+				width: frame.width,
+				height: frame.height,
+				timestamp: Date.now(),
 			});
-		}
-		const imageBitmap = await globalThis.createImageBitmap(frame.canvas);
-		return Object.freeze({
-			imageBitmap,
-			width: frame.width,
-			height: frame.height,
-			timestamp: Date.now(),
 		});
 	}
 
 	public dispose(): void {
 		if (this.disposed) return;
-		if (this.video) this.video.srcObject = null;
-		if (this.canvas) {
-			this.canvas.width = 0;
-			this.canvas.height = 0;
+		try {
+			if (this.video) this.video.srcObject = null;
+			if (this.canvas) {
+				this.canvas.width = 0;
+				this.canvas.height = 0;
+			}
+			this.video = null;
+			this.canvas = null;
+			this.context = null;
+			this.disposed = true;
+		} catch (error) {
+			if (error instanceof WebcamError) throw error;
+			throw new WebcamError("Failed to dispose webcam capture encoder", {
+				code: "CAPTURE_FAILED",
+				recoverable: true,
+				cause: error,
+			});
 		}
-		this.video = null;
-		this.canvas = null;
-		this.context = null;
-		this.disposed = true;
+	}
+
+	private async withCaptureError<T>(operation: () => Promise<T>): Promise<T> {
+		try {
+			return await operation();
+		} catch (error) {
+			if (error instanceof WebcamError) throw error;
+			throw new WebcamError("Webcam frame capture failed", {
+				code: "CAPTURE_FAILED",
+				recoverable: true,
+				cause: error,
+			});
+		}
 	}
 
 	private async draw(stream: MediaStream, options: CaptureFrameOptions): Promise<DrawnFrame> {
@@ -240,7 +274,7 @@ export class CanvasFrameEncoder implements FrameEncoder {
 			height: video.videoHeight,
 		};
 		if (source.width <= 0 || source.height <= 0) {
-			throw new CameraError("Camera frame dimensions are not available", {
+			throw new WebcamError("Webcam frame dimensions are not available", {
 				code: "CAPTURE_FAILED",
 				recoverable: true,
 			});
@@ -263,7 +297,7 @@ export class CanvasFrameEncoder implements FrameEncoder {
 	private async ensureVideo(stream: MediaStream): Promise<HTMLVideoElement> {
 		const documentValue = globalThis.document;
 		if (!documentValue?.createElement) {
-			throw new CameraError("Canvas capture requires a browser document", {
+			throw new WebcamError("Canvas capture requires a browser document", {
 				code: "UNSUPPORTED_RUNTIME",
 				recoverable: false,
 			});
@@ -302,7 +336,7 @@ export class CanvasFrameEncoder implements FrameEncoder {
 	private ensureCanvas(): { canvas: HTMLCanvasElement; context: CanvasRenderingContext2D } {
 		const documentValue = globalThis.document;
 		if (!documentValue?.createElement) {
-			throw new CameraError("Canvas capture requires a browser document", {
+			throw new WebcamError("Canvas capture requires a browser document", {
 				code: "UNSUPPORTED_RUNTIME",
 				recoverable: false,
 			});
@@ -316,7 +350,7 @@ export class CanvasFrameEncoder implements FrameEncoder {
 				willReadFrequently: true,
 			}));
 		if (!context) {
-			throw new CameraError("Unable to create a 2D capture context", {
+			throw new WebcamError("Unable to create a 2D capture context", {
 				code: "CAPTURE_FAILED",
 				recoverable: false,
 			});
@@ -326,7 +360,7 @@ export class CanvasFrameEncoder implements FrameEncoder {
 
 	private assertUsable(): void {
 		if (!this.disposed) return;
-		throw new CameraError("Capture encoder has been disposed", {
+		throw new WebcamError("Capture encoder has been disposed", {
 			code: "DISPOSED",
 			recoverable: false,
 		});

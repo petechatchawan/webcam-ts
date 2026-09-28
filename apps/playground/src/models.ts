@@ -1,5 +1,5 @@
-import type { CameraErrorSnapshot, CameraEvent, CameraState, CameraStatus } from "webcam-ts";
-import type { CameraDevice, CameraPermissionMap } from "webcam-ts/devices";
+import type { WebcamErrorSnapshot, WebcamEvent, WebcamState, WebcamStatus } from "webcam-ts";
+import type { PermissionMap } from "webcam-ts/devices";
 
 export type FacingSelection = "" | "user" | "environment";
 export type ResolutionOrientation = "portrait" | "landscape" | "square";
@@ -21,7 +21,7 @@ export interface RequestedResolutionSnapshot {
 	readonly height: number;
 }
 
-export interface CameraSelection {
+export interface WebcamSelection {
 	readonly deviceId: string;
 	readonly facingMode: FacingSelection;
 	readonly resolutionId: string;
@@ -50,7 +50,7 @@ export interface PlaygroundError {
 export interface PlaygroundEventEntry {
 	readonly id: number;
 	readonly timestamp: number;
-	readonly type: CameraEvent["type"];
+	readonly type: WebcamEvent["type"];
 	readonly summary: string;
 }
 
@@ -78,9 +78,9 @@ export interface ControlSnapshot {
 }
 
 export interface PlaygroundSnapshot {
-	readonly camera: CameraState;
-	readonly permissions: CameraPermissionMap;
-	readonly devices: readonly CameraDevice[];
+	readonly webcam: WebcamState;
+	readonly permissions: PermissionMap;
+	readonly devices: readonly MediaDeviceInfo[];
 	readonly availability: CommandAvailability;
 	readonly controls: ControlSnapshot;
 	readonly requestedResolution: RequestedResolutionSnapshot | null;
@@ -94,8 +94,8 @@ export interface UrlPort {
 	revokeObjectURL(url: string): void;
 }
 
-export type CameraFailureLike =
-	| CameraErrorSnapshot
+export type WebcamFailureLike =
+	| WebcamErrorSnapshot
 	| Readonly<{
 			message?: unknown;
 			code?: unknown;
@@ -104,4 +104,4 @@ export type CameraFailureLike =
 			context?: unknown;
 	  }>;
 
-export type { CameraEvent, CameraState, CameraStatus };
+export type { WebcamEvent, WebcamState, WebcamStatus };

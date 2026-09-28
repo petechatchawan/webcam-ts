@@ -4,7 +4,7 @@ import * as logic from "../dist-test/playground-logic.js";
 
 const {
   appendEventLog,
-  buildCameraRequest,
+  buildWebcamRequest,
   deriveCommandAvailability,
   projectResolutionSelectionError,
   replaceObjectUrl,
@@ -31,7 +31,7 @@ test("active status enables replacement start and stop", () => {
 });
 
 test("request uses exact device and exact resolution by default", () => {
-  assert.deepEqual(buildCameraRequest(exactSelection), {
+  assert.deepEqual(buildWebcamRequest(exactSelection), {
     deviceId: "camera-2",
     resolution: {
       width: { exact: 1920 },
@@ -43,7 +43,7 @@ test("request uses exact device and exact resolution by default", () => {
 
 test("request allows an explicit ideal resolution fallback mode", () => {
   assert.deepEqual(
-    buildCameraRequest({ ...exactSelection, resolutionMode: "ideal" }),
+    buildWebcamRequest({ ...exactSelection, resolutionMode: "ideal" }),
     {
       deviceId: "camera-2",
       resolution: {
@@ -116,10 +116,10 @@ test("mobile resolution catalog exposes all approved portrait landscape and squa
 });
 
 test("camera permission gate accepts only granted", () => {
-  assert.equal(typeof logic.hasCameraPermission, "function");
-  assert.equal(logic.hasCameraPermission("granted"), true);
+  assert.equal(typeof logic.hasWebcamPermission, "function");
+  assert.equal(logic.hasWebcamPermission("granted"), true);
   for (const state of ["unknown", "prompt", "unsupported", "denied"]) {
-    assert.equal(logic.hasCameraPermission(state), false);
+    assert.equal(logic.hasWebcamPermission(state), false);
   }
 });
 

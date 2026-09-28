@@ -1,13 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { CameraError, buildMediaStreamConstraints } from "../dist/index.js";
-import { assertCommandAllowed } from "../dist/testing/index.js";
+import { WebcamError, buildMediaStreamConstraints } from "webcam-ts";
+import { assertCommandAllowed } from "webcam-ts/testing";
 
 test("start is rejected while starting", () => {
   assert.throws(
     () => assertCommandAllowed("starting", "start"),
-    (error) => error instanceof CameraError && error.code === "INVALID_STATE",
+    (error) => error instanceof WebcamError && error.code === "INVALID_STATE",
   );
 });
 
@@ -22,7 +22,7 @@ test("stop preempts a pending start", () => {
 test("camera request rejects non-positive exact width", () => {
   assert.throws(
     () => buildMediaStreamConstraints({ resolution: { width: { exact: 0 } } }),
-    (error) => error instanceof CameraError && error.code === "INVALID_REQUEST",
+    (error) => error instanceof WebcamError && error.code === "INVALID_REQUEST",
   );
 });
 

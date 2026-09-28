@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CameraController } from "../dist-test/camera-controller.js";
+import { WebcamController } from "../dist-test/webcam-controller.js";
 
 const idleState = Object.freeze({
   status: "idle",
@@ -28,14 +28,14 @@ function activeState(deviceId = "camera-1") {
 
 function createFixture({ startErrors = [] } = {}) {
   let state = idleState;
-  const cameraListeners = new Set();
-  const disposeCalls = { preview: 0, capture: 0, devices: 0, camera: 0 };
+  const webcamListeners = new Set();
+  const disposeCalls = { preview: 0, capture: 0, devices: 0, webcam: 0 };
   const revokedUrls = [];
   const emitState = () => {
-    for (const listener of cameraListeners) listener({ type: "state-changed", state });
+    for (const listener of webcamListeners) listener({ type: "state-changed", state });
   };
 
-  const camera = {
+  const webcam = {
     async start() {
       const error = startErrors.shift();
       if (error) throw error;
@@ -47,20 +47,20 @@ function createFixture({ startErrors = [] } = {}) {
       emitState();
     },
     async dispose() {
-      disposeCalls.camera += 1;
+      disposeCalls.webcam += 1;
       state = Object.freeze({ ...idleState, status: "disposed" });
     },
     getState() {
       return state;
     },
     subscribe(listener) {
-      cameraListeners.add(listener);
-      return () => cameraListeners.delete(listener);
+      webcamListeners.add(listener);
+      return () => webcamListeners.delete(listener);
     },
   };
 
-  const controller = new CameraController({
-    camera,
+  const controller = new WebcamController({
+    webcam,
     preview: {
       setMirror() {},
       dispose() {
@@ -82,10 +82,10 @@ function createFixture({ startErrors = [] } = {}) {
       },
     },
     devices: {
-      async list() {
+      async listDevices() {
         return Object.freeze([]);
       },
-      subscribe() {
+      subscribeToDeviceListChanges() {
         return () => undefined;
       },
       dispose() {
@@ -150,7 +150,7 @@ test("start is blocked until camera permission is granted", async () => {
     (error) => error?.code === "PERMISSION_REQUIRED",
   );
 
-  assert.equal(fixture.controller.getSnapshot().camera.status, "idle");
+  assert.equal(fixture.controller.getSnapshot().webcam.status, "idle");
   assert.equal(fixture.controller.getSnapshot().error.code, "PERMISSION_REQUIRED");
   assert.equal(fixture.controller.getSnapshot().requestedResolution, null);
 });
@@ -168,8 +168,8 @@ test("successful start commits requested resolution next to actual track setting
     width: 1280,
     height: 720,
   });
-  assert.equal(fixture.controller.getSnapshot().camera.settings.width, 1280);
-  assert.equal(fixture.controller.getSnapshot().camera.settings.height, 720);
+  assert.equal(fixture.controller.getSnapshot().webcam.settings.width, 1280);
+  assert.equal(fixture.controller.getSnapshot().webcam.settings.height, 720);
 });
 
 test("exact start failure reports the requested resolution and failed constraint", async () => {
@@ -194,7 +194,7 @@ test("exact start failure reports the requested resolution and failed constraint
     height: 1920,
   }));
 
-  assert.equal(fixture.controller.getSnapshot().camera.status, "idle");
+  assert.equal(fixture.controller.getSnapshot().webcam.status, "idle");
   assert.equal(fixture.controller.getSnapshot().error.code, "CONSTRAINT_UNSATISFIED");
   assert.equal(
     fixture.controller.getSnapshot().error.message,
@@ -204,7 +204,7 @@ test("exact start failure reports the requested resolution and failed constraint
 });
 
 test("failed replacement start preserves active state and reports typed error", async () => {
-  const error = Object.assign(new Error("Camera is busy"), {
+  const error = Object.assign(new Error("Webcam is busy"), {
     code: "DEVICE_BUSY",
     operation: "start",
     recoverable: true,
@@ -224,7 +224,7 @@ test("failed replacement start preserves active state and reports typed error", 
     height: 1280,
   }));
 
-  assert.equal(fixture.controller.getSnapshot().camera.status, "active");
+  assert.equal(fixture.controller.getSnapshot().webcam.status, "active");
   assert.equal(fixture.controller.getSnapshot().error.code, "DEVICE_BUSY");
   assert.equal(fixture.controller.getSnapshot().error.operation, "start");
   assert.equal(fixture.controller.getSnapshot().requestedResolution.id, "LANDSCAPE-720P");
@@ -245,6 +245,6 @@ test("capture replacement and dispose revoke object URLs exactly once", async ()
     preview: 1,
     capture: 1,
     devices: 1,
-    camera: 1,
+    webcam: 1,
   });
 });

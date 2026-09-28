@@ -7,7 +7,7 @@ TypeScript 5 (strict) · Node >=18 · pnpm 8 workspaces + turbo · Vite playgrou
 ## โครงสร้าง
 
 ```
-packages/webcam-ts/src/camera.ts        แกน lifecycle + ownership (อ่านไฟล์นี้ก่อนเสมอ)
+packages/webcam-ts/src/webcam.ts        แกน lifecycle + ownership (อ่านไฟล์นี้ก่อนเสมอ)
 packages/webcam-ts/src/domain/          types + ตรรกะ pure (request, error, state, event, lifecycle)
 packages/webcam-ts/src/platform/        adapter ของ browser + port (seam จริง: browser + fakes)
 packages/webcam-ts/src/{capture,controls,devices,preview}/  บริการแยกตาม entrypoint
@@ -33,7 +33,7 @@ pnpm --dir apps/playground dev            # playground
 - ห้าม `any`; cast ที่เปลี่ยน semantics หรือ `as unknown as` ต้องมี comment (DOM-lib narrowing cast ทั่วไปไม่ต้อง)
 - class member ทุกตัว (รวม field) ต้องมี visibility modifier ชัดเจน (`public`/`private` ห้าม implicit)
 - public API ทุกตัวต้องมี test ที่ import จาก entrypoint (`webcam-ts`, `webcam-ts/testing`, …) — ห้าม import ลึกเข้า `dist/`
-- error ทุกตัวที่โยนออก public ต้องเป็น `CameraError`
-- session-owned stream มีแค่ `Camera` ที่ stop ได้; service ใดเปิด stream เองต้อง stop เองใน `finally` (ห้ามเก็บ active stream ไว้)
+- error ทุกตัวที่โยนออก public ต้องเป็น `WebcamError`
+- session-owned stream มีแค่ `Webcam` ที่ stop ได้; service ใดเปิด stream เองต้อง stop เองใน `finally` (ห้ามเก็บ active stream ไว้)
 - concept และชื่อ ตาม `CONTEXT.md` — เพิ่ม/แก้คำต้องอัปเดต CONTEXT.md ใน commit เดียวกัน
 - 1 commit = 1 การเปลี่ยนแปลงที่ verify ได้; commit message conventional

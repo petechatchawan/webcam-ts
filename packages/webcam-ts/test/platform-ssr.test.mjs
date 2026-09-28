@@ -1,15 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { CameraError } from "../dist/index.js";
+import { WebcamError } from "webcam-ts";
 import {
   BrowserMediaDevicesAdapter,
   normalizeBrowserError,
-} from "../dist/testing/index.js";
+} from "webcam-ts/testing";
 
 test("root package imports without browser globals", async () => {
-  const module = await import("../dist/index.js");
-  assert.equal(typeof module.CameraError, "function");
+  const module = await import("webcam-ts");
+  assert.equal(typeof module.WebcamError, "function");
 });
 
 test("browser adapter reports unsupported runtime lazily", async () => {
@@ -19,7 +19,7 @@ test("browser adapter reports unsupported runtime lazily", async () => {
     const adapter = new BrowserMediaDevicesAdapter();
     await assert.rejects(
       () => adapter.open({ video: true }),
-      (error) => error instanceof CameraError && error.code === "UNSUPPORTED_RUNTIME",
+      (error) => error instanceof WebcamError && error.code === "UNSUPPORTED_RUNTIME",
     );
   } finally {
     Object.defineProperty(globalThis, "navigator", { configurable: true, value: originalNavigator });

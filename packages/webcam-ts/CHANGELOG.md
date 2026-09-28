@@ -1,16 +1,33 @@
 # Changelog
 
+## 5.0.0 — 2026-09-28
+
+### Breaking
+
+- Renamed `WebcamPreview` and `WebcamPreviewOptions` to `Preview` and
+  `PreviewOptions` in `webcam-ts/preview`.
+- Renamed `WebcamCapture` and `WebcamCaptureOptions` to `Capture` and
+  `CaptureOptions` in `webcam-ts/capture`.
+- Renamed `WebcamControls` and `WebcamControlUpdate` to `Controls` and
+  `ControlUpdate` in `webcam-ts/controls`.
+- Renamed the `webcam-ts/testing` export `WebcamEventHub` to `EventHub`.
+- Removed the old `Webcam`-prefixed subpath exports without compatibility
+  aliases; root `Webcam` and its domain types retain their names.
+
 ## 4.0.0 — 2026-09-25
 
 ### Breaking
 
-- Replaced `Camera.switch()` with `Camera.start()` for atomic stream replacement.
+- Renamed the public `Camera` facade and its `Camera*` API types to `Webcam` and `Webcam*`.
+- Replaced `Webcam.switch()` with `Webcam.start()` for atomic stream replacement.
 - Removed the `switching` status, `switched` stream reason, `switch` operation, and `OPERATION_SUPERSEDED` error.
 - Removed the `OperationToken`/`OperationController` testing exports; cancellation now uses one serial pending start.
 - A second `start()` while starting is rejected with `INVALID_STATE` instead of superseding.
-- Renamed `VideoPreview` to `CameraPreview` (and `VideoPreviewOptions` to `CameraPreviewOptions`).
-- Merged capture into one module: `FrameCaptureBackend` is now `FrameEncoder`, `CanvasCaptureBackend` is now `CanvasFrameEncoder`, and `CameraCaptureOptions.backend` is now `encoder`.
-- Renamed `CameraDeviceManager.probe()` to `snapshotCapabilities()` (and `CameraCapabilityProbeOptions` to `SnapshotCapabilitiesOptions`).
+- Renamed `VideoPreview` to `WebcamPreview` (and `VideoPreviewOptions` to `WebcamPreviewOptions`).
+- Merged capture into one module: `FrameCaptureBackend` is now `FrameEncoder`, `CanvasCaptureBackend` is now `CanvasFrameEncoder`, and `WebcamCaptureOptions.backend` is now `encoder`.
+- Renamed `CameraDeviceManager` to `DeviceManager`, `probe()` to `snapshotCapabilities()`, `list()` to `listDevices()`, and `subscribe()` to `subscribeToDeviceListChanges()`; device lists now use `MediaDeviceInfo`.
+- Renamed the capability result and options to `DeviceCapabilityInfo` and `DeviceCapabilityInfoOptions`; `snapshotCapabilities()` remains the capability lookup method.
+- Renamed `CameraPermissionService` and its camera-prefixed types to `PermissionService`, `PermissionServiceOptions`, `PermissionMap`, `PermissionRequest`, and `MediaPermissionState`.
 
 ## 4.0.0-alpha.1 — 2026-08-06
 

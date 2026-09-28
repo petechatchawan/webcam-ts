@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { Camera, CameraError } from "../dist/index.js";
+import { Webcam, WebcamError } from "webcam-ts";
 
 function deferred() {
   let resolve;
@@ -10,7 +10,7 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
-function createTrack({ deviceId = "camera", label = "Camera", readyState = "live" } = {}) {
+function createTrack({ deviceId = "camera", label = "Webcam", readyState = "live" } = {}) {
   return {
     stopCalls: 0,
     readyState,
@@ -39,7 +39,7 @@ function createPort(open) {
 test("start commits one active stream and immutable state", async () => {
   const track = createTrack({ deviceId: "camera-a" });
   const stream = createStream(track);
-  const camera = new Camera({ mediaDevices: createPort(async () => stream) });
+  const camera = new Webcam({ mediaDevices: createPort(async () => stream) });
 
   await camera.start({ deviceId: "camera-a" });
 
@@ -51,11 +51,48 @@ test("start commits one active stream and immutable state", async () => {
   assert.equal(track.stopCalls, 0);
 });
 
+test("error context snapshots clone and freeze nested values", () => {
+  const fields = ["deviceId", "facingMode"];
+  const error = new WebcamError("conflicting request", {
+    code: "INVALID_REQUEST",
+    context: { fields },
+  });
+  const snapshot = error.toSnapshot();
+
+  assert.deepEqual(snapshot.context.fields, fields);
+  assert.equal(Object.isFrozen(snapshot.context.fields), true);
+  assert.notEqual(snapshot.context.fields, fields);
+  assert.equal(Object.isFrozen(fields), false);
+});
+
+test("error context snapshots preserve non-record values", () => {
+  const capturedAt = new Date(2026, 8, 28);
+  const error = new WebcamError("capture failed", {
+    code: "CAPTURE_FAILED",
+    context: { capturedAt },
+  });
+
+  assert.equal(error.toSnapshot().context.capturedAt, capturedAt);
+});
+
+test("state error snapshots deeply freeze nested context", async () => {
+  const camera = new Webcam({ mediaDevices: createPort(async () => createStream()) });
+
+  await assert.rejects(() => camera.start({
+    deviceId: "camera-a",
+    facingMode: { exact: "user" },
+  }));
+
+  const fields = camera.getState().lastError.context.fields;
+  assert.deepEqual(fields, ["deviceId", "facingMode"]);
+  assert.equal(Object.isFrozen(fields), true);
+});
+
 test("stop during start prevents stale commit and stops the resolved candidate", async () => {
   const pending = deferred();
   const track = createTrack();
   const stream = createStream(track);
-  const camera = new Camera({ mediaDevices: createPort(() => pending.promise) });
+  const camera = new Webcam({ mediaDevices: createPort(() => pending.promise) });
 
   const startPromise = camera.start();
   await camera.stop();
@@ -63,7 +100,7 @@ test("stop during start prevents stale commit and stops the resolved candidate",
 
   await assert.rejects(
     startPromise,
-    (error) => error instanceof CameraError && error.code === "OPERATION_ABORTED",
+    (error) => error instanceof WebcamError && error.code === "OPERATION_ABORTED",
   );
   assert.equal(track.stopCalls, 1);
   assert.equal(camera.getActiveStream(), null);
@@ -76,7 +113,7 @@ test("aborting a start mid-flight recovers to idle and allows the next start", a
   const activeTrack = createTrack({ deviceId: "camera-a" });
   const activeStream = createStream(activeTrack);
   let calls = 0;
-  const camera = new Camera({
+  const camera = new Webcam({
     mediaDevices: createPort(() => {
       calls += 1;
       return calls === 1 ? pending.promise : Promise.resolve(activeStream);
@@ -99,7 +136,7 @@ test("failed start while active preserves the previous stream", async () => {
   const firstTrack = createTrack({ deviceId: "camera-a" });
   const firstStream = createStream(firstTrack);
   let calls = 0;
-  const camera = new Camera({
+  const camera = new Webcam({
     mediaDevices: createPort(async () => {
       calls += 1;
       if (calls === 1) return firstStream;
@@ -125,7 +162,7 @@ test("aborting a replacement start mid-flight keeps the previous stream active",
   const abortController = new AbortController();
   const candidateTrack = createTrack({ deviceId: "camera-b" });
   let calls = 0;
-  const camera = new Camera({
+  const camera = new Webcam({
     mediaDevices: createPort(() => (++calls === 1 ? Promise.resolve(activeStream) : pending.promise)),
   });
 
@@ -145,7 +182,7 @@ test("a second start while starting is rejected instead of superseding", async (
   const pending = deferred();
   const track = createTrack({ deviceId: "camera-a" });
   const stream = createStream(track);
-  const camera = new Camera({ mediaDevices: createPort(() => pending.promise) });
+  const camera = new Webcam({ mediaDevices: createPort(() => pending.promise) });
 
   const firstStart = camera.start({ deviceId: "camera-a" });
   await assert.rejects(
@@ -167,7 +204,7 @@ test("dispose preempts a replacement start and permanently terminates the camera
   const candidateTrack = createTrack();
   const candidateStream = createStream(candidateTrack);
   let calls = 0;
-  const camera = new Camera({
+  const camera = new Webcam({
     mediaDevices: createPort(() => (++calls === 1 ? Promise.resolve(activeStream) : pending.promise)),
   });
 
@@ -184,16 +221,43 @@ test("dispose preempts a replacement start and permanently terminates the camera
 });
 
 test("consumer listener failures do not reject lifecycle operations", async () => {
-  const camera = new Camera({ mediaDevices: createPort(async () => createStream()) });
+  const camera = new Webcam({ mediaDevices: createPort(async () => createStream()) });
   camera.subscribe(() => { throw new Error("consumer failure"); });
   await assert.doesNotReject(() => camera.start());
   assert.equal(camera.getState().status, "active");
 });
 
+test("candidate inspection failure preserves the active stream and releases the candidate", async () => {
+  const previousTrack = createTrack({ deviceId: "camera-a" });
+  const previousStream = createStream(previousTrack);
+  const candidateTrack = createTrack({ deviceId: "camera-b" });
+  candidateTrack.getCapabilities = () => { throw new Error("capability read failed"); };
+  const candidateStream = createStream(candidateTrack);
+  let opens = 0;
+  const camera = new Webcam({
+    mediaDevices: createPort(async () => {
+      opens += 1;
+      return opens === 1 ? previousStream : candidateStream;
+    }),
+  });
+
+  await camera.start({ deviceId: "camera-a" });
+  await assert.rejects(
+    () => camera.start({ deviceId: "camera-b" }),
+    (error) => error instanceof WebcamError,
+  );
+
+  assert.equal(camera.getActiveStream(), previousStream);
+  assert.equal(camera.getState().status, "active");
+  assert.equal(camera.getState().deviceId, "camera-a");
+  assert.equal(previousTrack.stopCalls, 0);
+  assert.equal(candidateTrack.stopCalls, 1);
+});
+
 test("replacement start errors are attributed to the start operation", async () => {
   const stream = createStream();
   let calls = 0;
-  const camera = new Camera({
+  const camera = new Webcam({
     mediaDevices: {
       async open() {
         calls += 1;
@@ -227,7 +291,7 @@ test("default browser adapter attributes replacement failures to start", async (
         },
       },
     });
-    const camera = new Camera();
+    const camera = new Webcam();
     await camera.start();
     await assert.rejects(
       () => camera.start({ deviceId: "camera-b" }),
@@ -242,7 +306,7 @@ test("state snapshots do not freeze capability objects owned by the track", asyn
   const zoomRange = { min: 1, max: 4 };
   const track = createTrack();
   track.getCapabilities = () => ({ zoom: zoomRange });
-  const camera = new Camera({
+  const camera = new Webcam({
     mediaDevices: { open: async () => createStream(track), enumerateDevices: async () => [] },
   });
 
@@ -254,7 +318,7 @@ test("state snapshots do not freeze capability objects owned by the track", asyn
 
 test("an empty track label is preserved instead of coerced to null", async () => {
   const track = createTrack({ label: "" });
-  const camera = new Camera({ mediaDevices: createPort(async () => createStream(track)) });
+  const camera = new Webcam({ mediaDevices: createPort(async () => createStream(track)) });
 
   await camera.start();
 
@@ -263,7 +327,7 @@ test("an empty track label is preserved instead of coerced to null", async () =>
 
 test("public state snapshots never expose active without a session or idle with one", async () => {
   const stream = createStream(createTrack({ deviceId: "camera-a" }));
-  const camera = new Camera({
+  const camera = new Webcam({
     mediaDevices: {
       async open() { return stream; },
       async enumerateDevices() { return []; },
@@ -302,7 +366,7 @@ test("an unexpectedly ended active track releases the session and reports TRACK_
     for (const listener of [...endedListeners]) listener();
   };
   const stream = createStream(track);
-  const camera = new Camera({
+  const camera = new Webcam({
     mediaDevices: {
       async open() { return stream; },
       async enumerateDevices() { return []; },
@@ -342,7 +406,7 @@ test("track ended during replacement still commits the pending start", async () 
   const candidateTrack = createTrack({ deviceId: "camera-b" });
   const candidateStream = createStream(candidateTrack);
   let calls = 0;
-  const camera = new Camera({
+  const camera = new Webcam({
     mediaDevices: createPort(() => (++calls === 1 ? Promise.resolve(activeStream) : pending.promise)),
   });
   const events = [];

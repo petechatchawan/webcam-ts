@@ -2,12 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  CameraEventHub,
+  EventHub,
   stopStream,
-} from "../dist/testing/index.js";
+} from "webcam-ts/testing";
 
 test("listener failures do not prevent later listeners", () => {
-  const hub = new CameraEventHub();
+  const hub = new EventHub();
   const received = [];
   hub.subscribe(() => {
     throw new Error("consumer failure");
@@ -21,7 +21,7 @@ test("listener failures do not prevent later listeners", () => {
 });
 
 test("unsubscribe is idempotent", () => {
-  const hub = new CameraEventHub();
+  const hub = new EventHub();
   let calls = 0;
   const unsubscribe = hub.subscribe(() => calls++);
   unsubscribe();

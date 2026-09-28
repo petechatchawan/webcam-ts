@@ -9,7 +9,8 @@ async function invokeMediaDevices<T>(
 	try {
 		return await call(resolveMediaDevices(requiredMethod));
 	} catch (error) {
-		throw normalizeBrowserError(error);
+		const fallbackCode = requiredMethod === "getUserMedia" ? "STREAM_OPEN_FAILED" : "UNKNOWN";
+		throw normalizeBrowserError(error, undefined, fallbackCode);
 	}
 }
 

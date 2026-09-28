@@ -1,31 +1,32 @@
 import {
-	Camera,
-	type CameraEvent,
-	type CameraEventListener,
-	type CameraRequest,
-	type CameraState,
+	Webcam,
+	type WebcamEvent,
+	type WebcamEventListener,
+	type WebcamRequest,
+	type WebcamState,
 } from "webcam-ts";
-import { CameraCapture, type CaptureBlobOptions, type CapturedBlob } from "webcam-ts/capture";
-import { CameraControls, type CameraControlUpdate } from "webcam-ts/controls";
+import { Capture, type CaptureBlobOptions, type CapturedBlob } from "webcam-ts/capture";
+import { Controls, type ControlUpdate } from "webcam-ts/controls";
 import {
-	CameraDeviceManager,
-	CameraPermissionService,
-	type CameraDevice,
-	type CameraPermissionMap,
+	DeviceManager,
+	PermissionService,
+	type DeviceListChangeListener,
+	type PermissionMap,
+	type PermissionRequest,
 } from "webcam-ts/devices";
-import { CameraPreview } from "webcam-ts/preview";
+import { Preview } from "webcam-ts/preview";
 import {
 	appendEventLog,
-	buildCameraRequest,
+	buildWebcamRequest,
 	deriveCommandAvailability,
-	hasCameraPermission,
-	projectCameraError,
+	hasWebcamPermission,
+	projectWebcamError,
 	projectRequestedResolution,
 	projectResolutionSelectionError,
 	replaceObjectUrl,
 } from "./playground-logic.js";
 import type {
-	CameraSelection,
+	WebcamSelection,
 	CaptureSnapshot,
 	ControlSnapshot,
 	PlaygroundEventEntry,
@@ -45,12 +46,12 @@ interface ExtendedSettings extends MediaTrackSettings {
 	readonly focusMode?: string;
 }
 
-export interface CameraPort {
-	start(request?: CameraRequest): Promise<void>;
+export interface WebcamPort {
+	start(request?: WebcamRequest): Promise<void>;
 	stop(): Promise<void>;
 	dispose(): Promise<void>;
-	getState(): CameraState;
-	subscribe(listener: CameraEventListener): () => void;
+	getState(): WebcamState;
+	subscribe(listener: WebcamEventListener): () => void;
 }
 
 export interface PreviewPort {
@@ -64,23 +65,23 @@ export interface CapturePort {
 }
 
 export interface DeviceManagerPort {
-	list(): Promise<readonly CameraDevice[]>;
-	subscribe(listener: (devices: readonly CameraDevice[]) => void): () => void;
+	listDevices(): Promise<readonly MediaDeviceInfo[]>;
+	subscribeToDeviceListChanges(listener: DeviceListChangeListener): () => void;
 	dispose(): void;
 }
 
 export interface PermissionPort {
-	query(): Promise<CameraPermissionMap>;
-	request(request?: Readonly<{ video?: boolean; audio?: boolean }>): Promise<CameraPermissionMap>;
+	query(): Promise<PermissionMap>;
+	request(request?: PermissionRequest): Promise<PermissionMap>;
 }
 
 export interface ControlsPort {
 	getCapabilities(): Readonly<MediaTrackCapabilities>;
-	set(update: CameraControlUpdate): Promise<Readonly<MediaTrackSettings>>;
+	set(update: ControlUpdate): Promise<Readonly<MediaTrackSettings>>;
 }
 
-export interface CameraControllerDependencies {
-	readonly camera: CameraPort;
+export interface WebcamControllerDependencies {
+	readonly webcam: WebcamPort;
 	readonly preview: PreviewPort;
 	readonly capture: CapturePort;
 	readonly devices: DeviceManagerPort;
@@ -92,14 +93,14 @@ export interface CameraControllerDependencies {
 
 export type PlaygroundListener = (snapshot: PlaygroundSnapshot) => void;
 
-const unknownPermissions: CameraPermissionMap = Object.freeze({
+const unknownPermissions: PermissionMap = Object.freeze({
 	camera: "unknown",
 	microphone: "unknown",
 });
 
 const PERMISSION_GRANT_KEY = "webcam-ts.permission-granted";
 
-function readCameraGrant(): boolean {
+function readWebcamGrant(): boolean {
 	try {
 		return globalThis.localStorage?.getItem(PERMISSION_GRANT_KEY) === "1";
 	} catch {
@@ -107,7 +108,7 @@ function readCameraGrant(): boolean {
 	}
 }
 
-function writeCameraGrant(): void {
+function writeWebcamGrant(): void {
 	try {
 		globalThis.localStorage?.setItem(PERMISSION_GRANT_KEY, "1");
 	} catch {
@@ -115,8 +116,8 @@ function writeCameraGrant(): void {
 	}
 }
 
-function rememberGrantedCamera(query: CameraPermissionMap): CameraPermissionMap {
-	return readCameraGrant() && query.camera !== "denied"
+function rememberGrantedWebcam(query: PermissionMap): PermissionMap {
+	return readWebcamGrant() && query.camera !== "denied"
 		? Object.freeze({ ...query, camera: "granted" })
 		: query;
 }
@@ -128,8 +129,8 @@ const emptyControls: ControlSnapshot = Object.freeze({
 	settings: Object.freeze({}),
 });
 
-export class CameraController {
-	private readonly camera: CameraPort;
+export class WebcamController {
+	private readonly webcam: WebcamPort;
 	private readonly preview: PreviewPort;
 	private readonly captureService: CapturePort;
 	private readonly deviceManager: DeviceManagerPort;
@@ -138,15 +139,15 @@ export class CameraController {
 	private readonly urlPort: UrlPort;
 	private readonly now: () => number;
 	private readonly listeners = new Set<PlaygroundListener>();
-	private cameraUnsubscribe: (() => void) | null = null;
+	private webcamUnsubscribe: (() => void) | null = null;
 	private deviceUnsubscribe: (() => void) | null = null;
 	private eventId = 0;
 	private captureUrl: string | null = null;
 	private disposed = false;
 	private snapshot: PlaygroundSnapshot;
 
-	constructor(dependencies: CameraControllerDependencies) {
-		this.camera = dependencies.camera;
+	public constructor(dependencies: WebcamControllerDependencies) {
+		this.webcam = dependencies.webcam;
 		this.preview = dependencies.preview;
 		this.captureService = dependencies.capture;
 		this.deviceManager = dependencies.devices;
@@ -155,14 +156,14 @@ export class CameraController {
 		this.urlPort = dependencies.urlPort ?? URL;
 		this.now = dependencies.now ?? Date.now;
 
-		const cameraState = this.camera.getState();
+		const webcamState = this.webcam.getState();
 		this.snapshot = Object.freeze({
-			camera: cameraState,
-			permissions: readCameraGrant()
+			webcam: webcamState,
+			permissions: readWebcamGrant()
 				? Object.freeze({ camera: "granted", microphone: "unknown" })
 				: unknownPermissions,
 			devices: Object.freeze([]),
-			availability: deriveCommandAvailability(cameraState.status),
+			availability: deriveCommandAvailability(webcamState.status),
 			controls: emptyControls,
 			requestedResolution: null,
 			capture: null,
@@ -173,22 +174,22 @@ export class CameraController {
 
 	public async initialize(): Promise<void> {
 		this.assertUsable();
-		if (!this.cameraUnsubscribe) {
-			this.cameraUnsubscribe = this.camera.subscribe((event) => this.onCameraEvent(event));
+		if (!this.webcamUnsubscribe) {
+			this.webcamUnsubscribe = this.webcam.subscribe((event) => this.onWebcamEvent(event));
 		}
 		if (!this.deviceUnsubscribe) {
-			this.deviceUnsubscribe = this.deviceManager.subscribe((devices) => {
+			this.deviceUnsubscribe = this.deviceManager.subscribeToDeviceListChanges((devices) => {
 				this.patch({ devices: Object.freeze([...devices]) });
 			});
 		}
 
 		const [permissions, devices] = await Promise.allSettled([
 			this.permissionService.query(),
-			this.deviceManager.list(),
+			this.deviceManager.listDevices(),
 		]);
 
 		if (permissions.status === "fulfilled") {
-			this.patch({ permissions: rememberGrantedCamera(permissions.value) });
+			this.patch({ permissions: rememberGrantedWebcam(permissions.value) });
 		} else {
 			this.recordFailure(permissions.reason);
 		}
@@ -216,25 +217,25 @@ export class CameraController {
 		};
 	}
 
-	public async start(selection: CameraSelection): Promise<void> {
-		this.assertCameraPermission("start");
+	public async start(selection: WebcamSelection): Promise<void> {
+		this.assertWebcamPermission("start");
 		this.preview.setMirror(selection.mirror);
 		await this.runResolutionOperation(selection, () =>
-			this.camera.start(buildCameraRequest(selection)),
+			this.webcam.start(buildWebcamRequest(selection)),
 		);
 		this.patch({ requestedResolution: projectRequestedResolution(selection) });
 		await this.refreshAfterStreamChange();
 	}
 
 	public async stop(): Promise<void> {
-		await this.run(() => this.camera.stop());
+		await this.run(() => this.webcam.stop());
 		this.patch({ controls: emptyControls, requestedResolution: null });
 	}
 
 	public async requestPermissions(audio: boolean): Promise<void> {
 		await this.run(async () => {
 			const permissions = await this.permissionService.request({ video: true, audio });
-			if (permissions.camera === "granted") writeCameraGrant();
+			if (permissions.camera === "granted") writeWebcamGrant();
 			this.patch({ permissions });
 			await this.refreshDevices();
 		});
@@ -242,7 +243,7 @@ export class CameraController {
 
 	public async refreshDevices(): Promise<void> {
 		await this.run(async () => {
-			const devices = await this.deviceManager.list();
+			const devices = await this.deviceManager.listDevices();
 			this.patch({ devices: Object.freeze([...devices]) });
 		});
 	}
@@ -263,7 +264,7 @@ export class CameraController {
 		return capture;
 	}
 
-	public async applyControls(update: CameraControlUpdate): Promise<void> {
+	public async applyControls(update: ControlUpdate): Promise<void> {
 		await this.run(async () => {
 			const settings = await this.controlsService.set(update);
 			this.patch({ controls: this.buildControls(settings) });
@@ -288,16 +289,16 @@ export class CameraController {
 	public async dispose(): Promise<void> {
 		if (this.disposed) return;
 		this.disposed = true;
-		this.cameraUnsubscribe?.();
+		this.webcamUnsubscribe?.();
 		this.deviceUnsubscribe?.();
-		this.cameraUnsubscribe = null;
+		this.webcamUnsubscribe = null;
 		this.deviceUnsubscribe = null;
 		this.listeners.clear();
 		this.captureUrl = replaceObjectUrl(this.captureUrl, null, this.urlPort);
 		this.preview.dispose();
 		this.captureService.dispose();
 		this.deviceManager.dispose();
-		await this.camera.dispose();
+		await this.webcam.dispose();
 	}
 
 	private async run<T>(operation: () => Promise<T>): Promise<T> {
@@ -312,7 +313,7 @@ export class CameraController {
 	}
 
 	private async runResolutionOperation<T>(
-		selection: CameraSelection,
+		selection: WebcamSelection,
 		operation: () => Promise<T>,
 	): Promise<T> {
 		try {
@@ -323,9 +324,9 @@ export class CameraController {
 		}
 	}
 
-	private assertCameraPermission(operation: "start"): void {
+	private assertWebcamPermission(operation: "start"): void {
 		this.assertUsable();
-		if (hasCameraPermission(this.snapshot.permissions.camera) || readCameraGrant()) return;
+		if (hasWebcamPermission(this.snapshot.permissions.camera) || readWebcamGrant()) return;
 
 		const error = Object.assign(
 			new Error("Allow camera access before starting a camera session."),
@@ -343,7 +344,7 @@ export class CameraController {
 	private async refreshAfterStreamChange(): Promise<void> {
 		this.refreshControls();
 		try {
-			const devices = await this.deviceManager.list();
+			const devices = await this.deviceManager.listDevices();
 			this.patch({ devices: Object.freeze([...devices]) });
 		} catch (error) {
 			this.recordFailure(error);
@@ -351,12 +352,12 @@ export class CameraController {
 	}
 
 	private refreshControls(): void {
-		if (this.camera.getState().status !== "active") {
+		if (this.webcam.getState().status !== "active") {
 			this.patch({ controls: emptyControls });
 			return;
 		}
 		try {
-			this.patch({ controls: this.buildControls(this.camera.getState().settings ?? {}) });
+			this.patch({ controls: this.buildControls(this.webcam.getState().settings ?? {}) });
 		} catch (error) {
 			this.recordFailure(error);
 			this.patch({ controls: emptyControls });
@@ -383,18 +384,18 @@ export class CameraController {
 		});
 	}
 
-	private onCameraEvent(event: CameraEvent): void {
+	private onWebcamEvent(event: WebcamEvent): void {
 		if (event.type === "state-changed") {
 			const stableWithoutStream =
 				event.state.status === "idle" || event.state.status === "disposed";
 			this.patch({
-				camera: event.state,
+				webcam: event.state,
 				availability: deriveCommandAvailability(event.state.status),
 				...(stableWithoutStream ? { requestedResolution: null } : {}),
 			});
 		}
 		if (event.type === "operation-failed" || event.type === "session-ended") {
-			this.patch({ error: projectCameraError(event.error) });
+			this.patch({ error: projectWebcamError(event.error) });
 		}
 		if (event.type === "stream-changed") {
 			this.refreshControls();
@@ -410,7 +411,7 @@ export class CameraController {
 	}
 
 	private recordFailure(error: unknown): void {
-		this.patch({ error: projectCameraError(error) });
+		this.patch({ error: projectWebcamError(error) });
 	}
 
 	private patch(patch: Partial<PlaygroundSnapshot>): void {
@@ -426,31 +427,31 @@ export class CameraController {
 
 	private assertUsable(): void {
 		if (!this.disposed) return;
-		throw new Error("CameraController has been disposed");
+		throw new Error("WebcamController has been disposed");
 	}
 }
 
-export function createBrowserCameraController(videoElement: HTMLVideoElement): CameraController {
-	const camera = new Camera();
-	const preview = new CameraPreview(videoElement, {
+export function createBrowserWebcamController(videoElement: HTMLVideoElement): WebcamController {
+	const webcam = new Webcam();
+	const preview = new Preview(videoElement, {
 		autoplay: true,
 		muted: true,
 		playsInline: true,
 		mirror: true,
 	});
-	preview.bind(camera);
+	preview.bind(webcam);
 
-	return new CameraController({
-		camera,
+	return new WebcamController({
+		webcam,
 		preview,
-		capture: new CameraCapture(camera),
-		devices: new CameraDeviceManager(),
-		permissions: new CameraPermissionService(),
-		controls: new CameraControls(camera),
+		capture: new Capture(webcam),
+		devices: new DeviceManager(),
+		permissions: new PermissionService(),
+		controls: new Controls(webcam),
 	});
 }
 
-function summarizeEvent(event: CameraEvent): string {
+function summarizeEvent(event: WebcamEvent): string {
 	switch (event.type) {
 		case "state-changed":
 			return `State → ${event.state.status}`;

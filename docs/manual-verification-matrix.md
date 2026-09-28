@@ -1,4 +1,4 @@
-# Manual device verification matrix — v4 stable gate
+# Manual device verification matrix — v5 stable gate
 
 Open the playground (deployed Pages URL or `pnpm start:playground:https` for LAN) on each device below and walk every row. Mark ✅/❌ with browser + OS version.
 
@@ -28,5 +28,5 @@ Open the playground (deployed Pages URL or `pnpm start:playground:https` for LAN
 
 ## Sign-off
 
-All 7 rows green → v4 stable gates pass → proceed to `4.0.0` release (`latest` tag).
+All 7 rows green → v5 stable gates pass → proceed to `5.0.0` release (`latest` tag).
 Any ❌ → file the device/browser/error code here before releasing.

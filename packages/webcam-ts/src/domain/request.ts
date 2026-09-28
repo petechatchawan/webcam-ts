@@ -1,4 +1,4 @@
-import { CameraError } from "./camera-error.js";
+import { WebcamError } from "./error.js";
 
 export type ConstraintNumber =
 	| number
@@ -14,7 +14,7 @@ export type ConstraintString = Readonly<{
 	exact?: string;
 }>;
 
-export interface CameraRequest {
+export interface WebcamRequest {
 	readonly deviceId?: string;
 	readonly facingMode?: "user" | "environment" | ConstraintString;
 	readonly resolution?: Readonly<{
@@ -31,7 +31,7 @@ function validateConstraintNumber(value: ConstraintNumber, field: string): void 
 		typeof value === "number" ? [value] : [value.min, value.max, value.ideal, value.exact];
 	for (const candidate of values) {
 		if (candidate !== undefined && (!Number.isFinite(candidate) || candidate <= 0)) {
-			throw new CameraError(`${field} must contain finite values greater than zero`, {
+			throw new WebcamError(`${field} must contain finite values greater than zero`, {
 				code: "INVALID_REQUEST",
 				recoverable: true,
 				context: { field },
@@ -45,7 +45,7 @@ function validateConstraintNumber(value: ConstraintNumber, field: string): void 
 		value.max !== undefined &&
 		value.min > value.max
 	) {
-		throw new CameraError(`${field}.min cannot be greater than ${field}.max`, {
+		throw new WebcamError(`${field}.min cannot be greater than ${field}.max`, {
 			code: "INVALID_REQUEST",
 			recoverable: true,
 			context: { field },
@@ -57,16 +57,16 @@ function copyNumberConstraint(value: ConstraintNumber): ConstrainULong | Constra
 	return typeof value === "number" ? value : { ...value };
 }
 
-export function buildMediaStreamConstraints(request: CameraRequest = {}): MediaStreamConstraints {
+export function buildMediaStreamConstraints(request: WebcamRequest = {}): MediaStreamConstraints {
 	if (request.signal?.aborted) {
-		throw new CameraError("Camera operation was aborted before it started", {
+		throw new WebcamError("Webcam operation was aborted before it started", {
 			code: "OPERATION_ABORTED",
 			recoverable: true,
 		});
 	}
 
 	if (request.deviceId !== undefined && request.deviceId.trim().length === 0) {
-		throw new CameraError("deviceId cannot be empty", {
+		throw new WebcamError("deviceId cannot be empty", {
 			code: "INVALID_REQUEST",
 			recoverable: true,
 			context: { field: "deviceId" },
@@ -74,7 +74,7 @@ export function buildMediaStreamConstraints(request: CameraRequest = {}): MediaS
 	}
 
 	if (request.deviceId && typeof request.facingMode === "object" && request.facingMode.exact) {
-		throw new CameraError("deviceId cannot be combined with an exact facingMode", {
+		throw new WebcamError("deviceId cannot be combined with an exact facingMode", {
 			code: "INVALID_REQUEST",
 			recoverable: true,
 			context: { fields: ["deviceId", "facingMode"] },

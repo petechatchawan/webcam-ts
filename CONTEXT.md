@@ -1,23 +1,33 @@
 # Webcam-TS — Context & Domain Language
 
 Authority: `packages/webcam-ts/README.md`, `packages/webcam-ts/test`, และ `CONTEXT.md` ฉบับนี้
-แกนของ library: กล้องหนึ่งตัว (`Camera`) เป็นเจ้าของ lifecycle และ `MediaStream` หนึ่งอันต่อหนึ่งช่วงเวลา
+แกนของ library: กล้องหนึ่งตัว (`Webcam`) เป็นเจ้าของ lifecycle และ `MediaStream` หนึ่งอันต่อหนึ่งช่วงเวลา
 
 ## Ubiquitous language
 
-| คำ            | ความหมาย                                                            | ห้ามใช้แทน               |
-| ------------- | ------------------------------------------------------------------- | ------------------------ |
-| Camera        | จุดเข้า public เดียว ผู้ถือ state และเจ้าของ stream                 | client, manager, service |
-| session       | ช่วงเวลาที่กล้อง active ตั้งแต่ start สำเร็จจนหยุด (มี `sessionId`) | connection, instance     |
-| operation     | คำสั่งที่กำลังทำงาน: `start` \| `stop` \| `dispose`                 | action, job              |
-| pending start | `start` ที่กำลังวิ่งอยู่ตัวเดียว; มี id และเหตุผลเมื่อถูกยกเลิก     | token, lease, lock       |
-| candidate     | stream ที่เปิดได้แล้วแต่ยังไม่ commit เป็น active                   | pending, temp            |
-| active stream | stream ที่ session เป็นเจ้าของอยู่ — ตัวเดียวเท่านั้น               | current, live            |
-| request       | คำขอเปิดกล้อง (`CameraRequest`)                                     | config, options          |
-| constraint    | ข้อจำกัดของ track (width/height/frameRate/facingMode/deviceId)      | setting                  |
-| track ended   | อีเวนต์จาก browser ว่า track ตาย — จบ session ด้วย `TRACK_ENDED`    | disconnect               |
-| dispose       | จบถาวร ใช้ต่อไม่ได้ (`DISPOSED`)                                    | close, destroy           |
-| snapshot    | อ่านความสามารถของ device โดยเปิด temp stream ชั่วคราวแล้วทิ้ง (`snapshotCapabilities`) | probe, inspect           |
+| คำ                 | ความหมาย                                                                               | ห้ามใช้แทน               |
+| ------------------ | -------------------------------------------------------------------------------------- | ------------------------ |
+| Webcam             | core facade ผู้ถือ state และเจ้าของ stream                                             | client, manager, service |
+| session            | ช่วงเวลาที่กล้อง active ตั้งแต่ start สำเร็จจนหยุด (มี `sessionId`)                    | connection, instance     |
+| operation          | คำสั่งที่กำลังทำงาน: `start` \| `stop` \| `dispose`                                    | action, job              |
+| pending start      | `start` ที่กำลังวิ่งอยู่ตัวเดียว; มี id และเหตุผลเมื่อถูกยกเลิก                        | token, lease, lock       |
+| candidate          | stream ที่เปิดได้แล้วแต่ยังไม่ commit เป็น active                                      | pending, temp            |
+| active stream      | stream ที่ session เป็นเจ้าของอยู่ — ตัวเดียวเท่านั้น                                  | current, live            |
+| webcam request     | คำขอเปิดเว็บแคม (`WebcamRequest`)                                                      | config, options          |
+| permission request | คำขอสิทธิ์ใช้อุปกรณ์ (`PermissionRequest`)                                             | webcam request           |
+| device info        | ข้อมูลอุปกรณ์ที่ browser ให้ผ่าน `MediaDeviceInfo`                                     | duplicate device wrapper |
+| permission map     | สถานะกล้องและไมโครโฟน (`PermissionMap`, `MediaPermissionState`)                        | `PermissionService`      |
+| constraint         | ข้อจำกัดของ track (width/height/frameRate/facingMode/deviceId)                         | setting                  |
+| track ended        | อีเวนต์จาก browser ว่า track ตาย — จบ session ด้วย `TRACK_ENDED`                       | disconnect               |
+| dispose            | จบถาวร ใช้ต่อไม่ได้ (`DISPOSED`)                                                       | close, destroy           |
+| capability info    | ค่า settings และ capabilities ที่ browser รายงานสำหรับอุปกรณ์ (`DeviceCapabilityInfo`) | probe, inspect           |
+
+## Public API naming
+
+ชื่อ API ที่ root entrypoint ใช้ `Webcam` สำหรับ facade และ domain types
+(`Webcam`, `WebcamError`, `WebcamRequest`); API ใน subpath ใช้ชื่อสั้นตามหน้าที่
+เพราะ import path บอกขอบเขตอยู่แล้ว (`Preview`, `Capture`, `Controls`,
+`DeviceManager`, `PermissionService`, `EventHub`).
 
 ## Lifecycle (แหล่งความจริงเดียว)
 
@@ -37,14 +47,12 @@ Track ended ระหว่าง replacement → หยุด stream เก่�
 
 | ช่วง                         | ใครถือ                 | หมายเหตุ                                               |
 | ---------------------------- | ---------------------- | ------------------------------------------------------ |
-| ระหว่างเปิด                  | Camera (candidate)     | ถ้า `start` ตาย/ถูก abort/preempt → `stopStream` ทันที |
-| commit สำเร็จ                | Camera (active stream) | candidate → active ในจังหวะเดียว                       |
-| แทน stream สำเร็จ            | Camera (active ใหม่)   | stream เก่าถูก `stopStream` หลัง emit event            |
+| ระหว่างเปิด                  | Webcam (candidate)     | ถ้า `start` ตาย/ถูก abort/preempt → `stopStream` ทันที |
+| commit สำเร็จ                | Webcam (active stream) | candidate → active ในจังหวะเดียว                       |
+| แทน stream สำเร็จ            | Webcam (active ใหม่)   | stream เก่าถูก `stopStream` หลัง emit event            |
 | stop / dispose / track ended | —                      | `stopStream` ทั้ง candidate และ active                 |
 
 ## Error codes → เกิดเมื่อไหร่
-
-Authority: error taxonomy ปัจจุบัน (`packages/webcam-ts/src/domain/camera-error.ts`)
 
 - `INVALID_REQUEST` — request ผิด (deviceId ว่าง, exact ≤ 0, exact+exact ชนกัน)
 - `INVALID_STATE` — คำสั่งไม่ถูกตาม lifecycle table
