@@ -57,3 +57,45 @@ test("request rejects exact deviceId combined with exact facingMode", () => {
     (error) => error.code === "INVALID_REQUEST",
   );
 });
+
+function createDevice(deviceId = "camera-1", label = "Camera") {
+  return { deviceId, groupId: "group", kind: "videoinput", label };
+}
+
+test("request accepts a device object and maps it to an exact constraint", () => {
+  const constraints = buildMediaStreamConstraints({ device: createDevice("camera-1") });
+
+  assert.deepEqual(constraints, {
+    video: { deviceId: { exact: "camera-1" } },
+    audio: false,
+  });
+});
+
+test("request prefers device over deviceId", () => {
+  const constraints = buildMediaStreamConstraints({
+    device: createDevice("camera-2"),
+    deviceId: "camera-1",
+  });
+
+  assert.deepEqual(constraints.video, { deviceId: { exact: "camera-2" } });
+});
+
+test("request rejects a device without a deviceId", () => {
+  assert.throws(
+    () => buildMediaStreamConstraints({ device: createDevice("") }),
+    (error) =>
+      error instanceof WebcamError &&
+      error.code === "INVALID_REQUEST" &&
+      error.context?.field === "device",
+  );
+});
+
+test("request rejects device combined with exact facingMode", () => {
+  assert.throws(
+    () => buildMediaStreamConstraints({
+      device: createDevice("camera-a"),
+      facingMode: { exact: "environment" },
+    }),
+    (error) => error.code === "INVALID_REQUEST",
+  );
+});

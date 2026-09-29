@@ -6,8 +6,7 @@ import type { MediaDevicesPort } from "../platform/media-devices-port.js";
 import { stopStream } from "../platform/stream-cleanup.js";
 
 export interface DeviceCapabilityInfo {
-	readonly deviceId: string;
-	readonly label: string | null;
+	readonly device: MediaDeviceInfo;
 	readonly settings: Readonly<MediaTrackSettings>;
 	readonly capabilities: Readonly<MediaTrackCapabilities>;
 }
@@ -56,13 +55,13 @@ export class DeviceManager {
 	}
 
 	public async snapshotCapabilities(
-		deviceId: string,
+		device: MediaDeviceInfo,
 		options: DeviceCapabilityInfoOptions = {},
 	): Promise<DeviceCapabilityInfo> {
 		try {
 			this.assertNotDisposed();
-			if (!deviceId.trim()) {
-				throw new WebcamError("A deviceId is required for capability probing", {
+			if (!device.deviceId.trim()) {
+				throw new WebcamError("device has no deviceId; request camera permission first", {
 					code: "INVALID_REQUEST",
 				});
 			}
@@ -72,8 +71,8 @@ export class DeviceManager {
 			const activeTrack = options.webcam?.getActiveTrack() ?? null;
 			if (activeTrack && activeTrack.readyState === "live") {
 				const activeSettings = activeTrack.getSettings();
-				if (activeSettings.deviceId === deviceId) {
-					return this.createDeviceCapabilityInfo(deviceId, activeTrack);
+				if (activeSettings.deviceId === device.deviceId) {
+					return this.createDeviceCapabilityInfo(device, activeTrack);
 				}
 			}
 
@@ -81,7 +80,7 @@ export class DeviceManager {
 			try {
 				try {
 					tempStream = await this.mediaDevices.open({
-						video: { deviceId: { exact: deviceId } },
+						video: { deviceId: { exact: device.deviceId } },
 						audio: false,
 					});
 				} catch (error) {
@@ -93,11 +92,11 @@ export class DeviceManager {
 				if (!track || track.readyState !== "live") {
 					throw new WebcamError("Capability snapshot did not produce a live video track", {
 						code: "STREAM_INVALID",
-						context: { deviceId },
+						context: { deviceId: device.deviceId },
 					});
 				}
 
-				return this.createDeviceCapabilityInfo(deviceId, track);
+				return this.createDeviceCapabilityInfo(device, track);
 			} finally {
 				if (tempStream) stopStream(tempStream);
 			}
@@ -136,12 +135,11 @@ export class DeviceManager {
 	}
 
 	private createDeviceCapabilityInfo(
-		deviceId: string,
+		device: MediaDeviceInfo,
 		track: MediaStreamTrack,
 	): DeviceCapabilityInfo {
 		return Object.freeze({
-			deviceId,
-			label: track.label || null,
+			device: Object.freeze({ ...device }),
 			settings: deepCloneAndFreeze(track.getSettings()),
 			capabilities: deepCloneAndFreeze(track.getCapabilities()),
 		});

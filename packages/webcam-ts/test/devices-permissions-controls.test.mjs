@@ -28,6 +28,10 @@ function createStream(track = createTrack()) {
   };
 }
 
+function createDevice(deviceId = "camera-a", label = "Camera") {
+  return { deviceId, groupId: "group", kind: "videoinput", label };
+}
+
 test("device listing never opens a media stream", async () => {
   let openCalls = 0;
   const deviceInfo = {
@@ -304,10 +308,12 @@ test("capability snapshot reuses a matching active track without opening or stop
   const manager = new DeviceManager({ mediaDevices: port });
   await camera.start({ deviceId: "camera-a" });
 
-  const result = await manager.snapshotCapabilities("camera-a", { webcam: camera });
+  const result = await manager.snapshotCapabilities(createDevice("camera-a"), { webcam: camera });
 
   assert.equal(openCalls, 1);
-  assert.equal(result.deviceId, "camera-a");
+  assert.equal(result.device.deviceId, "camera-a");
+  assert.equal(result.device.label, "Camera");
+  assert.equal(Object.isFrozen(result.device), true);
   assert.equal(result.capabilities.width.max, 1920);
   assert.equal(track.stopCalls, 0);
 });
@@ -324,8 +330,9 @@ test("capability snapshot cleans an explicit temporary stream", async () => {
     },
   });
 
-  const result = await manager.snapshotCapabilities("camera-b");
+  const result = await manager.snapshotCapabilities(createDevice("camera-b"));
 
+  assert.equal(result.device.deviceId, "camera-b");
   assert.equal(result.capabilities.width.max, 3840);
   assert.equal(track.stopCalls, 1);
 });
@@ -341,8 +348,22 @@ test("capability snapshot normalizes track inspection failures and stops its str
   });
 
   await assert.rejects(
-    () => manager.snapshotCapabilities("camera-a"),
+    () => manager.snapshotCapabilities(createDevice("camera-a")),
     (error) => error instanceof WebcamError && error.code === "UNKNOWN",
   );
   assert.equal(track.stopCalls, 1);
+});
+
+test("capability snapshot rejects a device without a deviceId", async () => {
+  const manager = new DeviceManager({
+    mediaDevices: {
+      async open() { throw new Error("must not open"); },
+      async enumerateDevices() { return []; },
+    },
+  });
+
+  await assert.rejects(
+    () => manager.snapshotCapabilities(createDevice("", "Unlabeled")),
+    (error) => error instanceof WebcamError && error.code === "INVALID_REQUEST",
+  );
 });

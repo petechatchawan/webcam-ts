@@ -5,22 +5,22 @@ Authority: `packages/webcam-ts/README.md`, `packages/webcam-ts/test`, และ 
 
 ## Ubiquitous language
 
-| คำ                 | ความหมาย                                                                               | ห้ามใช้แทน               |
-| ------------------ | -------------------------------------------------------------------------------------- | ------------------------ |
-| Webcam             | core facade ผู้ถือ state และเจ้าของ stream                                             | client, manager, service |
-| session            | ช่วงเวลาที่กล้อง active ตั้งแต่ start สำเร็จจนหยุด (มี `sessionId`)                    | connection, instance     |
-| operation          | คำสั่งที่กำลังทำงาน: `start` \| `stop` \| `dispose`                                    | action, job              |
-| pending start      | `start` ที่กำลังวิ่งอยู่ตัวเดียว; มี id และเหตุผลเมื่อถูกยกเลิก                        | token, lease, lock       |
-| candidate          | stream ที่เปิดได้แล้วแต่ยังไม่ commit เป็น active                                      | pending, temp            |
-| active stream      | stream ที่ session เป็นเจ้าของอยู่ — ตัวเดียวเท่านั้น                                  | current, live            |
-| webcam request     | คำขอเปิดเว็บแคม (`WebcamRequest`)                                                      | config, options          |
-| permission request | คำขอสิทธิ์ใช้อุปกรณ์ (`PermissionRequest`)                                             | webcam request           |
-| device info        | ข้อมูลอุปกรณ์ที่ browser ให้ผ่าน `MediaDeviceInfo`                                     | duplicate device wrapper |
-| permission map     | สถานะกล้องและไมโครโฟน (`PermissionMap`, `MediaPermissionState`)                        | `PermissionService`      |
-| constraint         | ข้อจำกัดของ track (width/height/frameRate/facingMode/deviceId)                         | setting                  |
-| track ended        | อีเวนต์จาก browser ว่า track ตาย — จบ session ด้วย `TRACK_ENDED`                       | disconnect               |
-| dispose            | จบถาวร ใช้ต่อไม่ได้ (`DISPOSED`)                                                       | close, destroy           |
-| capability info    | ค่า settings และ capabilities ที่ browser รายงานสำหรับอุปกรณ์ (`DeviceCapabilityInfo`) | probe, inspect           |
+| คำ                 | ความหมาย                                                                                                                | ห้ามใช้แทน               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| Webcam             | core facade ผู้ถือ state และเจ้าของ stream                                                                              | client, manager, service |
+| session            | ช่วงเวลาที่กล้อง active ตั้งแต่ start สำเร็จจนหยุด (มี `sessionId`)                                                     | connection, instance     |
+| operation          | คำสั่งที่กำลังทำงาน: `start` \| `stop` \| `dispose`                                                                     | action, job              |
+| pending start      | `start` ที่กำลังวิ่งอยู่ตัวเดียว; มี id และเหตุผลเมื่อถูกยกเลิก                                                         | token, lease, lock       |
+| candidate          | stream ที่เปิดได้แล้วแต่ยังไม่ commit เป็น active                                                                       | pending, temp            |
+| active stream      | stream ที่ session เป็นเจ้าของอยู่ — ตัวเดียวเท่านั้น                                                                   | current, live            |
+| webcam request     | คำขอเปิดเว็บแคม (`WebcamRequest`)                                                                                       | config, options          |
+| permission request | คำขอสิทธิ์ใช้อุปกรณ์ (`PermissionRequest`)                                                                              | webcam request           |
+| device info        | ข้อมูลอุปกรณ์ที่ browser ให้ผ่าน `MediaDeviceInfo`; ส่งทั้งก้อนใน request ได้ (`device?`)                               | duplicate device wrapper |
+| permission map     | สถานะกล้องและไมโครโฟน (`PermissionMap`, `MediaPermissionState`)                                                         | `PermissionService`      |
+| constraint         | ข้อจำกัดของ track (width/height/frameRate/facingMode/deviceId)                                                          | setting                  |
+| track ended        | อีเวนต์จาก browser ว่า track ตาย — จบ session ด้วย `TRACK_ENDED`                                                        | disconnect               |
+| dispose            | จบถาวร ใช้ต่อไม่ได้ (`DISPOSED`)                                                                                        | close, destroy           |
+| capability info    | ค่า settings และ capabilities ที่ browser รายงานสำหรับอุปกรณ์ (`DeviceCapabilityInfo` เก็บ `device` ทั้งก้อนแบบ frozen) | probe, inspect           |
 
 ## Public API naming
 
@@ -54,7 +54,7 @@ Track ended ระหว่าง replacement → หยุด stream เก่�
 
 ## Error codes → เกิดเมื่อไหร่
 
-- `INVALID_REQUEST` — request ผิด (deviceId ว่าง, exact ≤ 0, exact+exact ชนกัน)
+- `INVALID_REQUEST` — request ผิด (device/deviceId ว่าง, exact ≤ 0, exact+exact ชนกัน)
 - `INVALID_STATE` — คำสั่งไม่ถูกตาม lifecycle table
 - `DISPOSED` — ใช้หลัง dispose (recoverable: false)
 - `PERMISSION_DENIED` / `DEVICE_NOT_FOUND` / `DEVICE_BUSY` / `CONSTRAINT_UNSATISFIED` / `SECURITY_RESTRICTION` — map จาก browser error name ที่ platform boundary

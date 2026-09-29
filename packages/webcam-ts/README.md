@@ -392,9 +392,9 @@ if (device) {
 		webcam,
 		signal: controller.signal,
 	};
-	const info: DeviceCapabilityInfo = await manager.snapshotCapabilities(device.deviceId, options);
+	const info: DeviceCapabilityInfo = await manager.snapshotCapabilities(device, options);
 
-	console.log(info.deviceId, info.label);
+	console.log(info.device.deviceId, info.device.label);
 	console.log(info.settings, info.capabilities);
 }
 
@@ -403,10 +403,11 @@ manager.dispose();
 await webcam.dispose();
 ```
 
-DeviceCapabilityInfo contains deviceId, label, settings, and capabilities.
-Pass an AbortSignal in DeviceCapabilityInfoOptions to cancel a capability
-probe. The returned MediaDeviceInfo values are the browser's records; webcam-ts
-does not create a duplicate device wrapper.
+DeviceCapabilityInfo contains the frozen device record plus its settings and
+capabilities. Pass an AbortSignal in DeviceCapabilityInfoOptions to cancel a
+capability snapshot. `WebcamRequest` also accepts the whole device object
+(`device?: MediaDeviceInfo`), which wins over `deviceId`; a device without a
+deviceId is rejected so an unpermitted device list fails loudly.
 
 ## Permissions
 
