@@ -54,7 +54,7 @@ Track ended ระหว่าง replacement → หยุด stream เก่�
 
 ## Error codes → เกิดเมื่อไหร่
 
-- `INVALID_REQUEST` — request ผิด (device/deviceId ว่าง, exact ≤ 0, exact+exact ชนกัน)
+- `INVALID_REQUEST` — request ผิด (device ว่าง/ไม่มี deviceId, exact ≤ 0, exact+exact ชนกัน)
 - `INVALID_STATE` — คำสั่งไม่ถูกตาม lifecycle table
 - `DISPOSED` — ใช้หลัง dispose (recoverable: false)
 - `PERMISSION_DENIED` / `DEVICE_NOT_FOUND` / `DEVICE_BUSY` / `CONSTRAINT_UNSATISFIED` / `SECURITY_RESTRICTION` — map จาก browser error name ที่ platform boundary
