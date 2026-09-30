@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.1.0 — 2026-09-30
+
+- `WebcamRequest` takes a whole `MediaDeviceInfo` (`device?`) instead of a
+  `deviceId` string; devices without a deviceId are rejected.
+- `DeviceCapabilityInfo` stores the frozen `device` record instead of separate
+  `deviceId`/`label` fields; `snapshotCapabilities()` takes the device object.
+
 ## 5.0.0 — 2026-09-28
 
 ### Breaking
@@ -13,10 +20,6 @@
 - Renamed the `webcam-ts/testing` export `WebcamEventHub` to `EventHub`.
 - Removed the old `Webcam`-prefixed subpath exports without compatibility
   aliases; root `Webcam` and its domain types retain their names.
-- `WebcamRequest` takes a whole `MediaDeviceInfo` (`device?`) instead of a
-  `deviceId` string; devices without a deviceId are rejected.
-- `DeviceCapabilityInfo` stores the frozen `device` record instead of separate
-  `deviceId`/`label` fields; `snapshotCapabilities()` takes the device object.
 
 ## 4.0.0 — 2026-09-25
 
