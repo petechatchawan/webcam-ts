@@ -22,6 +22,11 @@ const exactSelection = {
   mirror: false,
 };
 
+const deviceList = Object.freeze([
+  Object.freeze({ deviceId: "camera-1", groupId: "group", kind: "videoinput", label: "Front" }),
+  Object.freeze({ deviceId: "camera-2", groupId: "group", kind: "videoinput", label: "Rear" }),
+]);
+
 test("active status enables replacement start and stop", () => {
   assert.deepEqual(deriveCommandAvailability("active"), {
     canStart: true,
@@ -31,8 +36,8 @@ test("active status enables replacement start and stop", () => {
 });
 
 test("request uses exact device and exact resolution by default", () => {
-  assert.deepEqual(buildWebcamRequest(exactSelection), {
-    deviceId: "camera-2",
+  assert.deepEqual(buildWebcamRequest(exactSelection, deviceList), {
+    device: deviceList[1],
     resolution: {
       width: { exact: 1920 },
       height: { exact: 1920 },
@@ -43,12 +48,34 @@ test("request uses exact device and exact resolution by default", () => {
 
 test("request allows an explicit ideal resolution fallback mode", () => {
   assert.deepEqual(
-    buildWebcamRequest({ ...exactSelection, resolutionMode: "ideal" }),
+    buildWebcamRequest({ ...exactSelection, resolutionMode: "ideal" }, deviceList),
     {
-      deviceId: "camera-2",
+      device: deviceList[1],
       resolution: {
         width: { ideal: 1920 },
         height: { ideal: 1920 },
+      },
+      audio: false,
+    },
+  );
+});
+
+test("request rejects a selected camera that left the device list", () => {
+  assert.throws(
+    () => buildWebcamRequest(exactSelection, []),
+    (error) => error instanceof Error && error.message === "Selected camera is no longer available.",
+  );
+});
+
+test("request falls back to facing mode without a device selection", () => {
+  assert.deepEqual(buildWebcamRequest({ ...exactSelection, deviceId: "" }, deviceList).facingMode, undefined);
+  assert.deepEqual(
+    buildWebcamRequest({ ...exactSelection, deviceId: "", facingMode: "user" }, deviceList),
+    {
+      facingMode: "user",
+      resolution: {
+        width: { exact: 1920 },
+        height: { exact: 1920 },
       },
       audio: false,
     },

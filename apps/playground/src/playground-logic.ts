@@ -67,9 +67,12 @@ export function projectRequestedResolution(
 	});
 }
 
-export function buildWebcamRequest(selection: WebcamSelection): WebcamRequest {
+export function buildWebcamRequest(
+	selection: WebcamSelection,
+	devices: readonly MediaDeviceInfo[],
+): WebcamRequest {
 	const request: {
-		deviceId?: string;
+		device?: MediaDeviceInfo;
 		facingMode?: "user" | "environment";
 		resolution?: {
 			width: { exact: number } | { ideal: number };
@@ -80,7 +83,11 @@ export function buildWebcamRequest(selection: WebcamSelection): WebcamRequest {
 
 	const deviceId = selection.deviceId.trim();
 	if (deviceId) {
-		request.deviceId = deviceId;
+		const device = devices.find((candidate) => candidate.deviceId === deviceId);
+		if (!device) {
+			throw new Error("Selected camera is no longer available.");
+		}
+		request.device = device;
 	} else if (selection.facingMode) {
 		request.facingMode = selection.facingMode;
 	}

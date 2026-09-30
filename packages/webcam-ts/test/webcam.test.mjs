@@ -29,6 +29,10 @@ function createStream(track = createTrack()) {
   };
 }
 
+function createDevice(deviceId = "camera", label = "Webcam") {
+  return { deviceId, groupId: "group", kind: "videoinput", label };
+}
+
 function createPort(open) {
   return {
     open,
@@ -41,7 +45,7 @@ test("start commits one active stream and immutable state", async () => {
   const stream = createStream(track);
   const camera = new Webcam({ mediaDevices: createPort(async () => stream) });
 
-  await camera.start({ deviceId: "camera-a" });
+  await camera.start({ device: createDevice("camera-a") });
 
   assert.equal(camera.getActiveStream(), stream);
   assert.equal(camera.getState().status, "active");
@@ -79,12 +83,12 @@ test("state error snapshots deeply freeze nested context", async () => {
   const camera = new Webcam({ mediaDevices: createPort(async () => createStream()) });
 
   await assert.rejects(() => camera.start({
-    deviceId: "camera-a",
+    device: createDevice("camera-a"),
     facingMode: { exact: "user" },
   }));
 
   const fields = camera.getState().lastError.context.fields;
-  assert.deepEqual(fields, ["deviceId", "facingMode"]);
+  assert.deepEqual(fields, ["device", "facingMode"]);
   assert.equal(Object.isFrozen(fields), true);
 });
 
@@ -127,7 +131,7 @@ test("aborting a start mid-flight recovers to idle and allows the next start", a
   await assert.rejects(startPromise, (error) => error.code === "OPERATION_ABORTED");
   assert.equal(camera.getState().status, "idle");
 
-  await camera.start({ deviceId: "camera-a" });
+  await camera.start({ device: createDevice("camera-a") });
   assert.equal(camera.getActiveStream(), activeStream);
   assert.equal(camera.getState().status, "active");
 });
@@ -144,9 +148,9 @@ test("failed start while active preserves the previous stream", async () => {
     }),
   });
 
-  await camera.start({ deviceId: "camera-a" });
+  await camera.start({ device: createDevice("camera-a") });
   await assert.rejects(
-    () => camera.start({ deviceId: "camera-b" }),
+    () => camera.start({ device: createDevice("camera-b") }),
     (error) => error.code === "DEVICE_BUSY",
   );
 
@@ -166,8 +170,8 @@ test("aborting a replacement start mid-flight keeps the previous stream active",
     mediaDevices: createPort(() => (++calls === 1 ? Promise.resolve(activeStream) : pending.promise)),
   });
 
-  await camera.start({ deviceId: "camera-a" });
-  const replacementPromise = camera.start({ deviceId: "camera-b", signal: abortController.signal });
+  await camera.start({ device: createDevice("camera-a") });
+  const replacementPromise = camera.start({ device: createDevice("camera-b"), signal: abortController.signal });
   abortController.abort();
   pending.resolve(createStream(candidateTrack));
 
@@ -184,9 +188,9 @@ test("a second start while starting is rejected instead of superseding", async (
   const stream = createStream(track);
   const camera = new Webcam({ mediaDevices: createPort(() => pending.promise) });
 
-  const firstStart = camera.start({ deviceId: "camera-a" });
+  const firstStart = camera.start({ device: createDevice("camera-a") });
   await assert.rejects(
-    () => camera.start({ deviceId: "camera-b" }),
+    () => camera.start({ device: createDevice("camera-b") }),
     (error) => error.code === "INVALID_STATE",
   );
   pending.resolve(stream);
@@ -209,7 +213,7 @@ test("dispose preempts a replacement start and permanently terminates the camera
   });
 
   await camera.start();
-  const replacementPromise = camera.start({ deviceId: "camera-b" });
+  const replacementPromise = camera.start({ device: createDevice("camera-b") });
   await camera.dispose();
   pending.resolve(candidateStream);
 
@@ -241,9 +245,9 @@ test("candidate inspection failure preserves the active stream and releases the 
     }),
   });
 
-  await camera.start({ deviceId: "camera-a" });
+  await camera.start({ device: createDevice("camera-a") });
   await assert.rejects(
-    () => camera.start({ deviceId: "camera-b" }),
+    () => camera.start({ device: createDevice("camera-b") }),
     (error) => error instanceof WebcamError,
   );
 
@@ -269,7 +273,7 @@ test("replacement start errors are attributed to the start operation", async () 
   });
   await camera.start();
   await assert.rejects(
-    () => camera.start({ deviceId: "camera-b" }),
+    () => camera.start({ device: createDevice("camera-b") }),
     (error) => error.operation === "start",
   );
 });
@@ -294,7 +298,7 @@ test("default browser adapter attributes replacement failures to start", async (
     const camera = new Webcam();
     await camera.start();
     await assert.rejects(
-      () => camera.start({ deviceId: "camera-b" }),
+      () => camera.start({ device: createDevice("camera-b") }),
       (error) => error.operation === "start",
     );
   } finally {
@@ -412,8 +416,8 @@ test("track ended during replacement still commits the pending start", async () 
   const events = [];
   camera.subscribe((event) => events.push(event));
 
-  await camera.start({ deviceId: "camera-a" });
-  const replacementPromise = camera.start({ deviceId: "camera-b" });
+  await camera.start({ device: createDevice("camera-a") });
+  const replacementPromise = camera.start({ device: createDevice("camera-b") });
   activeTrack.emitEnded();
   pending.resolve(candidateStream);
   await replacementPromise;

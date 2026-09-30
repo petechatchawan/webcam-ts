@@ -221,7 +221,7 @@ export class WebcamController {
 		this.assertWebcamPermission("start");
 		this.preview.setMirror(selection.mirror);
 		await this.runResolutionOperation(selection, () =>
-			this.webcam.start(buildWebcamRequest(selection)),
+			this.webcam.start(buildWebcamRequest(selection, this.snapshot.devices)),
 		);
 		this.patch({ requestedResolution: projectRequestedResolution(selection) });
 		await this.refreshAfterStreamChange();

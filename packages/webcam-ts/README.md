@@ -94,7 +94,7 @@ be idle, starting, active, stopping, or disposed.
 
 ### Build and validate a request
 
-WebcamRequest supports deviceId, facingMode, resolution, frameRate, audio, and
+WebcamRequest supports device, facingMode, resolution, frameRate, audio, and
 AbortSignal. Numeric constraints may be a number or an object with min, max,
 ideal, and exact. String constraints may use ideal or exact.
 
@@ -123,7 +123,12 @@ const browserConstraints: MediaStreamConstraints = buildMediaStreamConstraints(r
 console.log(browserConstraints.video);
 
 const exactDeviceRequest: WebcamRequest = {
-	deviceId: "external-camera-id",
+	device: {
+		deviceId: "external-camera-id",
+		groupId: "external-group",
+		kind: "videoinput",
+		label: "External camera",
+	},
 	audio: false,
 };
 console.log(buildMediaStreamConstraints(exactDeviceRequest).video);
@@ -144,7 +149,7 @@ try {
 }
 ```
 
-A deviceId is requested as an exact match. An exact deviceId cannot be combined
+A device is requested as an exact match. An exact device cannot be combined
 with an exact facingMode. Use ideal constraints when the browser may choose a
 nearby supported value. buildMediaStreamConstraints validates and converts the
 request without opening a stream.
@@ -405,9 +410,9 @@ await webcam.dispose();
 
 DeviceCapabilityInfo contains the frozen device record plus its settings and
 capabilities. Pass an AbortSignal in DeviceCapabilityInfoOptions to cancel a
-capability snapshot. `WebcamRequest` also accepts the whole device object
-(`device?: MediaDeviceInfo`), which wins over `deviceId`; a device without a
-deviceId is rejected so an unpermitted device list fails loudly.
+capability snapshot. `WebcamRequest` takes the whole device object
+(`device?: MediaDeviceInfo`); a device without a deviceId is rejected so an
+unpermitted device list fails loudly.
 
 ## Permissions
 
@@ -496,7 +501,14 @@ import {
 const webcam = new Webcam();
 
 try {
-	await webcam.start({ deviceId: "external-camera-id" });
+	await webcam.start({
+		device: {
+			deviceId: "external-camera-id",
+			groupId: "external-group",
+			kind: "videoinput",
+			label: "External camera",
+		},
+	});
 } catch (error) {
 	if (error instanceof WebcamError) {
 		const code: WebcamErrorCode = error.code;

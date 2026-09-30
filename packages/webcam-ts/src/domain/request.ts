@@ -16,7 +16,6 @@ export type ConstraintString = Readonly<{
 
 export interface WebcamRequest {
 	readonly device?: MediaDeviceInfo;
-	readonly deviceId?: string;
 	readonly facingMode?: "user" | "environment" | ConstraintString;
 	readonly resolution?: Readonly<{
 		width?: ConstraintNumber;
@@ -66,7 +65,9 @@ export function buildMediaStreamConstraints(request: WebcamRequest = {}): MediaS
 		});
 	}
 
-	if (request.device !== undefined && request.device.deviceId.trim().length === 0) {
+	const deviceId = request.device?.deviceId;
+
+	if (request.device !== undefined && (deviceId === undefined || deviceId.trim().length === 0)) {
 		throw new WebcamError("device has no deviceId; request camera permission first", {
 			code: "INVALID_REQUEST",
 			recoverable: true,
@@ -74,21 +75,11 @@ export function buildMediaStreamConstraints(request: WebcamRequest = {}): MediaS
 		});
 	}
 
-	const deviceId = request.device?.deviceId ?? request.deviceId;
-
-	if (deviceId !== undefined && deviceId.trim().length === 0) {
-		throw new WebcamError("deviceId cannot be empty", {
-			code: "INVALID_REQUEST",
-			recoverable: true,
-			context: { field: "deviceId" },
-		});
-	}
-
 	if (deviceId && typeof request.facingMode === "object" && request.facingMode.exact) {
-		throw new WebcamError("deviceId cannot be combined with an exact facingMode", {
+		throw new WebcamError("device cannot be combined with an exact facingMode", {
 			code: "INVALID_REQUEST",
 			recoverable: true,
-			context: { fields: ["deviceId", "facingMode"] },
+			context: { fields: ["device", "facingMode"] },
 		});
 	}
 

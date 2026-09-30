@@ -126,7 +126,7 @@ test("failed replacement start leaves preview on the previous stream", async () 
   preview.bind(camera);
 
   await camera.start();
-  await assert.rejects(() => camera.start({ deviceId: "camera-b" }));
+  await assert.rejects(() => camera.start({ device: { deviceId: "camera-b", groupId: "", kind: "videoinput", label: "" } }));
   assert.equal(video.srcObject, stream);
 });
 

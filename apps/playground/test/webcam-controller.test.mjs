@@ -83,7 +83,10 @@ function createFixture({ startErrors = [] } = {}) {
     },
     devices: {
       async listDevices() {
-        return Object.freeze([]);
+        return Object.freeze([
+          Object.freeze({ deviceId: "camera-1", groupId: "group", kind: "videoinput", label: "Front" }),
+          Object.freeze({ deviceId: "camera-2", groupId: "group", kind: "videoinput", label: "Rear" }),
+        ]);
       },
       subscribeToDeviceListChanges() {
         return () => undefined;

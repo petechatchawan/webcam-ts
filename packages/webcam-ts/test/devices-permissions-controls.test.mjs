@@ -306,7 +306,7 @@ test("capability snapshot reuses a matching active track without opening or stop
   };
   const camera = new Webcam({ mediaDevices: port });
   const manager = new DeviceManager({ mediaDevices: port });
-  await camera.start({ deviceId: "camera-a" });
+  await camera.start({ device: createDevice("camera-a") });
 
   const result = await manager.snapshotCapabilities(createDevice("camera-a"), { webcam: camera });
 

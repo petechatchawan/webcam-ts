@@ -4,6 +4,10 @@ import assert from "node:assert/strict";
 import { WebcamError, buildMediaStreamConstraints } from "webcam-ts";
 import { assertCommandAllowed } from "webcam-ts/testing";
 
+function createDevice(deviceId = "camera-1", label = "Camera") {
+  return { deviceId, groupId: "group", kind: "videoinput", label };
+}
+
 test("start is rejected while starting", () => {
   assert.throws(
     () => assertCommandAllowed("starting", "start"),
@@ -28,7 +32,7 @@ test("camera request rejects non-positive exact width", () => {
 
 test("camera request maps stable primitives to browser constraints", () => {
   const constraints = buildMediaStreamConstraints({
-    deviceId: "camera-1",
+    device: createDevice("camera-1"),
     resolution: {
       width: { ideal: 1280 },
       height: { min: 720, max: 1080 },
@@ -51,16 +55,12 @@ test("camera request maps stable primitives to browser constraints", () => {
 test("request rejects exact deviceId combined with exact facingMode", () => {
   assert.throws(
     () => buildMediaStreamConstraints({
-      deviceId: "camera-a",
+      device: createDevice("camera-a"),
       facingMode: { exact: "environment" },
     }),
     (error) => error.code === "INVALID_REQUEST",
   );
 });
-
-function createDevice(deviceId = "camera-1", label = "Camera") {
-  return { deviceId, groupId: "group", kind: "videoinput", label };
-}
 
 test("request accepts a device object and maps it to an exact constraint", () => {
   const constraints = buildMediaStreamConstraints({ device: createDevice("camera-1") });
@@ -71,13 +71,10 @@ test("request accepts a device object and maps it to an exact constraint", () =>
   });
 });
 
-test("request prefers device over deviceId", () => {
-  const constraints = buildMediaStreamConstraints({
-    device: createDevice("camera-2"),
-    deviceId: "camera-1",
-  });
+test("request without a device falls back to facingMode", () => {
+  const constraints = buildMediaStreamConstraints({ facingMode: "user" });
 
-  assert.deepEqual(constraints.video, { deviceId: { exact: "camera-2" } });
+  assert.deepEqual(constraints.video, { facingMode: "user" });
 });
 
 test("request rejects a device without a deviceId", () => {
