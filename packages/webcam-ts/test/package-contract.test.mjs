@@ -3,9 +3,13 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const packageRoot = resolve(new URL("..", import.meta.url).pathname);
+const packageRoot = fileURLToPath(new URL("..", import.meta.url));
+
+const WINDOWS = process.platform === "win32";
+const NPM = WINDOWS ? "npm.cmd" : "npm";
 
 function npmEnvironment() {
   const environment = { ...process.env };
@@ -14,10 +18,11 @@ function npmEnvironment() {
 }
 
 test("declared package subpaths import from a packed tarball", () => {
-  const packOutput = execFileSync("npm", ["pack", "--ignore-scripts", "--json"], {
+  const packOutput = execFileSync(NPM, ["pack", "--ignore-scripts", "--json"], {
     cwd: packageRoot,
     encoding: "utf8",
     env: npmEnvironment(),
+    shell: WINDOWS,
   });
   const [{ filename }] = JSON.parse(packOutput);
   const tarball = join(packageRoot, filename);
@@ -25,10 +30,11 @@ test("declared package subpaths import from a packed tarball", () => {
 
   try {
     writeFileSync(join(fixture, "package.json"), JSON.stringify({ type: "module", private: true }));
-    execFileSync("npm", ["install", tarball, "--ignore-scripts", "--no-audit", "--no-fund"], {
+    execFileSync(NPM, ["install", tarball, "--ignore-scripts", "--no-audit", "--no-fund"], {
       cwd: fixture,
       stdio: "pipe",
       env: npmEnvironment(),
+      shell: WINDOWS,
     });
 
     const script = `
