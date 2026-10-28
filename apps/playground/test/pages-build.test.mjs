@@ -6,13 +6,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const playgroundRoot = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
-const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const WINDOWS = process.platform === "win32";
+const pnpm = WINDOWS ? "pnpm.cmd" : "pnpm";
 
 test("CI-mode build emits repository-relative asset paths", async () => {
   execFileSync(pnpm, ["exec", "vite", "build"], {
     cwd: playgroundRoot,
     env: { ...process.env, GITHUB_ACTIONS: "true" },
     stdio: "inherit",
+    shell: WINDOWS,
   });
   const html = await readFile(join(playgroundRoot, "dist/index.html"), "utf8");
   assert.match(html, /\/webcam-ts\/assets\//);
